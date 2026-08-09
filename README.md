@@ -6,6 +6,14 @@ e obter a tabela nutricional somada, no formato de rótulo brasileiro.
 
 HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 
+### ▶ Testar agora
+
+**<https://contatogabriel73-art.github.io/calculadora-nutricional/>**
+
+Abre direto no celular. Para instalar como app: no Android, menu ⋮ →
+*Instalar aplicativo*; no iPhone, Compartilhar → *Adicionar à Tela de Início*.
+Depois de instalado funciona **offline**.
+
 ---
 
 ## Como rodar

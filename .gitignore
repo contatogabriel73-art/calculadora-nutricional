@@ -1,0 +1,15 @@
+# Configuração local de ferramentas
+.claude/settings.local.json
+
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+
+# Node (o projeto não usa dependências, mas caso alguém rode npx aqui)
+node_modules/
+npm-debug.log*

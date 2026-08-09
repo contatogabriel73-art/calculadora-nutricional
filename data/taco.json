@@ -1,0 +1,719 @@
+{
+  "versao": "0.1.0",
+  "fonte": "TACO — Tabela Brasileira de Composição de Alimentos, 4a edição revisada e ampliada (NEPA/UNICAMP, 2011)",
+  "observacoes": [
+    "Todos os valores são por 100 g de alimento (parte comestível), na forma de preparo indicada no nome.",
+    "A TACO não publica o teor de AÇÚCARES TOTAIS. Os valores de 'acucares' são estimativas derivadas de tabelas complementares (USDA / IBGE-POF) e estão marcados com 'acucaresEstimado': true.",
+    "Itens marcados com 'fonte': 'USDA' não constam na TACO e foram preenchidos pela base FoodData Central para completar o subconjunto.",
+    "Para expandir para a base TACO completa (597 alimentos), basta acrescentar novos objetos ao array 'alimentos' mantendo exatamente este formato. Nenhuma alteração de código é necessária — o app lê o arquivo inteiro em tempo de execução. Veja o README.md, seção 'Expandindo a base'."
+  ],
+  "valoresDiarios": {
+    "_comentario": "Valores Diários de referência (VD) para dieta de 2.000 kcal — Anexo XIII da RDC 429/2020 e IN 75/2020 (ANVISA). Usados para calcular a coluna %VD do rótulo.",
+    "kcal": 2000,
+    "carboidratos": 300,
+    "proteinas": 50,
+    "gordurasTotais": 55,
+    "gordurasSaturadas": 22,
+    "fibras": 25,
+    "sodio": 2000,
+    "acucares": null
+  },
+  "alimentos": [
+    {
+      "id": 1,
+      "nome": "Arroz branco, tipo 1, cozido",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 128, "carboidratos": 28.1, "proteinas": 2.5, "gordurasTotais": 0.2, "gordurasSaturadas": 0.1, "fibras": 1.6, "acucares": 0.1, "sodio": 1 },
+      "medidas": [
+        { "nome": "Colher de sopa cheia", "gramas": 25 },
+        { "nome": "Escumadeira", "gramas": 80 },
+        { "nome": "Xícara de chá", "gramas": 160 }
+      ]
+    },
+    {
+      "id": 2,
+      "nome": "Arroz integral, cozido",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 124, "carboidratos": 25.8, "proteinas": 2.6, "gordurasTotais": 1.0, "gordurasSaturadas": 0.3, "fibras": 2.7, "acucares": 0.4, "sodio": 1 },
+      "medidas": [
+        { "nome": "Colher de sopa cheia", "gramas": 25 },
+        { "nome": "Escumadeira", "gramas": 80 }
+      ]
+    },
+    {
+      "id": 3,
+      "nome": "Macarrão de trigo, cozido",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 111, "carboidratos": 23.0, "proteinas": 3.3, "gordurasTotais": 0.6, "gordurasSaturadas": 0.1, "fibras": 1.6, "acucares": 0.6, "sodio": 1 },
+      "medidas": [
+        { "nome": "Pegador", "gramas": 85 },
+        { "nome": "Prato raso", "gramas": 200 }
+      ]
+    },
+    {
+      "id": 4,
+      "nome": "Pão francês",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 300, "carboidratos": 58.6, "proteinas": 8.0, "gordurasTotais": 3.1, "gordurasSaturadas": 0.7, "fibras": 2.3, "acucares": 2.0, "sodio": 648 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 50 }]
+    },
+    {
+      "id": 5,
+      "nome": "Pão de forma integral",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 253, "carboidratos": 49.9, "proteinas": 9.4, "gordurasTotais": 3.0, "gordurasSaturadas": 0.6, "fibras": 6.9, "acucares": 4.0, "sodio": 546 },
+      "medidas": [{ "nome": "Fatia", "gramas": 25 }]
+    },
+    {
+      "id": 6,
+      "nome": "Aveia em flocos, crua",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 394, "carboidratos": 66.6, "proteinas": 13.9, "gordurasTotais": 8.5, "gordurasSaturadas": 1.5, "fibras": 9.1, "acucares": 1.0, "sodio": 5 },
+      "medidas": [
+        { "nome": "Colher de sopa", "gramas": 15 },
+        { "nome": "Xícara de chá", "gramas": 90 }
+      ]
+    },
+    {
+      "id": 7,
+      "nome": "Farinha de trigo",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 360, "carboidratos": 75.1, "proteinas": 9.8, "gordurasTotais": 1.4, "gordurasSaturadas": 0.3, "fibras": 2.3, "acucares": 0.4, "sodio": 1 },
+      "medidas": [
+        { "nome": "Colher de sopa", "gramas": 12 },
+        { "nome": "Xícara de chá", "gramas": 120 }
+      ]
+    },
+    {
+      "id": 8,
+      "nome": "Farinha de mandioca, torrada",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 361, "carboidratos": 87.9, "proteinas": 1.6, "gordurasTotais": 0.3, "gordurasSaturadas": 0.1, "fibras": 6.4, "acucares": 1.5, "sodio": 6 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 15 }]
+    },
+    {
+      "id": 9,
+      "nome": "Polvilho doce (goma de tapioca)",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 351, "carboidratos": 86.8, "proteinas": 0.4, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 0.0, "acucares": 0.0, "sodio": 2 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 20 }]
+    },
+    {
+      "id": 10,
+      "nome": "Milho verde, cozido",
+      "categoria": "Cereais e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 98, "carboidratos": 21.0, "proteinas": 3.2, "gordurasTotais": 0.6, "gordurasSaturadas": 0.1, "fibras": 3.9, "acucares": 3.0, "sodio": 1 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 25 }]
+    },
+
+    {
+      "id": 11,
+      "nome": "Feijão carioca, cozido",
+      "categoria": "Leguminosas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 76, "carboidratos": 13.6, "proteinas": 4.8, "gordurasTotais": 0.5, "gordurasSaturadas": 0.1, "fibras": 8.5, "acucares": 0.3, "sodio": 1 },
+      "medidas": [
+        { "nome": "Concha média", "gramas": 80 },
+        { "nome": "Colher de sopa", "gramas": 25 }
+      ]
+    },
+    {
+      "id": 12,
+      "nome": "Feijão preto, cozido",
+      "categoria": "Leguminosas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 77, "carboidratos": 14.0, "proteinas": 4.5, "gordurasTotais": 0.5, "gordurasSaturadas": 0.1, "fibras": 8.4, "acucares": 0.3, "sodio": 2 },
+      "medidas": [{ "nome": "Concha média", "gramas": 80 }]
+    },
+    {
+      "id": 13,
+      "nome": "Lentilha, cozida",
+      "categoria": "Leguminosas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 93, "carboidratos": 16.3, "proteinas": 6.3, "gordurasTotais": 0.5, "gordurasSaturadas": 0.1, "fibras": 7.9, "acucares": 0.5, "sodio": 2 },
+      "medidas": [{ "nome": "Concha média", "gramas": 80 }]
+    },
+    {
+      "id": 14,
+      "nome": "Grão-de-bico, cozido",
+      "categoria": "Leguminosas",
+      "fonte": "USDA",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 164, "carboidratos": 27.4, "proteinas": 8.9, "gordurasTotais": 2.6, "gordurasSaturadas": 0.3, "fibras": 7.6, "acucares": 4.8, "sodio": 7 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 30 }]
+    },
+    {
+      "id": 15,
+      "nome": "Tofu (queijo de soja)",
+      "categoria": "Leguminosas",
+      "fonte": "USDA",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 76, "carboidratos": 1.9, "proteinas": 8.1, "gordurasTotais": 4.8, "gordurasSaturadas": 0.7, "fibras": 0.3, "acucares": 0.6, "sodio": 7 },
+      "medidas": [{ "nome": "Fatia", "gramas": 60 }]
+    },
+
+    {
+      "id": 16,
+      "nome": "Frango, peito sem pele, grelhado",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 159, "carboidratos": 0.0, "proteinas": 32.0, "gordurasTotais": 2.5, "gordurasSaturadas": 0.7, "fibras": 0.0, "acucares": 0.0, "sodio": 50 },
+      "medidas": [{ "nome": "Filé médio", "gramas": 100 }]
+    },
+    {
+      "id": 17,
+      "nome": "Frango, coxa com pele, assada",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 215, "carboidratos": 0.0, "proteinas": 27.5, "gordurasTotais": 11.0, "gordurasSaturadas": 3.1, "fibras": 0.0, "acucares": 0.0, "sodio": 79 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 65 }]
+    },
+    {
+      "id": 18,
+      "nome": "Carne bovina, patinho, grelhado",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 219, "carboidratos": 0.0, "proteinas": 35.9, "gordurasTotais": 7.3, "gordurasSaturadas": 2.9, "fibras": 0.0, "acucares": 0.0, "sodio": 58 },
+      "medidas": [{ "nome": "Bife médio", "gramas": 100 }]
+    },
+    {
+      "id": 19,
+      "nome": "Carne bovina, acém, cozido",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 215, "carboidratos": 0.0, "proteinas": 26.7, "gordurasTotais": 11.2, "gordurasSaturadas": 4.4, "fibras": 0.0, "acucares": 0.0, "sodio": 45 },
+      "medidas": [{ "nome": "Pedaço médio", "gramas": 90 }]
+    },
+    {
+      "id": 20,
+      "nome": "Carne bovina, contrafilé, grelhado",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 278, "carboidratos": 0.0, "proteinas": 32.4, "gordurasTotais": 15.6, "gordurasSaturadas": 6.4, "fibras": 0.0, "acucares": 0.0, "sodio": 52 },
+      "medidas": [{ "nome": "Bife médio", "gramas": 100 }]
+    },
+    {
+      "id": 21,
+      "nome": "Carne suína, lombo, assado",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 210, "carboidratos": 0.0, "proteinas": 35.7, "gordurasTotais": 6.4, "gordurasSaturadas": 2.3, "fibras": 0.0, "acucares": 0.0, "sodio": 56 },
+      "medidas": [{ "nome": "Fatia média", "gramas": 80 }]
+    },
+    {
+      "id": 22,
+      "nome": "Linguiça de porco, frita",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 296, "carboidratos": 0.0, "proteinas": 24.6, "gordurasTotais": 21.4, "gordurasSaturadas": 7.7, "fibras": 0.0, "acucares": 0.5, "sodio": 1180 },
+      "medidas": [{ "nome": "Gomo", "gramas": 55 }]
+    },
+    {
+      "id": 23,
+      "nome": "Ovo de galinha, inteiro, cozido",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 146, "carboidratos": 0.6, "proteinas": 13.3, "gordurasTotais": 9.5, "gordurasSaturadas": 2.9, "fibras": 0.0, "acucares": 0.6, "sodio": 140 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 50 }]
+    },
+    {
+      "id": 24,
+      "nome": "Ovo de galinha, clara, cozida",
+      "categoria": "Carnes e ovos",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 59, "carboidratos": 0.0, "proteinas": 13.4, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 0.0, "acucares": 0.0, "sodio": 180 },
+      "medidas": [{ "nome": "Clara de 1 ovo", "gramas": 33 }]
+    },
+    {
+      "id": 25,
+      "nome": "Tilápia, filé, cru",
+      "categoria": "Pescados e frutos do mar",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 96, "carboidratos": 0.0, "proteinas": 20.1, "gordurasTotais": 1.7, "gordurasSaturadas": 0.6, "fibras": 0.0, "acucares": 0.0, "sodio": 52 },
+      "medidas": [{ "nome": "Filé médio", "gramas": 100 }]
+    },
+    {
+      "id": 26,
+      "nome": "Salmão, filé, grelhado",
+      "categoria": "Pescados e frutos do mar",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 243, "carboidratos": 0.0, "proteinas": 25.6, "gordurasTotais": 15.4, "gordurasSaturadas": 3.4, "fibras": 0.0, "acucares": 0.0, "sodio": 60 },
+      "medidas": [{ "nome": "Posta média", "gramas": 120 }]
+    },
+    {
+      "id": 27,
+      "nome": "Sardinha, assada",
+      "categoria": "Pescados e frutos do mar",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 164, "carboidratos": 0.0, "proteinas": 32.2, "gordurasTotais": 3.0, "gordurasSaturadas": 1.0, "fibras": 0.0, "acucares": 0.0, "sodio": 91 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 60 }]
+    },
+    {
+      "id": 28,
+      "nome": "Atum, conserva em óleo",
+      "categoria": "Pescados e frutos do mar",
+      "fonte": "USDA",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 166, "carboidratos": 0.0, "proteinas": 26.2, "gordurasTotais": 6.0, "gordurasSaturadas": 1.6, "fibras": 0.0, "acucares": 0.0, "sodio": 320 },
+      "medidas": [{ "nome": "Lata drenada", "gramas": 120 }]
+    },
+
+    {
+      "id": 29,
+      "nome": "Leite de vaca, integral (UHT)",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 61, "carboidratos": 4.7, "proteinas": 3.2, "gordurasTotais": 3.3, "gordurasSaturadas": 2.0, "fibras": 0.0, "acucares": 4.7, "sodio": 45 },
+      "medidas": [
+        { "nome": "Copo americano", "gramas": 200 },
+        { "nome": "Xícara de chá", "gramas": 240 }
+      ]
+    },
+    {
+      "id": 30,
+      "nome": "Leite de vaca, desnatado (UHT)",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 36, "carboidratos": 4.9, "proteinas": 3.1, "gordurasTotais": 0.2, "gordurasSaturadas": 0.1, "fibras": 0.0, "acucares": 4.9, "sodio": 50 },
+      "medidas": [{ "nome": "Copo americano", "gramas": 200 }]
+    },
+    {
+      "id": 31,
+      "nome": "Iogurte natural, integral",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 51, "carboidratos": 1.9, "proteinas": 4.1, "gordurasTotais": 3.0, "gordurasSaturadas": 1.9, "fibras": 0.0, "acucares": 1.9, "sodio": 52 },
+      "medidas": [{ "nome": "Pote", "gramas": 170 }]
+    },
+    {
+      "id": 32,
+      "nome": "Iogurte natural, desnatado",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 41, "carboidratos": 5.4, "proteinas": 3.8, "gordurasTotais": 0.3, "gordurasSaturadas": 0.2, "fibras": 0.0, "acucares": 5.4, "sodio": 60 },
+      "medidas": [{ "nome": "Pote", "gramas": 170 }]
+    },
+    {
+      "id": 33,
+      "nome": "Queijo minas, frescal",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 264, "carboidratos": 3.2, "proteinas": 17.4, "gordurasTotais": 20.2, "gordurasSaturadas": 12.0, "fibras": 0.0, "acucares": 2.0, "sodio": 340 },
+      "medidas": [{ "nome": "Fatia média", "gramas": 30 }]
+    },
+    {
+      "id": 34,
+      "nome": "Queijo mussarela",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 330, "carboidratos": 3.0, "proteinas": 22.6, "gordurasTotais": 25.2, "gordurasSaturadas": 15.0, "fibras": 0.0, "acucares": 1.5, "sodio": 580 },
+      "medidas": [{ "nome": "Fatia", "gramas": 20 }]
+    },
+    {
+      "id": 35,
+      "nome": "Queijo parmesão",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 453, "carboidratos": 1.7, "proteinas": 35.6, "gordurasTotais": 33.5, "gordurasSaturadas": 20.0, "fibras": 0.0, "acucares": 0.9, "sodio": 1200 },
+      "medidas": [{ "nome": "Colher de sopa ralado", "gramas": 10 }]
+    },
+    {
+      "id": 36,
+      "nome": "Requeijão cremoso",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 257, "carboidratos": 3.4, "proteinas": 9.6, "gordurasTotais": 22.7, "gordurasSaturadas": 14.0, "fibras": 0.0, "acucares": 3.0, "sodio": 500 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 20 }]
+    },
+    {
+      "id": 37,
+      "nome": "Manteiga com sal",
+      "categoria": "Óleos e gorduras",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 726, "carboidratos": 0.1, "proteinas": 0.4, "gordurasTotais": 82.4, "gordurasSaturadas": 51.0, "fibras": 0.0, "acucares": 0.1, "sodio": 579 },
+      "medidas": [
+        { "nome": "Ponta de faca", "gramas": 5 },
+        { "nome": "Colher de sopa", "gramas": 14 }
+      ]
+    },
+    {
+      "id": 38,
+      "nome": "Creme de leite",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 217, "carboidratos": 3.0, "proteinas": 2.3, "gordurasTotais": 22.5, "gordurasSaturadas": 14.0, "fibras": 0.0, "acucares": 3.0, "sodio": 40 },
+      "medidas": [
+        { "nome": "Colher de sopa", "gramas": 15 },
+        { "nome": "Caixinha", "gramas": 200 }
+      ]
+    },
+    {
+      "id": 39,
+      "nome": "Leite condensado",
+      "categoria": "Leites e derivados",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 313, "carboidratos": 57.0, "proteinas": 7.5, "gordurasTotais": 6.7, "gordurasSaturadas": 4.2, "fibras": 0.0, "acucares": 54.0, "sodio": 130 },
+      "medidas": [
+        { "nome": "Colher de sopa", "gramas": 20 },
+        { "nome": "Lata", "gramas": 395 }
+      ]
+    },
+
+    {
+      "id": 40,
+      "nome": "Azeite de oliva extra virgem",
+      "categoria": "Óleos e gorduras",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 884, "carboidratos": 0.0, "proteinas": 0.0, "gordurasTotais": 100.0, "gordurasSaturadas": 13.8, "fibras": 0.0, "acucares": 0.0, "sodio": 2 },
+      "medidas": [
+        { "nome": "Colher de chá", "gramas": 4 },
+        { "nome": "Colher de sopa", "gramas": 13 },
+        { "nome": "Fio (regar)", "gramas": 8 }
+      ]
+    },
+    {
+      "id": 41,
+      "nome": "Óleo de soja",
+      "categoria": "Óleos e gorduras",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 884, "carboidratos": 0.0, "proteinas": 0.0, "gordurasTotais": 100.0, "gordurasSaturadas": 15.0, "fibras": 0.0, "acucares": 0.0, "sodio": 0 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 13 }]
+    },
+
+    {
+      "id": 42,
+      "nome": "Alface crespa, crua",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 11, "carboidratos": 1.7, "proteinas": 1.3, "gordurasTotais": 0.2, "gordurasSaturadas": 0.0, "fibras": 1.8, "acucares": 0.8, "sodio": 4 },
+      "medidas": [{ "nome": "Folha", "gramas": 10 }]
+    },
+    {
+      "id": 43,
+      "nome": "Tomate, cru",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 15, "carboidratos": 3.1, "proteinas": 1.1, "gordurasTotais": 0.2, "gordurasSaturadas": 0.0, "fibras": 1.2, "acucares": 2.4, "sodio": 1 },
+      "medidas": [
+        { "nome": "Unidade média", "gramas": 110 },
+        { "nome": "Fatia", "gramas": 15 }
+      ]
+    },
+    {
+      "id": 44,
+      "nome": "Cebola, crua",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 39, "carboidratos": 8.9, "proteinas": 1.7, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 2.2, "acucares": 4.2, "sodio": 1 },
+      "medidas": [
+        { "nome": "Unidade média", "gramas": 90 },
+        { "nome": "Colher de sopa picada", "gramas": 12 }
+      ]
+    },
+    {
+      "id": 45,
+      "nome": "Alho, cru",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 113, "carboidratos": 23.9, "proteinas": 7.0, "gordurasTotais": 0.2, "gordurasSaturadas": 0.1, "fibras": 4.3, "acucares": 1.0, "sodio": 4 },
+      "medidas": [{ "nome": "Dente", "gramas": 3 }]
+    },
+    {
+      "id": 46,
+      "nome": "Cenoura, crua",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 34, "carboidratos": 7.7, "proteinas": 1.3, "gordurasTotais": 0.2, "gordurasSaturadas": 0.0, "fibras": 3.2, "acucares": 4.0, "sodio": 4 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 75 }]
+    },
+    {
+      "id": 47,
+      "nome": "Batata inglesa, cozida",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 52, "carboidratos": 11.9, "proteinas": 1.2, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 1.3, "acucares": 0.9, "sodio": 2 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 100 }]
+    },
+    {
+      "id": 48,
+      "nome": "Batata-doce, cozida",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 77, "carboidratos": 18.4, "proteinas": 0.6, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 2.2, "acucares": 5.7, "sodio": 4 },
+      "medidas": [{ "nome": "Pedaço médio", "gramas": 100 }]
+    },
+    {
+      "id": 49,
+      "nome": "Mandioca, cozida",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 125, "carboidratos": 30.1, "proteinas": 0.6, "gordurasTotais": 0.3, "gordurasSaturadas": 0.1, "fibras": 1.6, "acucares": 1.0, "sodio": 1 },
+      "medidas": [{ "nome": "Pedaço médio", "gramas": 90 }]
+    },
+    {
+      "id": 50,
+      "nome": "Abóbora cabotiá, cozida",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 48, "carboidratos": 11.0, "proteinas": 1.4, "gordurasTotais": 0.7, "gordurasSaturadas": 0.1, "fibras": 2.5, "acucares": 2.0, "sodio": 1 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 30 }]
+    },
+    {
+      "id": 51,
+      "nome": "Brócolis, cozido",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 25, "carboidratos": 4.4, "proteinas": 2.1, "gordurasTotais": 0.5, "gordurasSaturadas": 0.1, "fibras": 3.4, "acucares": 1.0, "sodio": 3 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 25 }]
+    },
+    {
+      "id": 52,
+      "nome": "Couve manteiga, refogada",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 90, "carboidratos": 8.7, "proteinas": 1.7, "gordurasTotais": 5.2, "gordurasSaturadas": 0.9, "fibras": 5.7, "acucares": 1.0, "sodio": 5 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 20 }]
+    },
+    {
+      "id": 53,
+      "nome": "Pepino, cru",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 10, "carboidratos": 2.0, "proteinas": 0.9, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 1.1, "acucares": 1.2, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 130 }]
+    },
+    {
+      "id": 54,
+      "nome": "Pimentão verde, cru",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 21, "carboidratos": 4.9, "proteinas": 1.1, "gordurasTotais": 0.2, "gordurasSaturadas": 0.0, "fibras": 2.6, "acucares": 2.4, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 100 }]
+    },
+    {
+      "id": 55,
+      "nome": "Beterraba, crua",
+      "categoria": "Verduras e legumes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 49, "carboidratos": 11.1, "proteinas": 1.9, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 3.4, "acucares": 6.8, "sodio": 32 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 100 }]
+    },
+
+    {
+      "id": 56,
+      "nome": "Banana prata",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 98, "carboidratos": 26.0, "proteinas": 1.3, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 2.0, "acucares": 17.0, "sodio": 0 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 70 }]
+    },
+    {
+      "id": 57,
+      "nome": "Maçã fuji, com casca",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 56, "carboidratos": 15.2, "proteinas": 0.3, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 1.3, "acucares": 12.0, "sodio": 0 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 130 }]
+    },
+    {
+      "id": 58,
+      "nome": "Laranja pera",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 37, "carboidratos": 8.9, "proteinas": 1.0, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 0.8, "acucares": 7.5, "sodio": 0 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 130 }]
+    },
+    {
+      "id": 59,
+      "nome": "Mamão formosa",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 45, "carboidratos": 11.6, "proteinas": 0.8, "gordurasTotais": 0.1, "gordurasSaturadas": 0.0, "fibras": 1.8, "acucares": 8.5, "sodio": 2 },
+      "medidas": [{ "nome": "Fatia média", "gramas": 170 }]
+    },
+    {
+      "id": 60,
+      "nome": "Abacate, cru",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 96, "carboidratos": 6.0, "proteinas": 1.2, "gordurasTotais": 8.4, "gordurasSaturadas": 2.0, "fibras": 6.3, "acucares": 0.5, "sodio": 1 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 25 }]
+    },
+    {
+      "id": 61,
+      "nome": "Morango",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 30, "carboidratos": 6.8, "proteinas": 0.9, "gordurasTotais": 0.3, "gordurasSaturadas": 0.0, "fibras": 1.7, "acucares": 4.5, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 12 }]
+    },
+    {
+      "id": 62,
+      "nome": "Manga palmer",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 72, "carboidratos": 19.4, "proteinas": 0.4, "gordurasTotais": 0.2, "gordurasSaturadas": 0.1, "fibras": 1.6, "acucares": 16.0, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade média", "gramas": 300 }]
+    },
+    {
+      "id": 63,
+      "nome": "Uva itália",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 53, "carboidratos": 13.6, "proteinas": 0.7, "gordurasTotais": 0.2, "gordurasSaturadas": 0.1, "fibras": 0.9, "acucares": 12.0, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade", "gramas": 8 }]
+    },
+    {
+      "id": 64,
+      "nome": "Melancia",
+      "categoria": "Frutas",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 33, "carboidratos": 8.1, "proteinas": 0.9, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 0.1, "acucares": 7.6, "sodio": 0 },
+      "medidas": [{ "nome": "Fatia média", "gramas": 200 }]
+    },
+
+    {
+      "id": 65,
+      "nome": "Castanha-do-pará (castanha-do-brasil)",
+      "categoria": "Nozes e sementes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 643, "carboidratos": 15.1, "proteinas": 14.5, "gordurasTotais": 63.5, "gordurasSaturadas": 15.1, "fibras": 7.9, "acucares": 2.3, "sodio": 1 },
+      "medidas": [{ "nome": "Unidade", "gramas": 5 }]
+    },
+    {
+      "id": 66,
+      "nome": "Amendoim, torrado",
+      "categoria": "Nozes e sementes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 544, "carboidratos": 20.3, "proteinas": 22.5, "gordurasTotais": 43.9, "gordurasSaturadas": 6.2, "fibras": 8.0, "acucares": 4.0, "sodio": 5 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 15 }]
+    },
+    {
+      "id": 67,
+      "nome": "Castanha de caju, torrada",
+      "categoria": "Nozes e sementes",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 570, "carboidratos": 29.1, "proteinas": 18.5, "gordurasTotais": 46.3, "gordurasSaturadas": 9.2, "fibras": 3.7, "acucares": 5.0, "sodio": 16 },
+      "medidas": [{ "nome": "Unidade", "gramas": 3 }]
+    },
+
+    {
+      "id": 68,
+      "nome": "Açúcar refinado",
+      "categoria": "Açúcares e doces",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 387, "carboidratos": 99.5, "proteinas": 0.0, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 0.0, "acucares": 99.5, "sodio": 1 },
+      "medidas": [
+        { "nome": "Colher de chá", "gramas": 4 },
+        { "nome": "Colher de sopa", "gramas": 12 },
+        { "nome": "Xícara de chá", "gramas": 180 }
+      ]
+    },
+    {
+      "id": 69,
+      "nome": "Mel de abelha",
+      "categoria": "Açúcares e doces",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 309, "carboidratos": 84.0, "proteinas": 0.4, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 0.0, "acucares": 82.0, "sodio": 6 },
+      "medidas": [{ "nome": "Colher de sopa", "gramas": 21 }]
+    },
+    {
+      "id": 70,
+      "nome": "Chocolate ao leite",
+      "categoria": "Açúcares e doces",
+      "fonte": "TACO",
+      "acucaresEstimado": true,
+      "por100g": { "kcal": 540, "carboidratos": 59.6, "proteinas": 7.2, "gordurasTotais": 30.3, "gordurasSaturadas": 18.0, "fibras": 2.0, "acucares": 52.0, "sodio": 90 },
+      "medidas": [{ "nome": "Barra pequena", "gramas": 25 }]
+    },
+    {
+      "id": 71,
+      "nome": "Sal de cozinha (cloreto de sódio)",
+      "categoria": "Condimentos",
+      "fonte": "TACO",
+      "acucaresEstimado": false,
+      "por100g": { "kcal": 0, "carboidratos": 0.0, "proteinas": 0.0, "gordurasTotais": 0.0, "gordurasSaturadas": 0.0, "fibras": 0.0, "acucares": 0.0, "sodio": 38758 },
+      "medidas": [
+        { "nome": "Pitada", "gramas": 0.4 },
+        { "nome": "Colher de chá rasa", "gramas": 5 },
+        { "nome": "Colher de sopa rasa", "gramas": 15 }
+      ]
+    }
+  ]
+}

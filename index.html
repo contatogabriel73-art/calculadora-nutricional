@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculadora Nutricional — Tabela TACO</title>
+<meta name="description" content="Monte uma receita com ingredientes da Tabela TACO e veja a tabela nutricional completa, no padrão de rótulo brasileiro.">
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nutri TACO">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="currentColor"/>
+        <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>Calculadora Nutricional</h1>
+        <p class="brand-sub">Base TACO · UNICAMP</p>
+      </div>
+    </div>
+    <button id="btn-instalar" class="btn btn-ghost btn-sm" hidden>Instalar app</button>
+  </div>
+</header>
+
+<main class="wrap main-grid">
+
+  <!-- ───────────── Coluna esquerda: montagem da receita ───────────── -->
+  <section class="col-build" aria-label="Montagem da receita">
+
+    <div class="card">
+      <label class="field-label" for="nome-receita">Nome da receita</label>
+      <input id="nome-receita" class="input input-title" type="text" placeholder="Ex.: Almoço de segunda" autocomplete="off" maxlength="80">
+    </div>
+
+    <div class="card">
+      <label class="field-label" for="busca">Adicionar ingrediente</label>
+
+      <div class="combo" role="combobox" aria-expanded="false" aria-owns="sugestoes" aria-haspopup="listbox">
+        <svg class="combo-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="busca" class="input input-search" type="text" placeholder="Buscar alimento (ex.: arroz, frango, ovo…)"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               aria-autocomplete="list" aria-controls="sugestoes">
+        <button id="btn-limpar-busca" class="combo-clear" type="button" aria-label="Limpar busca" hidden>&times;</button>
+        <ul id="sugestoes" class="sugestoes" role="listbox" aria-label="Sugestões de alimentos" hidden></ul>
+      </div>
+
+      <!-- Painel de quantidade: aparece depois de escolher um alimento -->
+      <div id="painel-qtd" class="painel-qtd" hidden>
+        <div class="painel-qtd-topo">
+          <div class="painel-qtd-nome" id="painel-qtd-nome"></div>
+          <button id="painel-qtd-cancelar" class="btn-icon" type="button" aria-label="Cancelar">&times;</button>
+        </div>
+        <div class="painel-qtd-controles">
+          <div class="qtd-wrap">
+            <!-- type=text + inputmode=decimal: aceita vírgula ("1,5") como decimal,
+                 que type=number rejeita em várias combinações de locale/teclado. -->
+            <input id="painel-qtd-valor" class="input input-qtd" type="text" inputmode="decimal" value="100" aria-label="Quantidade">
+            <span class="qtd-sufixo" id="painel-qtd-sufixo">g</span>
+          </div>
+          <select id="painel-qtd-medida" class="input input-medida" aria-label="Medida caseira">
+            <option value="g">gramas (g)</option>
+          </select>
+          <button id="painel-qtd-add" class="btn btn-primary" type="button">Adicionar</button>
+        </div>
+        <p class="painel-qtd-equiv" id="painel-qtd-equiv"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Ingredientes <span id="contador-ingredientes" class="badge">0</span></h2>
+        <button id="btn-limpar-tudo" class="btn btn-ghost btn-sm btn-danger" type="button" hidden>Limpar tudo</button>
+      </div>
+
+      <ul id="lista-ingredientes" class="lista-ingredientes"></ul>
+
+      <p id="vazio-ingredientes" class="empty">
+        Nenhum ingrediente ainda.<br>
+        Use a busca acima para montar sua receita.
+      </p>
+
+      <div id="resumo-peso" class="resumo-peso" hidden>
+        <span>Peso total da receita</span>
+        <strong id="peso-total">0 g</strong>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ───────────── Coluna direita: rótulo ───────────── -->
+  <section class="col-label" aria-label="Tabela nutricional">
+
+    <div class="card card-porcoes">
+      <div class="porcoes-row">
+        <label class="field-label" for="num-porcoes">A receita rende</label>
+        <div class="stepper">
+          <button class="stepper-btn" type="button" data-porcao="-1" aria-label="Menos uma porção">−</button>
+          <input id="num-porcoes" class="input input-porcoes" type="number" min="1" max="99" step="1" value="1" aria-label="Número de porções">
+          <button class="stepper-btn" type="button" data-porcao="1" aria-label="Mais uma porção">+</button>
+        </div>
+        <span class="porcoes-unid" id="porcoes-unid">porção</span>
+      </div>
+      <p class="porcoes-hint" id="porcoes-hint">Cada porção: <strong>0 g</strong></p>
+    </div>
+
+    <!-- Rótulo estilo ANVISA (RDC 429/2020) -->
+    <div class="rotulo" id="rotulo">
+      <h2 class="rotulo-titulo">INFORMAÇÃO NUTRICIONAL</h2>
+      <p class="rotulo-porcao" id="rotulo-porcao">Porções por embalagem: 1 porção de 0 g</p>
+
+      <table class="rotulo-tabela">
+        <thead>
+          <tr>
+            <th scope="col" class="c-nome"></th>
+            <th scope="col" class="c-num">100 g</th>
+            <th scope="col" class="c-num">Porção<br><span id="th-porcao-g">(0 g)</span></th>
+            <th scope="col" class="c-num">%VD*</th>
+          </tr>
+        </thead>
+        <tbody id="rotulo-corpo">
+          <!-- preenchido por app.js -->
+        </tbody>
+      </table>
+
+      <p class="rotulo-nota">
+        *Percentual de valores diários fornecidos pela porção, com base em uma dieta de 2.000&nbsp;kcal ou 8.400&nbsp;kJ.
+        Seus valores diários podem ser maiores ou menores dependendo de suas necessidades energéticas.
+      </p>
+      <p class="rotulo-nota rotulo-nota-alerta" id="nota-acucares" hidden>
+        † Açúcares totais estimados: a TACO não publica esse nutriente. Valores derivados de tabelas complementares.
+      </p>
+    </div>
+
+    <div class="acoes-rotulo">
+      <button id="btn-copiar" class="btn btn-ghost" type="button">Copiar como texto</button>
+      <button id="btn-imprimir" class="btn btn-ghost" type="button">Imprimir / PDF</button>
+    </div>
+
+  </section>
+</main>
+
+<footer class="app-footer">
+  <div class="wrap">
+    <p>
+      Dados nutricionais: <strong>Tabela TACO</strong> — Tabela Brasileira de Composição de Alimentos,
+      4ª edição (NEPA/UNICAMP, 2011), complementada pontualmente pela base USDA FoodData Central.
+    </p>
+    <p class="disclaimer">
+      Protótipo com <span id="qtd-alimentos">—</span> alimentos. Os valores são médias de referência e podem variar
+      conforme cultivar, origem e preparo. Não substitui orientação de nutricionista.
+    </p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

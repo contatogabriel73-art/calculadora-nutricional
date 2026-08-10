@@ -192,6 +192,18 @@ descartar todos os caches antigos de uma vez — não a cada deploy.
 `data/taco.json` usa *network-first*: alimentos novos chegam já na primeira
 abertura com internet.
 
+**Detalhe que não é opcional:** todo fetch do service worker passa por
+`buscarDaRede()`, que usa `cache: 'no-cache'`. O GitHub Pages serve os assets
+com `Cache-Control: max-age=600`, então um `fetch()` comum é atendido pelo cache
+HTTP do navegador — e o service worker acabaria regravando os mesmos bytes
+velhos por 10 minutos, anulando o *stale-while-revalidate*. Com `no-cache` o
+navegador revalida por ETag e devolve 304 quando nada mudou, então o custo é
+baixo.
+
+Por isso o `server.js` de desenvolvimento também envia `max-age=600`: com
+`no-cache` local, o ambiente deixava de reproduzir a produção e escondia
+exatamente esse tipo de bug.
+
 ---
 
 ## Regerando os ícones

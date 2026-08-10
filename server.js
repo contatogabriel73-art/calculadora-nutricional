@@ -51,8 +51,10 @@ http.createServer((req, resp) => {
     }
     resp.writeHead(200, {
       'Content-Type': TIPOS[path.extname(arquivo).toLowerCase()] || 'application/octet-stream',
-      // Sem cache em dev: o service worker já basta de camada de cache.
-      'Cache-Control': 'no-cache'
+      // Imita o GitHub Pages de propósito. Com 'no-cache' aqui, o ambiente
+      // local deixava de reproduzir o cache HTTP da produção e escondia bugs
+      // de atualização do service worker que só apareciam depois de publicar.
+      'Cache-Control': 'max-age=600'
     });
     resp.end(conteudo);
   });

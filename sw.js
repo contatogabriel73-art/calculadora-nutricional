@@ -18,7 +18,19 @@
    CACHE só precisa mudar para descartar caches antigos de uma vez.
    ============================================================ */
 
-const CACHE = 'nutri-taco-v2';
+const CACHE = 'nutri-taco-v3';
+
+/* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
+
+   Sem isto o stale-while-revalidate não funciona em produção: o GitHub Pages
+   serve os assets com `Cache-Control: max-age=600`, então o fetch de
+   revalidação era atendido pelo próprio cache do navegador e o service worker
+   regravava exatamente os mesmos bytes velhos por 10 minutos.
+   Com 'no-cache' o navegador manda o If-None-Match e devolve 304 quando nada
+   mudou, então o custo é baixo. */
+function buscarDaRede(url) {
+  return fetch(new Request(url, { cache: 'no-cache', credentials: 'same-origin' }));
+}
 
 const SHELL = [
   './',
@@ -37,8 +49,11 @@ self.addEventListener('install', (evento) => {
     caches.open(CACHE)
       // addAll é tudo-ou-nada: um 404 aborta a instalação inteira.
       // Cada item vai individualmente para tolerar um arquivo ausente.
+      // cache.add() usaria o cache HTTP; buscarDaRede garante a versão do servidor.
       .then((cache) => Promise.all(
-        SHELL.map((url) => cache.add(url).catch(() => null))
+        SHELL.map((url) => buscarDaRede(url)
+          .then((resp) => (resp && resp.ok ? cache.put(url, resp) : null))
+          .catch(() => null))
       ))
       .then(() => self.skipWaiting())
   );
@@ -64,10 +79,12 @@ self.addEventListener('fetch', (evento) => {
   // Base de dados: rede primeiro, cache como reserva (offline).
   if (req.url.includes('/data/')) {
     evento.respondWith(
-      fetch(req)
+      buscarDaRede(req.url)
         .then((resp) => {
-          const copia = resp.clone();
-          caches.open(CACHE).then((c) => c.put(req, copia));
+          if (resp && resp.ok) {
+            const copia = resp.clone();
+            caches.open(CACHE).then((c) => c.put(req, copia));
+          }
           return resp;
         })
         .catch(() => caches.match(req))
@@ -78,10 +95,12 @@ self.addEventListener('fetch', (evento) => {
   // Navegação: cache do index como reserva, para abrir offline em qualquer rota.
   if (req.mode === 'navigate') {
     evento.respondWith(
-      fetch(req)
+      buscarDaRede(req.url)
         .then((resp) => {
-          const copia = resp.clone();
-          caches.open(CACHE).then((c) => c.put('./index.html', copia));
+          if (resp && resp.ok) {
+            const copia = resp.clone();
+            caches.open(CACHE).then((c) => c.put('./index.html', copia));
+          }
           return resp;
         })
         .catch(() => caches.match('./index.html'))
@@ -92,7 +111,7 @@ self.addEventListener('fetch', (evento) => {
   // Demais assets do shell: stale-while-revalidate.
   evento.respondWith(
     caches.match(req).then((emCache) => {
-      const daRede = fetch(req)
+      const daRede = buscarDaRede(req.url)
         .then((resp) => {
           if (resp && resp.ok) {
             const copia = resp.clone();
@@ -103,6 +122,9 @@ self.addEventListener('fetch', (evento) => {
         .catch(() => emCache);   // offline: fica com o que já tinha
 
       // Responde na hora com o cache, mas revalida em segundo plano.
+      // evento.waitUntil mantém o worker vivo até a revalidação terminar,
+      // senão ela pode ser abortada logo depois da resposta sair.
+      evento.waitUntil(daRede.catch(() => null));
       return emCache || daRede;
     })
   );

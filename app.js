@@ -1,38 +1,60 @@
 /* ============================================================
-   Calculadora Nutricional — app.js
+   Ficha Técnica de Preparo — app.js
    Sem framework, sem build. Toda a base TACO é carregada de
-   data/taco.json em tempo de execução (ver README: "Expandindo a base").
+   data/taco.json em tempo de execução (ver README).
+
+   O usuário digita apenas o que não dá para deduzir: nome do
+   alimento, pesos e preço. Todo o resto — índices, totais,
+   composição nutricional, per capita e percentuais — é derivado.
    ============================================================ */
 
 'use strict';
 
-const CHAVE_STORAGE = 'calc-nutri:receita:v1';
+const CHAVE_STORAGE = 'calc-nutri:ficha:v2';
+const CHAVE_ANTIGA = 'calc-nutri:receita:v1';
 const MAX_SUGESTOES = 10;
 
-/* Nutrientes na ordem em que aparecem no rótulo.
-   `recuo`   → sub-item indentado (padrão ANVISA)
-   `vd`      → chave em valoresDiarios; null = nutriente sem %VD definido */
+/* Coeficientes de Atwater: kcal por grama de cada macronutriente.
+   Usados só para repartir as calorias entre os macros no bloco
+   "valor nutritivo per capita" (a coluna %). */
+const ATWATER = { proteinas: 4, lipidios: 9, glicidios: 4 };
+
+/* Nutrientes do rótulo ANVISA, na ordem em que aparecem.
+   `recuo` → sub-item indentado; `vd` → chave em valoresDiarios (null = sem %VD) */
 const NUTRIENTES = [
-  { chave: 'kcal',              rotulo: 'Valor energético',   unidade: 'kcal', casas: 0, vd: 'kcal',              destaque: true },
-  { chave: 'carboidratos',      rotulo: 'Carboidratos totais', unidade: 'g',   casas: 1, vd: 'carboidratos' },
-  { chave: 'acucares',          rotulo: 'Açúcares totais',     unidade: 'g',   casas: 1, vd: null, recuo: true },
-  { chave: 'proteinas',         rotulo: 'Proteínas',           unidade: 'g',   casas: 1, vd: 'proteinas' },
-  { chave: 'gordurasTotais',    rotulo: 'Gorduras totais',     unidade: 'g',   casas: 1, vd: 'gordurasTotais' },
-  { chave: 'gordurasSaturadas', rotulo: 'Gorduras saturadas',  unidade: 'g',   casas: 1, vd: 'gordurasSaturadas', recuo: true },
-  { chave: 'fibras',            rotulo: 'Fibra alimentar',     unidade: 'g',   casas: 1, vd: 'fibras' },
-  { chave: 'sodio',             rotulo: 'Sódio',               unidade: 'mg',  casas: 0, vd: 'sodio' }
+  { chave: 'kcal',              rotulo: 'Valor energético',    unidade: 'kcal', casas: 0, vd: 'kcal', destaque: true },
+  { chave: 'carboidratos',      rotulo: 'Carboidratos totais', unidade: 'g',    casas: 1, vd: 'carboidratos' },
+  { chave: 'acucares',          rotulo: 'Açúcares totais',     unidade: 'g',    casas: 1, vd: null, recuo: true },
+  { chave: 'proteinas',         rotulo: 'Proteínas',           unidade: 'g',    casas: 1, vd: 'proteinas' },
+  { chave: 'gordurasTotais',    rotulo: 'Gorduras totais',     unidade: 'g',    casas: 1, vd: 'gordurasTotais' },
+  { chave: 'gordurasSaturadas', rotulo: 'Gorduras saturadas',  unidade: 'g',    casas: 1, vd: 'gordurasSaturadas', recuo: true },
+  { chave: 'fibras',            rotulo: 'Fibra alimentar',     unidade: 'g',    casas: 1, vd: 'fibras' },
+  { chave: 'sodio',             rotulo: 'Sódio',               unidade: 'mg',   casas: 0, vd: 'sodio' }
+];
+
+/* Campos de texto da ficha ligados por data-campo. */
+const CAMPOS_FICHA = [
+  'tema', 'nome', 'descricao', 'tempo', 'temperatura', 'tecnica',
+  'rendimento', 'porcoes', 'medidaPreparacao', 'baseNutricional', 'modoPreparo',
+  'cor', 'sabor', 'cheiro', 'consistencia', 'aceitacao'
 ];
 
 /* ───────────── Estado ───────────── */
 
 const estado = {
-  base: [],            // alimentos carregados do JSON
+  base: [],
   porId: new Map(),
   vd: {},
-  nomeReceita: '',
-  ingredientes: [],    // { uid, foodId, gramas, medida: {nome, gramas}|null }
-  porcoes: 1,
-  selecionado: null,   // alimento escolhido no autocomplete, aguardando quantidade
+  fonteBase: '',
+  ficha: {
+    tema: '', nome: '', descricao: '', tempo: '', temperatura: '', tecnica: '',
+    rendimento: '', porcoes: '1', medidaPreparacao: '', baseNutricional: 'plIn',
+    modoPreparo: '', cor: '', sabor: '', cheiro: '', consistencia: '', aceitacao: '',
+    dificuldade: ''
+  },
+  // { uid, foodId, pb, plIn, plFin, ir, precoKg, medidaCaseira, medidaManual }
+  ingredientes: [],
+  selecionado: null,
   indiceSugestao: -1,
   sugestoesAtuais: []
 };
@@ -42,6 +64,7 @@ let proximoUid = 1;
 /* ───────────── Atalhos de DOM ───────────── */
 
 const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const el = {
   busca: $('#busca'),
@@ -60,21 +83,11 @@ const el = {
   vazio: $('#vazio-ingredientes'),
   contador: $('#contador-ingredientes'),
   limparTudo: $('#btn-limpar-tudo'),
-  resumoPeso: $('#resumo-peso'),
-  pesoTotal: $('#peso-total'),
-  nomeReceita: $('#nome-receita'),
-  porcoes: $('#num-porcoes'),
-  porcoesUnid: $('#porcoes-unid'),
-  porcoesHint: $('#porcoes-hint'),
-  rotuloPorcao: $('#rotulo-porcao'),
-  thPorcaoG: $('#th-porcao-g'),
-  rotuloCorpo: $('#rotulo-corpo'),
-  notaAcucares: $('#nota-acucares'),
+  percapita: $('#f-percapita'),
+  dicaRendimento: $('#dica-rendimento'),
   qtdAlimentos: $('#qtd-alimentos'),
   toast: $('#toast'),
-  btnInstalar: $('#btn-instalar'),
-  btnCopiar: $('#btn-copiar'),
-  btnImprimir: $('#btn-imprimir')
+  btnInstalar: $('#btn-instalar')
 };
 
 /* ───────────── Utilidades ───────────── */
@@ -88,11 +101,11 @@ function normalizar(txt) {
     .replace(/\s+/g, ' ');
 }
 
-/** Aceita "1,5" e "1.5"; devolve número finito >= 0. */
+/** Aceita "1,5" e "1.5"; devolve número finito >= 0 (0 quando vazio/inválido). */
 function paraNumero(valor) {
-  const n = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
+  const n = parseFloat(String(valor == null ? '' : valor).replace(',', '.').replace(/[^0-9.]/g, ''));
   if (!isFinite(n) || n < 0) return 0;
-  return Math.min(n, 100000);
+  return Math.min(n, 1000000);
 }
 
 function formatar(n, casas) {
@@ -100,13 +113,22 @@ function formatar(n, casas) {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
-/** Gramas: sem casas decimais acima de 10 g, uma casa abaixo disso. */
+/** Gramas: inteiro acima de 10 g, uma casa abaixo disso. */
 function formatarGramas(g) {
-  return g >= 10 || g === 0 ? formatar(Math.round(g), 0) : formatar(g, 1);
+  const v = Number(g) || 0;
+  return v >= 10 || v === 0 ? formatar(Math.round(v), 0) : formatar(v, 1);
+}
+
+function formatarIndice(v) {
+  return v == null || !isFinite(v) || v <= 0 ? '—' : formatar(v, 2);
+}
+
+function formatarDinheiro(v) {
+  return v == null || !isFinite(v) || v <= 0 ? '—' : formatar(v, 2);
 }
 
 function escaparHtml(txt) {
-  return String(txt).replace(/[&<>"']/g, (c) => (
+  return String(txt == null ? '' : txt).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 }
@@ -116,7 +138,7 @@ function toast(msg) {
   el.toast.textContent = msg;
   el.toast.classList.add('visivel');
   clearTimeout(timerToast);
-  timerToast = setTimeout(() => el.toast.classList.remove('visivel'), 2400);
+  timerToast = setTimeout(() => el.toast.classList.remove('visivel'), 2600);
 }
 
 /* ───────────── Carregamento da base ───────────── */
@@ -128,6 +150,7 @@ async function carregarBase() {
 
   estado.base = dados.alimentos || [];
   estado.vd = dados.valoresDiarios || {};
+  estado.fonteBase = dados.fonte || 'Tabela TACO — NEPA/UNICAMP';
   estado.porId = new Map(estado.base.map((a) => [a.id, a]));
 
   // Índice de busca pré-calculado (nome + categoria sem acento).
@@ -180,10 +203,7 @@ function renderSugestoes(lista, termo) {
   estado.sugestoesAtuais = lista;
   estado.indiceSugestao = -1;
 
-  if (!termo.trim()) {
-    fecharSugestoes();
-    return;
-  }
+  if (!termo.trim()) { fecharSugestoes(); return; }
 
   if (lista.length === 0) {
     el.sugestoes.innerHTML = '<li class="sugestoes-vazio">Nenhum alimento encontrado para “' +
@@ -214,10 +234,8 @@ function fecharSugestoes() {
 function moverSelecao(delta) {
   const total = estado.sugestoesAtuais.length;
   if (!total) return;
-
   estado.indiceSugestao = (estado.indiceSugestao + delta + total) % total;
-
-  el.sugestoes.querySelectorAll('.sugestao').forEach((li, i) => {
+  $$('#sugestoes .sugestao').forEach((li, i) => {
     const ativo = i === estado.indiceSugestao;
     li.setAttribute('aria-selected', ativo ? 'true' : 'false');
     if (ativo) {
@@ -236,7 +254,6 @@ function selecionarAlimento(alimento) {
   el.painelNome.textContent = alimento.nome;
   el.painel.hidden = false;
 
-  // Opções de medida: gramas + medidas caseiras do alimento, quando houver.
   const medidas = alimento.medidas || [];
   el.painelMedida.innerHTML =
     '<option value="g">gramas (g)</option>' +
@@ -269,17 +286,10 @@ function gramasDoPainel() {
 function atualizarEquivalencia() {
   const alimento = estado.selecionado;
   if (!alimento) return;
-
   const gramas = gramasDoPainel();
   const medida = medidaAtual();
-
   el.painelSufixo.textContent = medida ? '×' : 'g';
-
-  if (gramas <= 0) {
-    el.painelEquiv.textContent = '';
-    return;
-  }
-
+  if (gramas <= 0) { el.painelEquiv.textContent = ''; return; }
   const kcal = (alimento.por100g.kcal * gramas) / 100;
   const prefixo = medida ? `= ${formatarGramas(gramas)} g · ` : '';
   el.painelEquiv.textContent = `${prefixo}${formatar(Math.round(kcal), 0)} kcal`;
@@ -288,6 +298,59 @@ function atualizarEquivalencia() {
 function fecharPainel() {
   el.painel.hidden = true;
   estado.selecionado = null;
+}
+
+/** Plural do português, suficiente para os nomes de medida caseira da base. */
+function pluralizarPalavra(p) {
+  if (/s$/.test(p)) return p;
+  if (/ão$/.test(p)) return p.replace(/ão$/, 'ões');
+  if (/[rz]$/.test(p)) return p + 'es';
+  if (/[aeou]l$/.test(p)) return p.slice(0, -1) + 'is';
+  if (/il$/.test(p)) return p.slice(0, -2) + 'is';
+  if (/m$/.test(p)) return p.slice(0, -1) + 'ns';
+  return p + 's';
+}
+
+/* Adjetivos que qualificam a própria medida e por isso concordam com ela.
+   Ficam de fora palavras que descrevem o alimento ("ralado", "picada"). */
+const ADJETIVOS_MEDIDA = new Set([
+  'cheia', 'cheio', 'rasa', 'raso', 'média', 'médio',
+  'pequena', 'pequeno', 'grande', 'americano', 'americana',
+  'drenada', 'drenado'
+]);
+
+/** "filé médio" + plural → "filés médios"; "colher de sopa cheia" → "colheres de sopa cheias". */
+function pluralizarMedida(nome) {
+  const palavras = nome.split(' ');
+  palavras[0] = pluralizarPalavra(palavras[0]);
+  const ultimo = palavras.length - 1;
+  if (ultimo > 0 && ADJETIVOS_MEDIDA.has(palavras[ultimo])) {
+    palavras[ultimo] = pluralizarPalavra(palavras[ultimo]);
+  }
+  return palavras.join(' ');
+}
+
+/** Descreve N gramas na melhor medida caseira do alimento ("2 colheres de sopa"). */
+function medidaCaseiraAuto(alimento, gramas) {
+  const medidas = alimento.medidas || [];
+  if (!medidas.length || gramas <= 0) return '';
+
+  // Escolhe a medida cuja contagem fica mais próxima de um número "redondo".
+  let melhor = null;
+  for (const m of medidas) {
+    if (!m.gramas || m.gramas <= 0) continue;
+    const qtd = gramas / m.gramas;
+    const arred = Math.round(qtd * 2) / 2;          // meias unidades
+    if (arred < 0.5) continue;
+    const erro = Math.abs(qtd - arred) / qtd;
+    if (!melhor || erro < melhor.erro) melhor = { m, qtd: arred, erro };
+  }
+  if (!melhor) return '';
+
+  const q = melhor.qtd;
+  const texto = formatar(q, q % 1 === 0 ? 0 : 1);
+  const nome = melhor.m.nome.toLowerCase();
+  return `${texto} ${q > 1 ? pluralizarMedida(nome) : nome}`;
 }
 
 function adicionarSelecionado() {
@@ -301,12 +364,16 @@ function adicionarSelecionado() {
     return;
   }
 
-  const medida = medidaAtual();
   estado.ingredientes.push({
     uid: proximoUid++,
     foodId: alimento.id,
-    gramas,
-    medida: medida ? { nome: medida.nome, gramas: medida.gramas } : null
+    pb: gramas,          // por padrão bruto = líquido; o usuário refina depois
+    plIn: gramas,
+    plFin: 0,
+    ir: 0,
+    precoKg: 0,
+    medidaCaseira: medidaCaseiraAuto(alimento, gramas),
+    medidaManual: false
   });
 
   fecharPainel();
@@ -317,103 +384,319 @@ function adicionarSelecionado() {
   el.busca.focus();
 }
 
-/* ───────────── Cálculo ───────────── */
+/* ============================================================
+   CÁLCULO — o coração do preenchimento automático
+   ============================================================ */
 
-/** Soma proporcional de todos os ingredientes. Devolve totais absolutos. */
-function calcularTotais() {
-  const totais = {};
-  NUTRIENTES.forEach((n) => { totais[n.chave] = 0; });
-  let pesoTotal = 0;
+/** Peso de cada ingrediente que alimenta o cálculo nutricional. */
+function quantNutricional(item) {
+  const base = estado.ficha.baseNutricional;
+  if (base === 'pb') return item.pb || item.plIn || 0;
+  if (base === 'plFin') return item.plFin || item.plIn || item.pb || 0;
+  return item.plIn || item.pb || 0; // 'plIn' (padrão)
+}
+
+/** Índices derivados de um ingrediente. Devolve null quando não dá para calcular. */
+function indicesDoIngrediente(item) {
+  const ic = item.pb > 0 && item.plIn > 0 ? item.pb / item.plIn : null;
+  const fc = item.plIn > 0 && item.plFin > 0 ? item.plFin / item.plIn : null;
+  const cb = item.precoKg > 0 && item.pb > 0 ? (item.pb / 1000) * item.precoKg : null;
+  return { ic, fc, cb };
+}
+
+/** Todos os números da ficha, num só lugar. */
+function calcular() {
+  const somas = { pb: 0, plIn: 0, plFin: 0, cb: 0, quant: 0 };
+  const nutri = {};
+  NUTRIENTES.forEach((n) => { nutri[n.chave] = 0; });
+
+  const linhas = [];
 
   for (const item of estado.ingredientes) {
     const alimento = estado.porId.get(item.foodId);
     if (!alimento) continue;
 
-    const fator = item.gramas / 100;
-    pesoTotal += item.gramas;
+    const { ic, fc, cb } = indicesDoIngrediente(item);
+    const quant = quantNutricional(item);
+    const fator = quant / 100;
 
+    const valores = {};
     for (const n of NUTRIENTES) {
-      totais[n.chave] += (alimento.por100g[n.chave] || 0) * fator;
+      valores[n.chave] = (alimento.por100g[n.chave] || 0) * fator;
+      nutri[n.chave] += valores[n.chave];
     }
+
+    somas.pb += item.pb;
+    somas.plIn += item.plIn;
+    // Sem peso final informado, o ingrediente entra com o líquido inicial.
+    somas.plFin += item.plFin > 0 ? item.plFin : item.plIn;
+    somas.quant += quant;
+    if (cb) somas.cb += cb;
+
+    linhas.push({ item, alimento, ic, fc, cb, quant, valores });
   }
 
-  return { totais, pesoTotal };
+  // Rendimento: o peso pesado na balança tem prioridade sobre o calculado.
+  const rendimentoAuto = somas.plFin;
+  const rendimentoManual = paraNumero(estado.ficha.rendimento);
+  const rendimento = rendimentoManual > 0 ? rendimentoManual : rendimentoAuto;
+
+  const porcoes = Math.max(1, paraNumero(estado.ficha.porcoes) || 1);
+  const perCapita = rendimento / porcoes;
+
+  // Fator de cocção da preparação inteira: quanto o peso mudou do cru ao pronto.
+  const fcPreparacao = somas.plIn > 0 ? rendimento / somas.plIn : null;
+
+  // Repartição calórica per capita pelos coeficientes de Atwater.
+  const pcProt = nutri.proteinas / porcoes;
+  const pcLip = nutri.gordurasTotais / porcoes;
+  const pcCarb = nutri.carboidratos / porcoes;
+  const kcalProt = pcProt * ATWATER.proteinas;
+  const kcalLip = pcLip * ATWATER.lipidios;
+  const kcalCarb = pcCarb * ATWATER.glicidios;
+  const kcalMacros = kcalProt + kcalLip + kcalCarb;
+
+  const perc = (v) => (kcalMacros > 0 ? (v / kcalMacros) * 100 : 0);
+
+  return {
+    linhas, somas, nutri, rendimento, rendimentoAuto, porcoes, perCapita,
+    fcPreparacao,
+    custoTotal: somas.cb,
+    custoPorcao: porcoes > 0 ? somas.cb / porcoes : 0,
+    kcalPorcao: nutri.kcal / porcoes,
+    perCapitaNutri: {
+      proteinas: { g: pcProt, kcal: kcalProt, pct: perc(kcalProt) },
+      lipidios: { g: pcLip, kcal: kcalLip, pct: perc(kcalLip) },
+      glicidios: { g: pcCarb, kcal: kcalCarb, pct: perc(kcalCarb) },
+      sodio: { g: nutri.sodio / porcoes },
+      fibras: { g: nutri.fibras / porcoes },
+      totalKcal: kcalMacros
+    }
+  };
 }
 
-function kcalDoIngrediente(item) {
-  const alimento = estado.porId.get(item.foodId);
-  if (!alimento) return 0;
-  return (alimento.por100g.kcal * item.gramas) / 100;
-}
+/* ============================================================
+   RENDERIZAÇÃO
+   ============================================================ */
 
-/* ───────────── Renderização: lista de ingredientes ───────────── */
+/* ── Cartões de ingrediente (aba Montar) ── */
 
-function renderIngredientes() {
+function renderIngredientes(calc) {
   const n = estado.ingredientes.length;
   el.contador.textContent = n;
   el.vazio.hidden = n > 0;
   el.limparTudo.hidden = n === 0;
-  el.resumoPeso.hidden = n === 0;
 
-  el.lista.innerHTML = estado.ingredientes.map((item) => {
-    const alimento = estado.porId.get(item.foodId);
-    if (!alimento) return '';
+  el.lista.innerHTML = calc.linhas.map(({ item, alimento, ic, fc, cb }) => {
+    const kcal = (alimento.por100g.kcal * quantNutricional(item)) / 100;
+    const chips = [
+      ic ? `<span class="chip">IC ${formatar(ic, 2)}</span>` : '',
+      fc ? `<span class="chip">FC ${formatar(fc, 2)}</span>` : '',
+      cb ? `<span class="chip">CB R$ ${formatar(cb, 2)}</span>` : '',
+      `<span class="chip chip-kcal">${formatar(Math.round(kcal), 0)} kcal</span>`
+    ].filter(Boolean).join('');
 
-    const kcal = kcalDoIngrediente(item);
-    let meta = `${formatar(Math.round(kcal), 0)} kcal`;
-
-    // Se o ingrediente foi adicionado por medida caseira, mostra o equivalente
-    // recalculado a partir das gramas atuais (o usuário pode ter editado).
-    if (item.medida && item.medida.gramas > 0) {
-      const qtdMedidas = item.gramas / item.medida.gramas;
-      const arred = Math.round(qtdMedidas * 10) / 10;
-      meta = `≈ ${formatar(arred, arred % 1 === 0 ? 0 : 1)} ${item.medida.nome.toLowerCase()} · ${meta}`;
-    }
+    const campo = (nome, rotulo, valor, sufixo, dica) => `
+      <label class="mini-campo" title="${escaparHtml(dica || '')}">
+        <span>${rotulo}</span>
+        <span class="mini-wrap">
+          <input type="text" inputmode="decimal" data-uid="${item.uid}" data-prop="${nome}"
+                 value="${valor > 0 ? escaparHtml(formatarGramas(valor)) : ''}"
+                 placeholder="—" aria-label="${escaparHtml(rotulo)} de ${escaparHtml(alimento.nome)}">
+          ${sufixo ? `<em>${sufixo}</em>` : ''}
+        </span>
+      </label>`;
 
     return `
-      <li class="ingrediente" data-uid="${item.uid}">
-        <div class="ing-info">
+      <div class="ing-card" data-uid="${item.uid}">
+        <div class="ing-card-topo">
           <div class="ing-nome">${escaparHtml(alimento.nome)}</div>
-          <div class="ing-meta">${escaparHtml(meta)}</div>
+          <button class="ing-remover" type="button" data-uid="${item.uid}"
+                  aria-label="Remover ${escaparHtml(alimento.nome)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M5 5l14 14M19 5L5 19"/>
+            </svg>
+          </button>
         </div>
-        <div class="ing-qtd">
-          <input type="text" inputmode="decimal" value="${formatarGramas(item.gramas)}"
-                 data-uid="${item.uid}" aria-label="Quantidade em gramas de ${escaparHtml(alimento.nome)}">
-          <span>g</span>
+
+        <div class="ing-campos">
+          ${campo('pb', 'Peso bruto', item.pb, 'g', 'Como veio: com casca, osso, aparas')}
+          ${campo('plIn', 'Líq. inicial', item.plIn, 'g', 'Limpo, pronto para ir à panela')}
+          ${campo('plFin', 'Líq. final', item.plFin, 'g', 'Depois de pronto (opcional)')}
+          ${campo('ir', 'IR', item.ir, '', 'Indicador de reidratação — só para alimentos secos que hidratam')}
+          <label class="mini-campo" title="Preço pago por quilo">
+            <span>Preço</span>
+            <span class="mini-wrap">
+              <em class="prefixo">R$</em>
+              <input type="text" inputmode="decimal" data-uid="${item.uid}" data-prop="precoKg"
+                     value="${item.precoKg > 0 ? escaparHtml(formatar(item.precoKg, 2)) : ''}"
+                     placeholder="—" aria-label="Preço por quilo de ${escaparHtml(alimento.nome)}">
+              <em>/kg</em>
+            </span>
+          </label>
         </div>
-        <button class="ing-remover" type="button" data-uid="${item.uid}"
-                aria-label="Remover ${escaparHtml(alimento.nome)}">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M5 5l14 14M19 5L5 19"/>
-          </svg>
-        </button>
-      </li>`;
+
+        <label class="mini-campo mini-largo">
+          <span>Medida caseira</span>
+          <span class="mini-wrap">
+            <input type="text" data-uid="${item.uid}" data-prop="medidaCaseira"
+                   value="${escaparHtml(item.medidaCaseira)}" placeholder="—"
+                   aria-label="Medida caseira de ${escaparHtml(alimento.nome)}">
+          </span>
+        </label>
+
+        <div class="ing-chips">${chips}</div>
+      </div>`;
   }).join('');
 }
 
-/* ───────────── Renderização: rótulo ───────────── */
+/* ── Folha 1: identificação + ingredientes ── */
 
-function renderRotulo() {
-  const { totais, pesoTotal } = calcularTotais();
-  const porcoes = Math.max(1, Math.round(paraNumero(el.porcoes.value) || 1));
+function renderFolha1(calc) {
+  const f = estado.ficha;
+  const vazio = '—';
+
+  $('#v-tema').textContent = f.tema || vazio;
+  $('#v-nome').textContent = f.nome || vazio;
+  $('#v-descricao').textContent = f.descricao || vazio;
+  $('#v-rendimento').textContent = formatarGramas(calc.rendimento);
+  $('#v-percapita').textContent = formatarGramas(calc.perCapita);
+  $('#v-porcoes').textContent = formatar(calc.porcoes, calc.porcoes % 1 === 0 ? 0 : 1);
+  $('#v-tempo').textContent = f.tempo || vazio;
+  $('#v-medida-prep').textContent = f.medidaPreparacao || vazio;
+
+  $$('.v-tema-2, .v-tema-3').forEach((e) => { e.textContent = f.tema || vazio; });
+  $$('.v-nome-2, .v-nome-3').forEach((e) => { e.textContent = f.nome || vazio; });
+  $$('.v-rendimento-2').forEach((e) => { e.textContent = formatarGramas(calc.rendimento); });
+  $$('.v-percapita-2, .v-percapita-3').forEach((e) => { e.textContent = formatarGramas(calc.perCapita); });
+  $$('.v-porcoes-2, .v-porcoes-3').forEach((e) => {
+    e.textContent = formatar(calc.porcoes, calc.porcoes % 1 === 0 ? 0 : 1);
+  });
+  $$('.v-tempo-3').forEach((e) => { e.textContent = f.tempo || vazio; });
+  $$('.v-medida-prep-3').forEach((e) => { e.textContent = f.medidaPreparacao || vazio; });
+
+  $('#ft-corpo').innerHTML = calc.linhas.length
+    ? calc.linhas.map(({ item, alimento, ic, fc, cb }) => `
+        <tr>
+          <td class="col-ing">${escaparHtml(alimento.nome)}</td>
+          <td>${item.pb > 0 ? formatarGramas(item.pb) : '—'}</td>
+          <td>${item.plIn > 0 ? formatarGramas(item.plIn) : '—'}</td>
+          <td>${item.plFin > 0
+                ? formatarGramas(item.plFin)
+                : (item.plIn > 0
+                    ? `<span class="assumido">(${formatarGramas(item.plIn)})</span>`
+                    : '—')}</td>
+          <td>${formatarIndice(fc)}</td>
+          <td>${formatarIndice(ic)}</td>
+          <td>${formatarIndice(item.ir)}</td>
+          <td>${formatarDinheiro(cb)}</td>
+          <td>${formatarDinheiro(cb ? cb / calc.porcoes : null)}</td>
+          <td class="col-medida">${escaparHtml(item.medidaCaseira || '—')}</td>
+        </tr>`).join('')
+    : '<tr class="linha-vazia"><td colspan="10">Nenhum ingrediente adicionado.</td></tr>';
+
+  $('#t-pb').textContent = formatarGramas(calc.somas.pb);
+  $('#t-plin').textContent = formatarGramas(calc.somas.plIn);
+  $('#t-plfin').textContent = formatarGramas(calc.somas.plFin);
+  $('#t-cb').textContent = formatarDinheiro(calc.custoTotal);
+  $('#t-cp').textContent = formatarDinheiro(calc.custoPorcao);
+}
+
+/* ── Folha 2: composição nutricional ── */
+
+function renderFolha2(calc) {
+  $('#nut-corpo').innerHTML = calc.linhas.length
+    ? calc.linhas.map(({ alimento, quant, valores }) => `
+        <tr>
+          <td class="col-ing">${escaparHtml(alimento.nome)}</td>
+          <td>${formatarGramas(quant)}</td>
+          <td>${formatar(valores.kcal, 1)}</td>
+          <td>${formatar(valores.carboidratos, 1)}</td>
+          <td>${formatar(valores.proteinas, 1)}</td>
+          <td>${formatar(valores.gordurasTotais, 1)}</td>
+          <td>${formatar(valores.fibras, 1)}</td>
+          <td>${formatar(valores.sodio, 1)}</td>
+        </tr>`).join('')
+    : '<tr class="linha-vazia"><td colspan="8">Nenhum ingrediente adicionado.</td></tr>';
+
+  $('#n-quant').textContent = formatarGramas(calc.somas.quant);
+  $('#n-kcal').textContent = formatar(calc.nutri.kcal, 1);
+  $('#n-carb').textContent = formatar(calc.nutri.carboidratos, 1);
+  $('#n-prot').textContent = formatar(calc.nutri.proteinas, 1);
+  $('#n-lip').textContent = formatar(calc.nutri.gordurasTotais, 1);
+  $('#n-fibra').textContent = formatar(calc.nutri.fibras, 1);
+  $('#n-na').textContent = formatar(calc.nutri.sodio, 1);
+
+  const pc = calc.perCapitaNutri;
+  const linha = (nome, g, unidade, kcal, pct) => `
+    <tr>
+      <th class="col-ing">${nome}</th>
+      <td>${formatar(g, 1)} ${unidade}</td>
+      <td>${kcal == null ? '—' : formatar(kcal, 1)}</td>
+      <td>${pct == null ? '—' : formatar(pct, 1) + '%'}</td>
+    </tr>`;
+
+  $('#pc-corpo').innerHTML =
+    linha('Proteínas', pc.proteinas.g, 'g', pc.proteinas.kcal, pc.proteinas.pct) +
+    linha('Lipídios', pc.lipidios.g, 'g', pc.lipidios.kcal, pc.lipidios.pct) +
+    linha('Glícídios', pc.glicidios.g, 'g', pc.glicidios.kcal, pc.glicidios.pct) +
+    linha('Sódio', pc.sodio.g, 'mg', null, null) +
+    linha('Fibras', pc.fibras.g, 'g', null, null) +
+    `<tr class="linha-total">
+      <th class="col-ing">Total</th>
+      <td>—</td>
+      <td>${formatar(pc.totalKcal, 1)}</td>
+      <td>100,0%</td>
+    </tr>`;
+
+  $('#v-fontes').textContent = estado.fonteBase;
+}
+
+/* ── Folha 3: modo de preparo e análise sensorial ── */
+
+function renderFolha3(calc) {
+  const f = estado.ficha;
+  const vazio = '—';
+
+  $('#v-modo').textContent = f.modoPreparo || vazio;
+  $('#v-tecnica').textContent = f.tecnica || vazio;
+  $('#v-temperatura').textContent = f.temperatura || vazio;
+  $('#v-pb-total').textContent = formatarGramas(calc.somas.pb);
+  $('#v-plin-total').textContent = formatarGramas(calc.somas.plIn);
+  $('#v-plfin-total').textContent = formatarGramas(calc.somas.plFin);
+  $('#v-fc-preparacao').textContent = formatarIndice(calc.fcPreparacao);
+  $('#v-kcal-porcao').textContent = formatar(calc.kcalPorcao, 1);
+
+  $('#v-cor').textContent = f.cor || vazio;
+  $('#v-sabor').textContent = f.sabor || vazio;
+  $('#v-cheiro').textContent = f.cheiro || vazio;
+  $('#v-consistencia').textContent = f.consistencia || vazio;
+  $('#v-aceitacao').textContent = f.aceitacao || vazio;
+
+  $$('.marca').forEach((m) => {
+    m.textContent = m.dataset.dif === f.dificuldade ? '( X )' : '(    )';
+  });
+}
+
+/* ── Rótulo ANVISA ── */
+
+function renderRotulo(calc) {
+  const porcoes = calc.porcoes;
+  const pesoTotal = calc.somas.quant;
   const pesoPorcao = pesoTotal / porcoes;
 
-  // Peso total e resumo de porções
-  el.pesoTotal.textContent = `${formatarGramas(pesoTotal)} g`;
-  el.porcoesUnid.textContent = porcoes === 1 ? 'porção' : 'porções';
-  el.porcoesHint.innerHTML = `Cada porção: <strong>${formatarGramas(pesoPorcao)} g</strong>`;
-  el.rotuloPorcao.textContent =
-    `Porções por receita: ${porcoes} ${porcoes === 1 ? 'porção' : 'porções'} de ${formatarGramas(pesoPorcao)} g`;
-  el.thPorcaoG.textContent = `(${formatarGramas(pesoPorcao)} g)`;
+  $('#rotulo-porcao').textContent =
+    `Porções por receita: ${formatar(porcoes, porcoes % 1 === 0 ? 0 : 1)} ` +
+    `${porcoes === 1 ? 'porção' : 'porções'} de ${formatarGramas(pesoPorcao)} g`;
+  $('#th-porcao-g').textContent = `(${formatarGramas(pesoPorcao)} g)`;
 
-  // Base "por 100 g" da receita pronta: totais divididos pelo peso total.
+  // Base "por 100 g" da preparação pronta: totais normalizados pelo peso total.
   const fator100 = pesoTotal > 0 ? 100 / pesoTotal : 0;
 
-  el.rotuloCorpo.innerHTML = NUTRIENTES.map((n) => {
-    const totalNutriente = totais[n.chave];
-    const por100 = totalNutriente * fator100;
-    const porPorcao = totalNutriente / porcoes;
-
+  $('#rotulo-corpo').innerHTML = NUTRIENTES.map((n) => {
+    const total = calc.nutri[n.chave];
+    const por100 = total * fator100;
+    const porPorcao = total / porcoes;
     const vdRef = n.vd ? estado.vd[n.vd] : null;
     const pctVd = vdRef ? Math.round((porPorcao / vdRef) * 100) : null;
 
@@ -421,42 +704,55 @@ function renderRotulo() {
     if (n.destaque) classes.push('linha-destaque');
     if (pctVd === null) classes.push('sem-vd');
 
-    const marcaEstimado = n.chave === 'acucares' ? '<sup>†</sup>' : '';
-
     return `
       <tr class="${classes.join(' ')}">
-        <td class="c-nome${n.recuo ? ' recuo' : ''}">${n.rotulo}${marcaEstimado}</td>
+        <td class="c-nome${n.recuo ? ' recuo' : ''}">${n.rotulo}${n.chave === 'acucares' ? '<sup>†</sup>' : ''}</td>
         <td class="c-num">${formatar(por100, n.casas)} ${n.unidade}</td>
         <td class="c-num">${formatar(porPorcao, n.casas)} ${n.unidade}</td>
         <td class="c-num">${pctVd === null ? '—' : pctVd + '%'}</td>
       </tr>`;
   }).join('');
 
-  // A nota do † só faz sentido se algum ingrediente tiver açúcar estimado.
   const temEstimado = estado.ingredientes.some((i) => {
     const a = estado.porId.get(i.foodId);
     return a && a.acucaresEstimado;
   });
-  el.notaAcucares.hidden = !temEstimado;
+  $('#nota-acucares').hidden = !temEstimado;
+}
+
+/* ── Campos que o app preenche de volta na aba Montar ── */
+
+function renderCamposDerivados(calc) {
+  // Per capita só é escrito quando o campo não está em edição.
+  if (document.activeElement !== el.percapita) {
+    el.percapita.value = calc.rendimento > 0 ? formatarGramas(calc.perCapita) : '';
+  }
+  el.dicaRendimento.textContent = estado.ficha.rendimento
+    ? `Peso informado. O total dos ingredientes dá ${formatarGramas(calc.rendimentoAuto)} g.`
+    : `Usando o total dos ingredientes: ${formatarGramas(calc.rendimentoAuto)} g. Informe o peso da balança para mais precisão.`;
 }
 
 function atualizarTudo() {
-  renderIngredientes();
-  renderRotulo();
+  const calc = calcular();
+  renderIngredientes(calc);
+  renderFolha1(calc);
+  renderFolha2(calc);
+  renderFolha3(calc);
+  renderRotulo(calc);
+  renderCamposDerivados(calc);
   salvar();
 }
 
-/* ───────────── Persistência (localStorage) ───────────── */
+/* ───────────── Persistência ───────────── */
 
 function salvar() {
   try {
     localStorage.setItem(CHAVE_STORAGE, JSON.stringify({
-      nome: estado.nomeReceita,
-      porcoes: Math.max(1, Math.round(paraNumero(el.porcoes.value) || 1)),
+      ficha: estado.ficha,
       itens: estado.ingredientes.map((i) => ({
-        foodId: i.foodId,
-        gramas: i.gramas,
-        medida: i.medida
+        foodId: i.foodId, pb: i.pb, plIn: i.plIn, plFin: i.plFin,
+        ir: i.ir, precoKg: i.precoKg,
+        medidaCaseira: i.medidaCaseira, medidaManual: i.medidaManual
       }))
     }));
   } catch (e) {
@@ -465,30 +761,55 @@ function salvar() {
 }
 
 function restaurar() {
-  let dados;
-  try {
-    dados = JSON.parse(localStorage.getItem(CHAVE_STORAGE) || 'null');
-  } catch (e) {
-    return;
+  let dados = null;
+  try { dados = JSON.parse(localStorage.getItem(CHAVE_STORAGE) || 'null'); } catch (e) {}
+
+  // Migração da versão anterior do app, que só guardava gramas por ingrediente.
+  if (!dados) {
+    let antigo = null;
+    try { antigo = JSON.parse(localStorage.getItem(CHAVE_ANTIGA) || 'null'); } catch (e) {}
+    if (antigo && Array.isArray(antigo.itens)) {
+      dados = {
+        ficha: { nome: antigo.nome || '', porcoes: String(antigo.porcoes || 1) },
+        itens: antigo.itens.map((i) => ({
+          foodId: i.foodId, pb: paraNumero(i.gramas), plIn: paraNumero(i.gramas),
+          plFin: 0, ir: 0, precoKg: 0,
+          medidaCaseira: '', medidaManual: false
+        }))
+      };
+      toast('Receita da versão anterior importada para a ficha técnica.');
+    }
   }
-  if (!dados || !Array.isArray(dados.itens)) return;
+
+  if (!dados) return;
+
+  Object.assign(estado.ficha, dados.ficha || {});
 
   let descartados = 0;
-  estado.ingredientes = dados.itens.reduce((acc, i) => {
+  estado.ingredientes = (dados.itens || []).reduce((acc, i) => {
     // Um alimento pode ter sumido da base entre versões — ignora em vez de quebrar.
     if (!estado.porId.has(i.foodId)) { descartados++; return acc; }
     acc.push({
       uid: proximoUid++,
       foodId: i.foodId,
-      gramas: paraNumero(i.gramas),
-      medida: i.medida || null
+      pb: paraNumero(i.pb),
+      plIn: paraNumero(i.plIn),
+      plFin: paraNumero(i.plFin),
+      ir: paraNumero(i.ir),
+      precoKg: paraNumero(i.precoKg),
+      medidaCaseira: i.medidaCaseira || '',
+      medidaManual: !!i.medidaManual
     });
     return acc;
   }, []);
 
-  estado.nomeReceita = dados.nome || '';
-  el.nomeReceita.value = estado.nomeReceita;
-  el.porcoes.value = Math.max(1, Math.round(paraNumero(dados.porcoes) || 1));
+  // Reflete o estado nos campos da aba Montar.
+  CAMPOS_FICHA.forEach((campo) => {
+    const input = document.querySelector(`[data-campo="${campo}"]`);
+    if (input) input.value = estado.ficha[campo] || '';
+  });
+  const radio = document.querySelector(`input[name="dificuldade"][value="${estado.ficha.dificuldade}"]`);
+  if (radio) radio.checked = true;
 
   if (descartados > 0) {
     toast(`${descartados} ingrediente(s) não existem mais na base e foram removidos.`);
@@ -497,54 +818,152 @@ function restaurar() {
 
 /* ───────────── Exportar como texto ───────────── */
 
+function fichaComoTexto() {
+  const calc = calcular();
+  const f = estado.ficha;
+  const L = [];
+  const rot = (k, v) => L.push(k.padEnd(32) + (v || '—'));
+
+  L.push('FICHA TÉCNICA DE PREPARO');
+  L.push('='.repeat(78));
+  rot('Tema da aula:', f.tema);
+  rot('Nome da preparação:', f.nome);
+  rot('Descrição:', f.descricao);
+  rot('Rendimento da receita:', formatarGramas(calc.rendimento) + ' g');
+  rot('Peso da porção (per capita):', formatarGramas(calc.perCapita) + ' g');
+  rot('Rendimento da porção:', formatar(calc.porcoes, 0) + ' porções');
+  rot('Tempo de preparo:', (f.tempo || '—') + ' min');
+  rot('Medida caseira da preparação:', f.medidaPreparacao);
+
+  L.push('');
+  L.push('INGREDIENTES');
+  L.push('Alimento'.padEnd(38) + 'PB'.padStart(8) + 'PL in'.padStart(8) +
+         'PL fin'.padStart(8) + 'FC'.padStart(7) + 'IC'.padStart(7) + 'CB'.padStart(9));
+  for (const { item, alimento, ic, fc, cb } of calc.linhas) {
+    L.push(
+      alimento.nome.slice(0, 37).padEnd(38) +
+      (item.pb > 0 ? formatarGramas(item.pb) : '—').padStart(8) +
+      (item.plIn > 0 ? formatarGramas(item.plIn) : '—').padStart(8) +
+      (item.plFin > 0 ? formatarGramas(item.plFin) : '—').padStart(8) +
+      formatarIndice(fc).padStart(7) +
+      formatarIndice(ic).padStart(7) +
+      formatarDinheiro(cb).padStart(9)
+    );
+  }
+  L.push('TOTAL'.padEnd(38) +
+    formatarGramas(calc.somas.pb).padStart(8) +
+    formatarGramas(calc.somas.plIn).padStart(8) +
+    formatarGramas(calc.somas.plFin).padStart(8) +
+    '****'.padStart(7) + '****'.padStart(7) +
+    formatarDinheiro(calc.custoTotal).padStart(9));
+
+  L.push('');
+  L.push('COMPOSIÇÃO NUTRICIONAL');
+  L.push('Alimento'.padEnd(38) + 'Quant'.padStart(8) + 'Kcal'.padStart(9) +
+         'Carb'.padStart(8) + 'Prot'.padStart(8) + 'Lip'.padStart(8) +
+         'Fibra'.padStart(8) + 'Na'.padStart(9));
+  for (const { alimento, quant, valores } of calc.linhas) {
+    L.push(
+      alimento.nome.slice(0, 37).padEnd(38) +
+      formatarGramas(quant).padStart(8) +
+      formatar(valores.kcal, 1).padStart(9) +
+      formatar(valores.carboidratos, 1).padStart(8) +
+      formatar(valores.proteinas, 1).padStart(8) +
+      formatar(valores.gordurasTotais, 1).padStart(8) +
+      formatar(valores.fibras, 1).padStart(8) +
+      formatar(valores.sodio, 1).padStart(9)
+    );
+  }
+  L.push('TOTAL'.padEnd(38) +
+    formatarGramas(calc.somas.quant).padStart(8) +
+    formatar(calc.nutri.kcal, 1).padStart(9) +
+    formatar(calc.nutri.carboidratos, 1).padStart(8) +
+    formatar(calc.nutri.proteinas, 1).padStart(8) +
+    formatar(calc.nutri.gordurasTotais, 1).padStart(8) +
+    formatar(calc.nutri.fibras, 1).padStart(8) +
+    formatar(calc.nutri.sodio, 1).padStart(9));
+
+  const pc = calc.perCapitaNutri;
+  L.push('');
+  L.push('VALOR NUTRITIVO PER CAPITA');
+  L.push('Nutriente'.padEnd(20) + 'Quantidade'.padStart(14) + 'Kcal'.padStart(10) + '%'.padStart(9));
+  const lpc = (nome, g, un, kcal, pct) => L.push(
+    nome.padEnd(20) +
+    (formatar(g, 1) + ' ' + un).padStart(14) +
+    (kcal == null ? '—' : formatar(kcal, 1)).padStart(10) +
+    (pct == null ? '—' : formatar(pct, 1) + '%').padStart(9));
+  lpc('Proteínas', pc.proteinas.g, 'g', pc.proteinas.kcal, pc.proteinas.pct);
+  lpc('Lipídios', pc.lipidios.g, 'g', pc.lipidios.kcal, pc.lipidios.pct);
+  lpc('Glícídios', pc.glicidios.g, 'g', pc.glicidios.kcal, pc.glicidios.pct);
+  lpc('Sódio', pc.sodio.g, 'mg', null, null);
+  lpc('Fibras', pc.fibras.g, 'g', null, null);
+  L.push('Total'.padEnd(20) + '—'.padStart(14) + formatar(pc.totalKcal, 1).padStart(10) + '100,0%'.padStart(9));
+
+  L.push('');
+  L.push('MODO DE PREPARO');
+  L.push(f.modoPreparo || '—');
+  L.push('');
+  rot('Técnica utilizada:', f.tecnica);
+  rot('Temperatura de cocção:', f.temperatura);
+  rot('Peso bruto total:', formatarGramas(calc.somas.pb) + ' g');
+  rot('Peso líquido inicial:', formatarGramas(calc.somas.plIn) + ' g');
+  rot('Peso líquido final:', formatarGramas(calc.somas.plFin) + ' g');
+  rot('Fator de cocção da preparação:', formatarIndice(calc.fcPreparacao));
+  rot('Valor calórico da porção:', formatar(calc.kcalPorcao, 1) + ' kcal');
+  rot('Nível de dificuldade:', f.dificuldade);
+
+  L.push('');
+  L.push('ANÁLISE SENSORIAL');
+  rot('Cor:', f.cor);
+  rot('Sabor:', f.sabor);
+  rot('Cheiro:', f.cheiro);
+  rot('Consistência:', f.consistencia);
+  rot('Aceitação:', f.aceitacao);
+
+  L.push('');
+  L.push('Fonte: ' + estado.fonteBase);
+  return L.join('\n');
+}
+
 function rotuloComoTexto() {
-  const { totais, pesoTotal } = calcularTotais();
-  const porcoes = Math.max(1, Math.round(paraNumero(el.porcoes.value) || 1));
+  const calc = calcular();
+  const pesoTotal = calc.somas.quant;
   const fator100 = pesoTotal > 0 ? 100 / pesoTotal : 0;
+  const L = [];
 
-  const linhas = [];
-  linhas.push(estado.nomeReceita || 'Receita sem nome');
-  linhas.push('='.repeat(40));
-  linhas.push(`Peso total: ${formatarGramas(pesoTotal)} g`);
-  linhas.push(`Rende: ${porcoes} porção(ões) de ${formatarGramas(pesoTotal / porcoes)} g`);
-  linhas.push('');
-  linhas.push('INGREDIENTES');
-  estado.ingredientes.forEach((i) => {
-    const a = estado.porId.get(i.foodId);
-    if (a) linhas.push(`- ${a.nome}: ${formatarGramas(i.gramas)} g`);
-  });
-  linhas.push('');
-  linhas.push('INFORMAÇÃO NUTRICIONAL');
-  linhas.push('Nutriente'.padEnd(24) + '100 g'.padStart(11) + 'Porção'.padStart(11) + '%VD'.padStart(6));
-
+  L.push(estado.ficha.nome || 'Preparação sem nome');
+  L.push('='.repeat(40));
+  L.push(`Peso total: ${formatarGramas(pesoTotal)} g`);
+  L.push(`Rende: ${formatar(calc.porcoes, 0)} porção(ões) de ${formatarGramas(pesoTotal / calc.porcoes)} g`);
+  L.push('');
+  L.push('INFORMAÇÃO NUTRICIONAL');
+  L.push('Nutriente'.padEnd(24) + '100 g'.padStart(11) + 'Porção'.padStart(11) + '%VD'.padStart(6));
   NUTRIENTES.forEach((n) => {
-    const porPorcao = totais[n.chave] / porcoes;
-    const por100 = totais[n.chave] * fator100;
+    const porPorcao = calc.nutri[n.chave] / calc.porcoes;
+    const por100 = calc.nutri[n.chave] * fator100;
     const vdRef = n.vd ? estado.vd[n.vd] : null;
     const pct = vdRef ? Math.round((porPorcao / vdRef) * 100) + '%' : '—';
-    linhas.push(
+    L.push(
       n.rotulo.padEnd(24) +
       `${formatar(por100, n.casas)} ${n.unidade}`.padStart(11) +
       `${formatar(porPorcao, n.casas)} ${n.unidade}`.padStart(11) +
       pct.padStart(6)
     );
   });
-
-  linhas.push('');
-  linhas.push('*%VD com base em dieta de 2.000 kcal (RDC 429/2020).');
-  linhas.push('Fonte: Tabela TACO — NEPA/UNICAMP, 4a ed.');
-  return linhas.join('\n');
+  L.push('');
+  L.push('*%VD com base em dieta de 2.000 kcal (RDC 429/2020).');
+  L.push('Fonte: ' + estado.fonteBase);
+  return L.join('\n');
 }
 
-async function copiarRotulo() {
+async function copiar(texto, mensagem) {
   if (estado.ingredientes.length === 0) {
     toast('Adicione ingredientes primeiro.');
     return;
   }
-  const texto = rotuloComoTexto();
   try {
     await navigator.clipboard.writeText(texto);
-    toast('Tabela copiada para a área de transferência.');
+    toast(mensagem);
   } catch (e) {
     // clipboard API exige contexto seguro; fallback para textarea + execCommand.
     const ta = document.createElement('textarea');
@@ -553,19 +972,31 @@ async function copiarRotulo() {
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try {
-      document.execCommand('copy');
-      toast('Tabela copiada.');
-    } catch (e2) {
-      toast('Não foi possível copiar automaticamente.');
-    }
+    try { document.execCommand('copy'); toast(mensagem); }
+    catch (e2) { toast('Não foi possível copiar automaticamente.'); }
     ta.remove();
   }
+}
+
+/* ───────────── Abas ───────────── */
+
+function trocarAba(nome) {
+  $$('.aba').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.aba === nome)));
+  $$('.painel-aba').forEach((p) => {
+    const ativa = p.id === 'aba-' + nome;
+    p.hidden = !ativa;
+    p.classList.toggle('ativa', ativa);
+  });
+  document.body.dataset.aba = nome;
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
 
 /* ───────────── Eventos ───────────── */
 
 function ligarEventos() {
+
+  // — Abas —
+  $$('.aba').forEach((btn) => btn.addEventListener('click', () => trocarAba(btn.dataset.aba)));
 
   // — Busca —
   el.busca.addEventListener('input', () => {
@@ -586,9 +1017,7 @@ function ligarEventos() {
       const idx = estado.indiceSugestao >= 0 ? estado.indiceSugestao : 0;
       const alimento = estado.sugestoesAtuais[idx];
       if (alimento) selecionarAlimento(alimento);
-    } else if (ev.key === 'Escape') {
-      fecharSugestoes();
-    }
+    } else if (ev.key === 'Escape') fecharSugestoes();
   });
 
   el.sugestoes.addEventListener('mousedown', (ev) => {
@@ -627,78 +1056,104 @@ function ligarEventos() {
   el.painelAdd.addEventListener('click', adicionarSelecionado);
   el.painelCancelar.addEventListener('click', () => { fecharPainel(); el.busca.focus(); });
 
-  // — Lista de ingredientes (delegação) —
+  // — Cartões de ingrediente —
   el.lista.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.ing-remover');
     if (!btn) return;
-    const uid = Number(btn.dataset.uid);
-    estado.ingredientes = estado.ingredientes.filter((i) => i.uid !== uid);
+    estado.ingredientes = estado.ingredientes.filter((i) => i.uid !== Number(btn.dataset.uid));
     atualizarTudo();
   });
 
   el.lista.addEventListener('input', (ev) => {
-    const input = ev.target.closest('.ing-qtd input');
+    const input = ev.target.closest('input[data-prop]');
     if (!input) return;
     const item = estado.ingredientes.find((i) => i.uid === Number(input.dataset.uid));
     if (!item) return;
-    item.gramas = paraNumero(input.value);
-    // Só o rótulo é redesenhado: recriar a lista aqui roubaria o foco do campo.
-    renderRotulo();
-    salvar();
-    const li = input.closest('.ingrediente');
-    const meta = li && li.querySelector('.ing-meta');
-    if (meta) {
-      const kcal = Math.round(kcalDoIngrediente(item));
-      let txt = `${formatar(kcal, 0)} kcal`;
-      if (item.medida && item.medida.gramas > 0) {
-        const q = Math.round((item.gramas / item.medida.gramas) * 10) / 10;
-        txt = `≈ ${formatar(q, q % 1 === 0 ? 0 : 1)} ${item.medida.nome.toLowerCase()} · ${txt}`;
+
+    const prop = input.dataset.prop;
+    if (prop === 'medidaCaseira') {
+      item.medidaCaseira = input.value;
+      item.medidaManual = true;
+    } else {
+      item[prop] = paraNumero(input.value);
+      // Peso bruto digitado antes do líquido: assume que são iguais até o
+      // usuário dizer o contrário, para não zerar o cálculo nutricional.
+      if (prop === 'pb' && item.plIn === 0) item.plIn = item.pb;
+      // Medida caseira acompanha o peso, a menos que tenha sido editada à mão.
+      if (prop === 'plIn' && !item.medidaManual) {
+        const alimento = estado.porId.get(item.foodId);
+        if (alimento) item.medidaCaseira = medidaCaseiraAuto(alimento, item.plIn);
       }
-      meta.textContent = txt;
+    }
+
+    // Redesenhar a lista aqui roubaria o foco do campo em edição, então só
+    // atualizamos as partes derivadas e os "chips" deste cartão.
+    const calc = calcular();
+    renderFolha1(calc);
+    renderFolha2(calc);
+    renderFolha3(calc);
+    renderRotulo(calc);
+    renderCamposDerivados(calc);
+    salvar();
+
+    const cartao = input.closest('.ing-card');
+    const linha = calc.linhas.find((l) => l.item.uid === item.uid);
+    if (cartao && linha) {
+      const kcal = (linha.alimento.por100g.kcal * quantNutricional(item)) / 100;
+      cartao.querySelector('.ing-chips').innerHTML = [
+        linha.ic ? `<span class="chip">IC ${formatar(linha.ic, 2)}</span>` : '',
+        linha.fc ? `<span class="chip">FC ${formatar(linha.fc, 2)}</span>` : '',
+        linha.cb ? `<span class="chip">CB R$ ${formatar(linha.cb, 2)}</span>` : '',
+        `<span class="chip chip-kcal">${formatar(Math.round(kcal), 0)} kcal</span>`
+      ].filter(Boolean).join('');
+
+      const campoMedida = cartao.querySelector('input[data-prop="medidaCaseira"]');
+      if (campoMedida && !item.medidaManual && document.activeElement !== campoMedida) {
+        campoMedida.value = item.medidaCaseira;
+      }
     }
   });
 
-  el.lista.addEventListener('blur', (ev) => {
-    const input = ev.target.closest && ev.target.closest('.ing-qtd input');
-    if (!input) return;
-    const item = estado.ingredientes.find((i) => i.uid === Number(input.dataset.uid));
-    if (!item) return;
-    if (item.gramas <= 0) {
-      estado.ingredientes = estado.ingredientes.filter((i) => i.uid !== item.uid);
-      toast('Ingrediente removido (quantidade zerada).');
-      atualizarTudo();
-    } else {
-      input.value = formatarGramas(item.gramas); // normaliza "0080" → "80"
-    }
-  }, true);
-
   el.limparTudo.addEventListener('click', () => {
-    if (!confirm('Remover todos os ingredientes da receita?')) return;
+    if (!confirm('Remover todos os ingredientes da preparação?')) return;
     estado.ingredientes = [];
     atualizarTudo();
   });
 
-  // — Receita / porções —
-  el.nomeReceita.addEventListener('input', () => {
-    estado.nomeReceita = el.nomeReceita.value;
-    salvar();
-  });
-
-  el.porcoes.addEventListener('input', () => { renderRotulo(); salvar(); });
-
-  document.querySelectorAll('[data-porcao]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const atual = Math.max(1, Math.round(paraNumero(el.porcoes.value) || 1));
-      const novo = Math.min(99, Math.max(1, atual + Number(btn.dataset.porcao)));
-      el.porcoes.value = novo;
-      renderRotulo();
-      salvar();
+  // — Campos de texto da ficha —
+  $$('[data-campo]').forEach((input) => {
+    input.addEventListener('input', () => {
+      estado.ficha[input.dataset.campo] = input.value;
+      atualizarTudo();
     });
   });
 
-  // — Ações do rótulo —
-  el.btnCopiar.addEventListener('click', copiarRotulo);
-  el.btnImprimir.addEventListener('click', () => window.print());
+  // Per capita não é armazenado: digitar aqui recalcula o nº de porções.
+  el.percapita.addEventListener('input', () => {
+    const alvo = paraNumero(el.percapita.value);
+    if (alvo <= 0) return;
+    const calc = calcular();
+    if (calc.rendimento <= 0) return;
+    const porcoes = calc.rendimento / alvo;
+    estado.ficha.porcoes = String(Math.round(porcoes * 100) / 100).replace('.', ',');
+    const campoPorcoes = document.querySelector('[data-campo="porcoes"]');
+    if (campoPorcoes) campoPorcoes.value = estado.ficha.porcoes;
+    atualizarTudo();
+  });
+  el.percapita.addEventListener('blur', () => atualizarTudo());
+
+  $$('input[name="dificuldade"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      estado.ficha.dificuldade = r.value;
+      atualizarTudo();
+    });
+  });
+
+  // — Ações —
+  $('#btn-imprimir-ficha').addEventListener('click', () => window.print());
+  $('#btn-copiar-ficha').addEventListener('click', () => copiar(fichaComoTexto(), 'Ficha técnica copiada.'));
+  $('#btn-imprimir').addEventListener('click', () => window.print());
+  $('#btn-copiar').addEventListener('click', () => copiar(rotuloComoTexto(), 'Tabela copiada.'));
 }
 
 /* ───────────── PWA: service worker + instalação ───────────── */
@@ -742,8 +1197,8 @@ async function iniciar() {
   try {
     await carregarBase();
   } catch (erro) {
-    el.rotuloCorpo.innerHTML =
-      '<tr><td colspan="4">Não foi possível carregar data/taco.json. ' +
+    $('#ft-corpo').innerHTML =
+      '<tr><td colspan="10">Não foi possível carregar data/taco.json. ' +
       'Abra o app por um servidor HTTP (veja o README), não por file://.</td></tr>';
     console.error('Falha ao carregar a base TACO:', erro);
     return;
@@ -751,8 +1206,10 @@ async function iniciar() {
 
   restaurar();
   ligarEventos();
+  trocarAba('montar');
   atualizarTudo();
   ligarPWA();
 }
 
 iniciar();
+

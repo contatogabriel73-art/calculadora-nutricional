@@ -1,7 +1,7 @@
 /* ============================================================
-   Calculadora Nutricional — estilos
-   Mobile-first: o layout base é de uma coluna; a partir de 900px
-   vira duas colunas (montagem à esquerda, rótulo à direita).
+   Ficha Técnica de Preparo — estilos
+   Mobile-first. A aba "Montar" é a interface de entrada; a aba
+   "Ficha Técnica" reproduz o formulário oficial em 3 folhas A4.
    ============================================================ */
 
 :root {
@@ -22,10 +22,7 @@
 
 * { box-sizing: border-box; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-}
+html, body { margin: 0; padding: 0; }
 
 body {
   font-family: var(--fonte);
@@ -45,12 +42,12 @@ body {
   padding: 0 16px;
 }
 
-/* ───────────── Header ───────────── */
+/* ───────────── Header + abas ───────────── */
 
 .app-header {
   background: var(--verde);
   color: #fff;
-  padding: calc(14px + env(safe-area-inset-top)) 0 14px;
+  padding-top: calc(13px + env(safe-area-inset-top));
   position: sticky;
   top: 0;
   z-index: 30;
@@ -62,65 +59,58 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-}
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  color: rgba(255, 255, 255, .18);
-}
+.brand-mark { width: 38px; height: 38px; flex: none; color: rgba(255, 255, 255, .18); }
 
 .brand h1 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 650;
   letter-spacing: -.01em;
   line-height: 1.2;
 }
 
-.brand-sub {
-  margin: 1px 0 0;
-  font-size: .74rem;
-  opacity: .8;
-  letter-spacing: .02em;
+.brand-sub { margin: 1px 0 0; font-size: .73rem; opacity: .8; letter-spacing: .02em; }
+
+.abas {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.abas::-webkit-scrollbar { display: none; }
+
+.aba {
+  flex: none;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .72);
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 9px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .12s, border-color .12s;
+}
+.aba:hover { color: #fff; }
+.aba[aria-selected="true"] {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
-/* ───────────── Layout principal ───────────── */
+/* ───────────── Painéis de aba ───────────── */
 
-.main-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding-top: 16px;
-  padding-bottom: 28px;
-  align-items: start;
-}
-
-.col-build, .col-label {
+.painel-aba {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-width: 0;
-}
-
-@media (min-width: 900px) {
-  .main-grid {
-    grid-template-columns: 1.15fr .85fr;
-    gap: 20px;
-    padding-top: 22px;
-  }
-  .col-label {
-    position: sticky;
-    top: 92px;
-  }
+  padding: 16px 0 28px;
 }
 
 /* ───────────── Cards ───────────── */
@@ -142,13 +132,14 @@ body {
 }
 
 .card-title {
-  margin: 0;
+  margin: 0 0 12px;
   font-size: .95rem;
   font-weight: 650;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+.card-head .card-title { margin-bottom: 0; }
 
 .badge {
   background: var(--verde-claro);
@@ -166,12 +157,42 @@ body {
 
 .field-label {
   display: block;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 650;
   color: var(--tinta-2);
   text-transform: uppercase;
   letter-spacing: .04em;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
+}
+
+.ajuda {
+  margin: 0 0 12px;
+  font-size: .81rem;
+  line-height: 1.5;
+  color: var(--tinta-2);
+  background: var(--verde-claro);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+
+.dica {
+  margin: 5px 0 0;
+  font-size: .74rem;
+  color: var(--tinta-3);
+  line-height: 1.4;
+}
+
+/* ───────────── Grade de campos ───────────── */
+
+.grade-campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 13px;
+}
+
+@media (min-width: 620px) {
+  .grade-campos { grid-template-columns: 1fr 1fr; }
+  .campo-largo { grid-column: 1 / -1; }
 }
 
 /* ───────────── Inputs ───────────── */
@@ -184,7 +205,7 @@ body {
   background: #fff;
   border: 1.5px solid var(--linha);
   border-radius: 10px;
-  padding: 11px 12px;
+  padding: 10px 12px;
   outline: none;
   transition: border-color .12s, box-shadow .12s;
   /* 16px evita o zoom automático do iOS ao focar */
@@ -197,7 +218,17 @@ body {
 
 .input::placeholder { color: var(--tinta-3); }
 
-.input-title { font-weight: 600; }
+textarea.input { resize: vertical; line-height: 1.5; }
+
+.radios { display: flex; gap: 16px; flex-wrap: wrap; padding-top: 4px; }
+.radios label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .93rem;
+  cursor: pointer;
+}
+.radios input { accent-color: var(--verde); width: 18px; height: 18px; }
 
 /* Combobox de busca */
 
@@ -233,8 +264,6 @@ body {
 }
 .combo-clear:hover { background: var(--fundo); color: var(--tinta); }
 
-/* Lista de sugestões */
-
 .sugestoes {
   position: absolute;
   z-index: 40;
@@ -264,30 +293,11 @@ body {
   gap: 10px;
 }
 
-.sugestao[aria-selected="true"],
-.sugestao:hover {
-  background: var(--verde-claro);
-}
+.sugestao[aria-selected="true"], .sugestao:hover { background: var(--verde-claro); }
 
-.sugestao-nome {
-  font-size: .93rem;
-  line-height: 1.3;
-  min-width: 0;
-}
-
-.sugestao-nome mark {
-  background: transparent;
-  color: var(--verde);
-  font-weight: 700;
-  padding: 0;
-}
-
-.sugestao-cat {
-  display: block;
-  font-size: .72rem;
-  color: var(--tinta-3);
-  margin-top: 1px;
-}
+.sugestao-nome { font-size: .93rem; line-height: 1.3; min-width: 0; }
+.sugestao-nome mark { background: transparent; color: var(--verde); font-weight: 700; padding: 0; }
+.sugestao-cat { display: block; font-size: .72rem; color: var(--tinta-3); margin-top: 1px; }
 
 .sugestao-kcal {
   flex: none;
@@ -295,14 +305,10 @@ body {
   color: var(--tinta-2);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  text-align: right;
 }
 
-.sugestoes-vazio {
-  padding: 14px 10px;
-  color: var(--tinta-3);
-  font-size: .9rem;
-  text-align: center;
-}
+.sugestoes-vazio { padding: 14px 10px; color: var(--tinta-3); font-size: .9rem; text-align: center; }
 
 /* ───────────── Painel de quantidade ───────────── */
 
@@ -328,12 +334,7 @@ body {
   margin-bottom: 9px;
 }
 
-.painel-qtd-nome {
-  font-weight: 650;
-  font-size: .95rem;
-  line-height: 1.25;
-  color: var(--verde-escuro);
-}
+.painel-qtd-nome { font-weight: 650; font-size: .95rem; line-height: 1.25; color: var(--verde-escuro); }
 
 .btn-icon {
   flex: none;
@@ -350,18 +351,11 @@ body {
 }
 .btn-icon:hover { opacity: 1; background: rgba(15, 76, 54, .09); }
 
-.painel-qtd-controles {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 8px;
-}
-
+.painel-qtd-controles { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
 .painel-qtd-controles .btn-primary { grid-column: 1 / -1; }
 
 @media (min-width: 560px) {
-  .painel-qtd-controles {
-    grid-template-columns: 110px 1fr auto;
-  }
+  .painel-qtd-controles { grid-template-columns: 110px 1fr auto; }
   .painel-qtd-controles .btn-primary { grid-column: auto; }
 }
 
@@ -371,10 +365,7 @@ body {
   padding-right: 30px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  -moz-appearance: textfield;
 }
-.input-qtd::-webkit-outer-spin-button,
-.input-qtd::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .qtd-sufixo {
   position: absolute;
@@ -410,17 +401,10 @@ body {
   white-space: nowrap;
 }
 
-.btn-primary {
-  background: var(--verde);
-  color: #fff;
-}
+.btn-primary { background: var(--verde); color: #fff; }
 .btn-primary:hover { background: var(--verde-escuro); }
 
-.btn-ghost {
-  background: #fff;
-  border-color: var(--linha);
-  color: var(--tinta-2);
-}
+.btn-ghost { background: #fff; border-color: var(--linha); color: var(--tinta-2); }
 .btn-ghost:hover { border-color: var(--tinta-3); color: var(--tinta); }
 
 .app-header .btn-ghost {
@@ -431,76 +415,37 @@ body {
 .app-header .btn-ghost:hover { background: rgba(255, 255, 255, .24); }
 
 .btn-sm { padding: 7px 12px; font-size: .82rem; }
-
 .btn-danger { color: var(--perigo); }
 .btn-danger:hover { border-color: var(--perigo); color: var(--perigo); }
 
-/* ───────────── Lista de ingredientes ───────────── */
+.acoes-topo { display: flex; gap: 10px; flex-wrap: wrap; }
+.acoes-topo .btn { flex: 1; min-width: 150px; }
 
-.lista-ingredientes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+/* ───────────── Cartões de ingrediente ───────────── */
 
-.ingrediente {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 2px;
-  border-bottom: 1px solid var(--linha);
-}
-.ingrediente:last-child { border-bottom: 0; }
+.lista-ingredientes { display: flex; flex-direction: column; gap: 11px; }
 
-.ing-info { min-width: 0; }
-
-.ing-nome {
-  font-size: .93rem;
-  font-weight: 560;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-.ing-meta {
-  font-size: .76rem;
-  color: var(--tinta-3);
-  margin-top: 2px;
-  font-variant-numeric: tabular-nums;
-}
-
-.ing-qtd {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ing-qtd input {
-  width: 66px;
-  text-align: right;
-  padding: 7px 8px;
-  font-size: .9rem;
-  font-weight: 620;
-  font-variant-numeric: tabular-nums;
+.ing-card {
   border: 1.5px solid var(--linha);
-  border-radius: 8px;
-  font-family: inherit;
-  color: var(--tinta);
-  -moz-appearance: textfield;
-}
-.ing-qtd input::-webkit-outer-spin-button,
-.ing-qtd input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.ing-qtd input:focus {
-  outline: none;
-  border-color: var(--verde);
-  box-shadow: 0 0 0 3px rgba(22, 105, 74, .13);
+  border-radius: 12px;
+  padding: 11px;
+  background: #fcfdfd;
 }
 
-.ing-qtd span { font-size: .8rem; color: var(--tinta-3); }
+.ing-card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ing-nome { font-size: .93rem; font-weight: 620; line-height: 1.3; overflow-wrap: anywhere; }
 
 .ing-remover {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
+  flex: none;
   border: 1.5px solid var(--linha);
   background: #fff;
   border-radius: 9px;
@@ -508,10 +453,86 @@ body {
   cursor: pointer;
   display: grid;
   place-items: center;
-  flex: none;
 }
 .ing-remover:hover { border-color: var(--perigo); color: var(--perigo); background: #fdf3f2; }
 .ing-remover svg { width: 15px; height: 15px; }
+
+.ing-campos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 560px) {
+  .ing-campos { grid-template-columns: repeat(5, 1fr); }
+}
+
+.mini-campo { display: block; min-width: 0; }
+
+.mini-campo > span:first-child {
+  display: block;
+  font-size: .68rem;
+  font-weight: 650;
+  color: var(--tinta-3);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1.5px solid var(--linha);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 7px;
+}
+.mini-wrap:focus-within {
+  border-color: var(--verde);
+  box-shadow: 0 0 0 3px rgba(22, 105, 74, .13);
+}
+
+.mini-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  padding: 8px 0;
+  font-family: inherit;
+  font-size: .92rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta);
+  background: transparent;
+}
+
+.mini-wrap em {
+  flex: none;
+  font-style: normal;
+  font-size: .74rem;
+  color: var(--tinta-3);
+}
+.mini-wrap em.prefixo { margin-right: 1px; }
+
+.mini-largo { margin-top: 9px; }
+.mini-largo .mini-wrap input { font-weight: 500; }
+
+.ing-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+
+.chip {
+  font-size: .72rem;
+  font-weight: 650;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #eef2f0;
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+}
+.chip-kcal { background: var(--verde-claro); color: var(--verde-escuro); }
 
 .empty {
   text-align: center;
@@ -522,82 +543,148 @@ body {
   margin: 0;
 }
 
-.resumo-peso {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 2px solid var(--tinta);
-  font-size: .88rem;
-}
-.resumo-peso strong {
-  font-size: 1.05rem;
-  font-variant-numeric: tabular-nums;
-}
+/* ============================================================
+   FICHA TÉCNICA — folhas A4
+   ============================================================ */
 
-/* ───────────── Porções ───────────── */
-
-.card-porcoes { padding: 13px 14px; }
-
-.porcoes-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.porcoes-row .field-label { margin-bottom: 0; }
-
-.stepper {
-  display: flex;
-  align-items: center;
-  border: 1.5px solid var(--linha);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.stepper-btn {
-  width: 34px;
-  height: 36px;
-  border: 0;
+.folha {
   background: #fff;
-  font-size: 1.15rem;
-  color: var(--verde);
-  cursor: pointer;
-  font-family: inherit;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  box-shadow: var(--sombra);
+  padding: 16px;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
 }
-.stepper-btn:hover { background: var(--verde-claro); }
 
-.input-porcoes {
-  width: 46px;
-  border: 0;
-  border-left: 1.5px solid var(--linha);
-  border-right: 1.5px solid var(--linha);
-  border-radius: 0;
-  text-align: center;
-  padding: 8px 2px;
-  font-weight: 650;
+.ft-cabecalho {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .78rem;
+  margin-bottom: 12px;
+}
+
+.ft-cabecalho th,
+.ft-cabecalho td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ft-cabecalho th {
+  font-weight: 700;
+  background: #f0f0f0;
+  width: 42%;
+  white-space: nowrap;
+}
+
+@media (min-width: 620px) {
+  .ft-cabecalho th { width: 30%; }
+}
+
+/* Tabelas largas rolam sozinhas em vez de estourar a página */
+.rolagem-tabela {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 10px;
+}
+
+.ft-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .72rem;
   font-variant-numeric: tabular-nums;
-  -moz-appearance: textfield;
 }
-.input-porcoes:focus { box-shadow: none; }
-.input-porcoes::-webkit-outer-spin-button,
-.input-porcoes::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.porcoes-unid { font-size: .88rem; color: var(--tinta-2); }
+#tabela-ingredientes { min-width: 760px; }
+#tabela-nutricional { min-width: 560px; }
 
-.porcoes-hint {
+.ft-tabela th,
+.ft-tabela td {
+  border: 1px solid #000;
+  padding: 3px 5px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ft-tabela thead th {
+  background: #f0f0f0;
+  font-weight: 700;
+  font-size: .68rem;
+  line-height: 1.2;
+}
+
+.ft-tabela .col-ing { text-align: left; min-width: 150px; }
+.ft-tabela .col-medida { text-align: left; min-width: 100px; }
+
+.ft-tabela tfoot th,
+.ft-tabela tfoot td {
+  font-weight: 700;
+  background: #f7f7f7;
+}
+
+.ft-tabela .asterisco { letter-spacing: .1em; }
+
+/* Peso não medido, assumido igual ao líquido inicial. */
+.assumido { color: #666; font-style: italic; }
+
+.ft-tabela .linha-vazia td {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 12px;
+}
+
+.ft-tabela .linha-total th,
+.ft-tabela .linha-total td { font-weight: 700; background: #f7f7f7; }
+
+.ft-tabela-pc { margin-bottom: 10px; }
+.ft-tabela-pc tbody th { text-align: left; font-weight: 400; }
+
+.ft-subtitulo {
+  margin: 14px 0 6px;
+  font-size: .82rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: .02em;
+}
+
+.ft-legenda,
+.ft-fontes {
   margin: 8px 0 0;
-  font-size: .8rem;
-  color: var(--tinta-3);
+  font-size: .64rem;
+  line-height: 1.45;
+  color: #333;
 }
-.porcoes-hint strong { color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+
+/* Folha 3 */
+
+.ft-modo { margin-bottom: 12px; }
+.ft-modo thead th { width: 65%; }
+.ft-modo .col-tecnica { width: 35%; }
+
+.celula-modo,
+.celula-tecnica {
+  text-align: left !important;
+  vertical-align: top !important;
+  height: 190px;
+  white-space: pre-wrap;
+  padding: 7px !important;
+  font-size: .74rem;
+  line-height: 1.5;
+}
+
+.ft-caracteristicas { font-size: .73rem; }
+.ft-caracteristicas th { text-align: left; font-weight: 700; background: #f7f7f7; }
+.ft-caracteristicas td { text-align: left; }
+.ft-caracteristicas .th-dificuldade { text-align: center; background: #f0f0f0; }
+.ft-caracteristicas .opcao-dif { text-align: left; }
+.ft-caracteristicas .marca { font-family: "Courier New", monospace; font-weight: 700; }
+.ft-caracteristicas .celula-vazia { background: #fafafa; }
 
 /* ============================================================
-   RÓTULO — layout inspirado no modelo vertical da ANVISA
-   (RDC 429/2020 + IN 75/2020): moldura preta, tipografia
-   condensada, linhas divisórias e nota de rodapé do %VD.
+   RÓTULO — modelo vertical da ANVISA (RDC 429/2020 + IN 75/2020)
    ============================================================ */
 
 .rotulo {
@@ -607,16 +694,10 @@ body {
   padding: 10px 11px 9px;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
+  max-width: 460px;
 }
 
-.rotulo-titulo {
-  margin: 0;
-  font-size: 1.02rem;
-  font-weight: 700;
-  letter-spacing: .01em;
-  text-align: left;
-  line-height: 1.2;
-}
+.rotulo-titulo { margin: 0; font-size: 1.02rem; font-weight: 700; line-height: 1.2; }
 
 .rotulo-porcao {
   margin: 2px 0 6px;
@@ -633,11 +714,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.rotulo-tabela th,
-.rotulo-tabela td {
-  padding: 4px 2px;
-  vertical-align: bottom;
-}
+.rotulo-tabela th, .rotulo-tabela td { padding: 4px 2px; vertical-align: bottom; }
 
 .rotulo-tabela thead th {
   font-size: .7rem;
@@ -646,31 +723,18 @@ body {
   line-height: 1.15;
 }
 
-.rotulo-tabela .c-num {
-  text-align: right;
-  width: 58px;
-}
-.rotulo-tabela thead .c-num span {
-  font-weight: 400;
-  font-size: .66rem;
-  white-space: nowrap;
-}
+.rotulo-tabela .c-num { text-align: right; width: 58px; }
+.rotulo-tabela thead .c-num span { font-weight: 400; font-size: .66rem; white-space: nowrap; }
 
 .rotulo-tabela tbody tr { border-bottom: .5px solid #999; }
 .rotulo-tabela tbody tr:last-child { border-bottom: 0; }
-
 .rotulo-tabela tbody td.c-nome { line-height: 1.25; }
 .rotulo-tabela tbody td.c-num { text-align: right; white-space: nowrap; }
 
-/* Linha de destaque: valor energético */
-.rotulo-tabela tr.linha-destaque {
-  border-bottom: 1.5px solid #000 !important;
-}
+.rotulo-tabela tr.linha-destaque { border-bottom: 1.5px solid #000 !important; }
 .rotulo-tabela tr.linha-destaque td { font-weight: 700; padding-top: 5px; padding-bottom: 5px; }
 
-/* Nutriente recuado (sub-item, ex.: gorduras saturadas) */
 .rotulo-tabela td.recuo { padding-left: 14px; }
-
 .rotulo-tabela tr.sem-vd td.c-num:last-child { color: #555; }
 
 .rotulo-nota {
@@ -681,19 +745,12 @@ body {
   line-height: 1.35;
 }
 
-.rotulo-nota-alerta {
-  border-top: 0;
-  padding-top: 3px;
-  color: #555;
-}
+.rotulo-nota-alerta { border-top: 0; padding-top: 3px; color: #555; }
 
-.acoes-rotulo {
-  display: flex;
-  gap: 10px;
-}
+.acoes-rotulo { display: flex; gap: 10px; max-width: 460px; }
 .acoes-rotulo .btn { flex: 1; }
 
-/* ───────────── Rodapé ───────────── */
+/* ───────────── Rodapé e toast ───────────── */
 
 .app-footer {
   border-top: 1px solid var(--linha);
@@ -705,8 +762,6 @@ body {
 }
 .app-footer p { margin: 0 0 6px; }
 .app-footer .disclaimer { color: var(--tinta-3); margin-bottom: 0; }
-
-/* ───────────── Toast ───────────── */
 
 .toast {
   position: fixed;
@@ -726,19 +781,72 @@ body {
   max-width: calc(100vw - 32px);
   text-align: center;
 }
-.toast.visivel {
-  opacity: 1;
-  transform: translate(-50%, 0);
+.toast.visivel { opacity: 1; transform: translate(-50%, 0); }
+
+/* ============================================================
+   IMPRESSÃO — imprime apenas a aba aberta.
+   Na aba Ficha Técnica saem as 3 folhas, uma por página A4.
+   ============================================================ */
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
 }
 
-/* ───────────── Impressão: só o rótulo ───────────── */
-
 @media print {
-  body { background: #fff; }
-  .app-header, .app-footer, .col-build, .card-porcoes, .acoes-rotulo, .toast { display: none !important; }
-  .main-grid { display: block; padding: 0; }
-  .col-label { position: static; }
+  body { background: #fff; font-size: 11pt; }
+
+  .app-header, .app-footer, .toast, .naoimprimir { display: none !important; }
+
+  .wrap { max-width: none; padding: 0; }
+
+  .painel-aba { padding: 0; gap: 0; }
+  .painel-aba[hidden] { display: none !important; }
+
+  /* Na aba Montar não há o que imprimir de útil. */
+  body[data-aba="montar"] main::before {
+    content: "Abra a aba \201CFicha Técnica\201D para imprimir o documento.";
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+  }
+  body[data-aba="montar"] .painel-aba { display: none !important; }
+
+  .folha {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    page-break-after: always;
+    break-after: page;
+  }
+  .folha:last-of-type { page-break-after: auto; break-after: auto; }
+
+  /* Nada de rolagem no papel: as tabelas precisam caber inteiras.
+     Em A4 retrato com margem de 12 mm sobram ~186 mm de largura para
+     as 10 colunas da folha 1, então as larguras mínimas de tela saem. */
+  .rolagem-tabela { overflow: visible !important; }
+  #tabela-ingredientes, #tabela-nutricional { min-width: 0 !important; }
+  .ft-tabela { table-layout: fixed; }
+  .ft-tabela .col-ing { min-width: 0; width: 21%; }
+  .ft-tabela .col-medida { min-width: 0; width: 12%; }
+  .ft-tabela td, .ft-tabela th { overflow-wrap: anywhere; }
+
+  .ft-tabela { font-size: 7.6pt; }
+  .ft-tabela thead th { font-size: 7pt; }
+  .ft-cabecalho { font-size: 8.6pt; }
+  .ft-legenda, .ft-fontes { font-size: 6.8pt; }
+  .celula-modo, .celula-tecnica { height: 150pt; font-size: 8.4pt; }
+  .ft-caracteristicas { font-size: 8.2pt; }
+
+  .ft-tabela th, .ft-tabela td { padding: 2px 3px; }
+  .ft-tabela thead { display: table-header-group; }
+  .ft-tabela tr { page-break-inside: avoid; break-inside: avoid; }
+
   .rotulo { max-width: 380px; border-width: 2px; }
+
+  /* Fundos cinza das células precisam sair na impressora. */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 /* ───────────── Preferências do sistema ───────────── */

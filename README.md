@@ -1,8 +1,11 @@
-# Calculadora Nutricional — Tabela TACO
+# Ficha Técnica de Preparo — Base TACO
 
-Aplicativo web (PWA) para montar uma receita a partir de ingredientes da
-**Tabela TACO** (Tabela Brasileira de Composição de Alimentos, NEPA/UNICAMP)
-e obter a tabela nutricional somada, no formato de rótulo brasileiro.
+Aplicativo web (PWA) que monta uma **Ficha Técnica de Preparo** completa a partir
+dos ingredientes: você digita o nome do alimento e os pesos, e o app preenche
+sozinho os índices, os totais, a composição nutricional e o valor per capita,
+usando a **Tabela TACO** (NEPA/UNICAMP).
+
+Gera também a tabela nutricional no padrão de rótulo brasileiro (RDC 429/2020).
 
 HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 
@@ -16,7 +19,60 @@ Depois de instalado funciona **offline**.
 
 ---
 
-## Como rodar
+## As três abas
+
+| Aba | O que é |
+|---|---|
+| **Montar** | Onde você digita. Busca de alimentos, pesos, preço, modo de preparo e análise sensorial. |
+| **Ficha Técnica** | O documento pronto, em 3 folhas A4, para imprimir ou salvar em PDF. |
+| **Rótulo** | Tabela de informação nutricional no modelo ANVISA. |
+
+---
+
+## O que o app calcula sozinho
+
+Você informa apenas o que não dá para deduzir. Todo o resto é derivado:
+
+### Por ingrediente
+
+| Campo | Fórmula |
+|---|---|
+| **IC** — índice de correção | Peso bruto ÷ peso líquido inicial |
+| **FC** — fator de cocção | Peso líquido final ÷ peso líquido inicial |
+| **CB** — custo bruto | (Peso bruto ÷ 1000) × preço por kg |
+| **CP** — custo por porção | CB ÷ nº de porções |
+| **Medida caseira** | Convertida da base TACO ("200 g de arroz" → "8 colheres de sopa cheias"). Editável — se você mexer, o app para de sobrescrever. |
+| **Calorias e macros** | Proporcional ao peso, direto da TACO |
+
+**IR** (indicador de reidratação) é o único índice que fica manual: ele exige
+saber qual peso é o seco e qual é o hidratado, e isso não dá para inferir dos
+outros campos. Deixe em branco quando não se aplicar.
+
+### Da preparação inteira
+
+- Somatórios de peso bruto, líquido inicial e líquido final
+- **Rendimento**: soma dos pesos finais, ou o peso que você pesar na balança
+- **Per capita**: rendimento ÷ nº de porções — e editar o per capita recalcula o nº de porções
+- **Fator de cocção da preparação**: rendimento ÷ peso líquido inicial total
+- **Valor calórico da porção**, custo total e custo por porção
+- **Valor nutritivo per capita** com a repartição calórica em % (Atwater: proteína 4, lipídio 9, glicídio 4 kcal/g)
+
+### Detalhes que valem saber
+
+- Na coluna **PL fin**, valores entre parênteses não foram medidos: o app assume
+  que o ingrediente não muda de peso (óleo, sal) e usa o líquido inicial. É esse
+  valor que entra no total, então a coluna sempre fecha com o somatório.
+- O **Total** do bloco per capita é a soma das calorias dos macronutrientes pelos
+  coeficientes de Atwater, que difere em alguns pontos das kcal tabeladas da TACO.
+  Isso é esperado: a coluna % precisa somar 100%.
+- A **base do cálculo nutricional** (peso bruto, líquido inicial ou líquido final)
+  é escolhida no card *Rendimento*. O padrão é o líquido inicial. Escolha o peso
+  que corresponde ao estado do alimento cadastrado — se você usou "Arroz cozido"
+  da TACO, o peso coerente é o final.
+
+---
+
+## Como rodar localmente
 
 O app precisa ser servido por HTTP. Abrir o `index.html` direto pelo Explorer
 (`file://`) **não funciona**: o navegador bloqueia o `fetch` de `data/taco.json`
@@ -26,46 +82,13 @@ e não permite registrar o service worker.
 node server.js
 ```
 
-Depois abra <http://localhost:8080>.
-
-Para usar outra porta: `node server.js 3000`.
+Depois abra <http://localhost:8080>. Para outra porta: `node server.js 3000`.
 
 Qualquer outro servidor estático também serve:
 
 ```bash
 npx serve .
 ```
-
-> No VS Code, a extensão **Live Server** funciona igualmente bem.
-
-### Instalando no celular
-
-Abra o app pelo Chrome e use **Instalar app** (o botão aparece no cabeçalho
-quando o navegador oferece a instalação) ou o menu ⋮ → *Adicionar à tela inicial*.
-No iOS, use Compartilhar → *Adicionar à Tela de Início*.
-
-Para instalar num aparelho físico, o app precisa estar em `https://` ou em
-`localhost` — as duas origens que os navegadores consideram contexto seguro.
-Publicar em GitHub Pages, Netlify ou Vercel é suficiente: é só subir a pasta
-inteira, não há etapa de build.
-
----
-
-## Como usar
-
-1. **Busque um ingrediente** no campo de busca. A busca ignora acentos
-   (`acucar` acha *Açúcar*) e aceita várias palavras (`frango peito`).
-   Também funciona por categoria (`frutas`, `leguminosas`).
-2. **Informe a quantidade** em gramas ou escolha uma **medida caseira**
-   (colher de sopa, unidade média, concha…) quando o alimento tiver uma.
-3. **Repita** para todos os ingredientes. A lista permite editar a quantidade
-   direto no campo ou remover o item no ✕. Zerar a quantidade remove o item.
-4. **Defina quantas porções** a receita rende. O rótulo mostra os valores
-   por porção e por 100 g.
-
-A receita é salva automaticamente no `localStorage`, então recarregar a página
-não perde nada. **Copiar como texto** gera uma versão em texto puro da tabela;
-**Imprimir / PDF** imprime apenas o rótulo.
 
 ### Atalhos de teclado
 
@@ -81,9 +104,9 @@ não perde nada. **Copiar como texto** gera uma versão em texto puro da tabela;
 
 ```
 calculadora/
-├── index.html          Marcação da interface e do rótulo
-├── styles.css          Estilos (mobile-first, 2 colunas ≥ 900px)
-├── app.js              Busca, cálculo, rótulo, persistência e PWA
+├── index.html          Interface: 3 abas e as 3 folhas da ficha
+├── styles.css          Estilos (mobile-first) + regras de impressão A4
+├── app.js              Busca, cálculo, renderização, persistência e PWA
 ├── manifest.json       Manifesto do PWA
 ├── sw.js               Service worker (offline)
 ├── server.js           Servidor estático de desenvolvimento
@@ -106,8 +129,6 @@ O protótipo vem com **71 alimentos** representativos. A TACO completa tem 597.
 Para expandir, basta acrescentar objetos ao array `alimentos` de
 `data/taco.json` — **nenhuma alteração de código é necessária**, o app lê o
 arquivo inteiro em tempo de execução e se adapta ao tamanho da base.
-
-Formato de cada alimento:
 
 ```json
 {
@@ -135,56 +156,45 @@ Formato de cada alimento:
 Regras:
 
 - **`id`** precisa ser único e estável. Ele é o que fica salvo no `localStorage`;
-  se você reutilizar um `id` para outro alimento, receitas salvas passam a
-  apontar para o alimento errado. Alimentos que somem da base são descartados
-  na restauração, com aviso ao usuário — não quebram o app.
+  se você reutilizar um `id` para outro alimento, fichas salvas passam a apontar
+  para o alimento errado. Alimentos que somem da base são descartados na
+  restauração, com aviso ao usuário — não quebram o app.
 - **`por100g`** exige as oito chaves acima, sempre por 100 g de parte comestível.
   Chave ausente é tratada como `0`.
-- **`medidas`** é opcional. Sem ela, o usuário só informa gramas.
-- **`categoria`** entra no índice de busca, então o usuário consegue achar o
-  alimento buscando pela categoria.
-
-Depois de editar o JSON, recarregue a página. Como `data/taco.json` usa
-estratégia *network-first* no service worker, a versão nova chega na primeira
-abertura com internet — não é preciso limpar o cache.
+- **`medidas`** é opcional, mas é o que alimenta a coluna *Medida Caseira* da
+  ficha. Sem ela, o campo fica em branco para preenchimento manual.
+- **`categoria`** entra no índice de busca, então dá para achar o alimento
+  buscando pela categoria.
 
 ### Sobre os dados
 
 - A TACO **não publica açúcares totais**. Os valores de `acucares` são
   estimativas derivadas de tabelas complementares (USDA / IBGE-POF) e ficam
   marcados com `"acucaresEstimado": true`. O rótulo exibe um `†` e a nota
-  correspondente sempre que algum ingrediente da receita usa valor estimado.
+  correspondente sempre que algum ingrediente usa valor estimado.
 - Alguns itens que não constam na TACO (grão-de-bico cozido, tofu, atum em
-  conserva) vêm da base **USDA FoodData Central** e estão marcados com
-  `"fonte": "USDA"`.
+  conserva) vêm da base **USDA FoodData Central**, marcados com `"fonte": "USDA"`.
 - Os valores são **médias de referência**. Variam conforme cultivar, origem,
   corte e preparo. Não substituem orientação de nutricionista.
 
 ---
 
-## Detalhes de cálculo
+## Cache e atualizações
 
-- Cada ingrediente contribui com `valor_por_100g × (gramas / 100)`.
-- A coluna **100 g** é a receita pronta normalizada: `total × 100 / peso_total`.
-  Ela não é a soma dos "por 100 g" dos ingredientes — é a composição da mistura.
-- A coluna **Porção** é `total / número_de_porções`.
-- **%VD** usa os Valores Diários da
-  [RDC 429/2020](https://www.gov.br/anvisa/pt-br) e IN 75/2020 (ANVISA), para uma
-  dieta de 2.000 kcal: energia 2.000 kcal, carboidratos 300 g, proteínas 50 g,
-  gorduras totais 55 g, gorduras saturadas 22 g, fibra 25 g e sódio 2.000 mg.
-  Esses números ficam em `valoresDiarios`, no próprio `taco.json`.
-- **Açúcares totais** aparecem sem %VD (—) porque a legislação não define
-  Valor Diário para esse nutriente.
-- O cálculo considera apenas a soma dos ingredientes crus/preparados como
-  cadastrados. **Perda de água no cozimento não é modelada** — se você cadastra
-  arroz cru e serve cozido, o peso total não corresponde ao prato final.
-  Prefira cadastrar os alimentos já na forma em que serão consumidos.
+O service worker usa **stale-while-revalidate** para o app shell: a página abre
+instantânea a partir do cache e baixa a versão nova em segundo plano. Uma
+correção publicada chega para o usuário **na abertura seguinte**, sem que ele
+precise limpar nada.
+
+A constante `CACHE` em `sw.js` só precisa ser incrementada quando você quiser
+descartar todos os caches antigos de uma vez — não a cada deploy.
+
+`data/taco.json` usa *network-first*: alimentos novos chegam já na primeira
+abertura com internet.
 
 ---
 
 ## Regerando os ícones
-
-Os PNGs do PWA são gerados por script, sem dependências externas:
 
 ```bash
 node tools/gen-icons.js
@@ -195,21 +205,10 @@ Se alterar o desenho, ajuste também `icons/icon.svg` para manter os dois iguais
 
 ---
 
-## Cache e versionamento
-
-Ao alterar `index.html`, `styles.css`, `app.js` ou os ícones, **incremente a
-constante `CACHE`** em `sw.js` (`nutri-taco-v1` → `nutri-taco-v2`). Sem isso,
-usuários que já instalaram o app continuam recebendo a versão em cache.
-
-O JSON da base não precisa disso: ele usa *network-first* e sempre tenta a rede
-antes de cair para o cache.
-
----
-
 ## Próximos passos possíveis
 
 - Importar a TACO completa (597 alimentos) — ver *Expandindo a base*.
-- Salvar múltiplas receitas nomeadas, não só a receita atual.
-- Exportar o rótulo como imagem.
-- Campo de peso final do prato, para corrigir a perda de água no cozimento.
+- Salvar múltiplas fichas nomeadas, não só a ficha atual.
+- Exportar a ficha em `.docx` além de PDF.
+- Campo de fator de correção tabelado, para comparar o IC medido com a referência.
 - Gorduras trans e colesterol (a TACO traz colesterol; trans não).

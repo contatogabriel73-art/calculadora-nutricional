@@ -2,16 +2,23 @@
    Service Worker — Calculadora Nutricional
 
    Estratégia:
-   • App shell (HTML/CSS/JS/ícones/manifest) → cache-first.
-     São arquivos versionados por CACHE; servem instantâneos e offline.
-   • data/taco.json → network-first com fallback para cache.
-     Assim, ao expandir a base TACO o usuário recebe a versão nova
-     na primeira vez que abrir com internet, sem precisar limpar cache.
+   • App shell (HTML/CSS/JS/ícones/manifest) → stale-while-revalidate.
+     A página abre instantânea (e offline) a partir do cache, enquanto
+     uma cópia nova é baixada em segundo plano e guardada. A versão
+     atualizada entra na abertura seguinte.
 
-   Ao alterar qualquer arquivo do shell, incremente CACHE.
+     Isso é deliberado: com cache-first puro, publicar uma correção
+     não chegava em quem já tinha aberto o app, a menos que a constante
+     CACHE fosse incrementada a cada deploy — um passo fácil de esquecer.
+
+   • data/taco.json → network-first com fallback para cache.
+     Ao expandir a base TACO o usuário recebe a versão nova já na
+     primeira abertura com internet.
+
+   CACHE só precisa mudar para descartar caches antigos de uma vez.
    ============================================================ */
 
-const CACHE = 'nutri-taco-v1';
+const CACHE = 'nutri-taco-v2';
 
 const SHELL = [
   './',
@@ -71,17 +78,32 @@ self.addEventListener('fetch', (evento) => {
   // Navegação: cache do index como reserva, para abrir offline em qualquer rota.
   if (req.mode === 'navigate') {
     evento.respondWith(
-      fetch(req).catch(() => caches.match('./index.html'))
+      fetch(req)
+        .then((resp) => {
+          const copia = resp.clone();
+          caches.open(CACHE).then((c) => c.put('./index.html', copia));
+          return resp;
+        })
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
 
-  // Demais assets do shell: cache primeiro.
+  // Demais assets do shell: stale-while-revalidate.
   evento.respondWith(
-    caches.match(req).then((emCache) => emCache || fetch(req).then((resp) => {
-      const copia = resp.clone();
-      caches.open(CACHE).then((c) => c.put(req, copia));
-      return resp;
-    }))
+    caches.match(req).then((emCache) => {
+      const daRede = fetch(req)
+        .then((resp) => {
+          if (resp && resp.ok) {
+            const copia = resp.clone();
+            caches.open(CACHE).then((c) => c.put(req, copia));
+          }
+          return resp;
+        })
+        .catch(() => emCache);   // offline: fica com o que já tinha
+
+      // Responde na hora com o cache, mas revalida em segundo plano.
+      return emCache || daRede;
+    })
   );
 });

@@ -61,6 +61,11 @@ const estado = {
 
 let proximoUid = 1;
 
+/* Confirmação em dois toques do botão "Limpar tudo".
+   Declarado aqui, e não junto do handler, porque renderIngredientes() lê a
+   variável e roda antes — com `let` mais abaixo isso cairia na zona morta. */
+let temporizadorLimpar = null;
+
 /* ───────────── Atalhos de DOM ───────────── */
 
 const $ = (sel) => document.querySelector(sel);
@@ -486,6 +491,8 @@ function renderIngredientes(calc) {
   el.contador.textContent = n;
   el.vazio.hidden = n > 0;
   el.limparTudo.hidden = n === 0;
+  // Sem itens o botão some; ao reaparecer não pode estar preso em "Confirmar?".
+  if (n === 0 && temporizadorLimpar) resetarBotaoLimpar();
 
   el.lista.innerHTML = calc.linhas.map(({ item, alimento, ic, fc, cb }) => {
     const kcal = (alimento.por100g.kcal * quantNutricional(item)) / 100;
@@ -993,6 +1000,13 @@ function trocarAba(nome) {
 
 /* ───────────── Eventos ───────────── */
 
+function resetarBotaoLimpar() {
+  clearTimeout(temporizadorLimpar);
+  temporizadorLimpar = null;
+  el.limparTudo.textContent = 'Limpar tudo';
+  el.limparTudo.classList.remove('confirmando');
+}
+
 function ligarEventos() {
 
   // — Abas —
@@ -1038,6 +1052,8 @@ function ligarEventos() {
 
   document.addEventListener('click', (ev) => {
     if (!el.combo.contains(ev.target)) fecharSugestoes();
+    // Clicar em qualquer outro lugar desarma o "Confirmar?".
+    if (temporizadorLimpar && !el.limparTudo.contains(ev.target)) resetarBotaoLimpar();
   });
 
   // — Painel de quantidade —
@@ -1114,10 +1130,23 @@ function ligarEventos() {
     }
   });
 
+  // Confirmação em dois toques no próprio botão.
+  //
+  // Antes isto usava window.confirm(). Não dá: em PWA instalado e em vários
+  // navegadores o diálogo nativo é suprimido e a chamada devolve false na hora,
+  // então o botão não fazia absolutamente nada — sem erro, sem aviso.
   el.limparTudo.addEventListener('click', () => {
-    if (!confirm('Remover todos os ingredientes da preparação?')) return;
+    if (!temporizadorLimpar) {
+      el.limparTudo.textContent = 'Confirmar?';
+      el.limparTudo.classList.add('confirmando');
+      temporizadorLimpar = setTimeout(resetarBotaoLimpar, 4000);
+      return;
+    }
+    const quantos = estado.ingredientes.length;
+    resetarBotaoLimpar();
     estado.ingredientes = [];
     atualizarTudo();
+    toast(`${quantos} ingrediente${quantos === 1 ? '' : 's'} removido${quantos === 1 ? '' : 's'}.`);
   });
 
   // — Campos de texto da ficha —

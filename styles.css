@@ -423,6 +423,14 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .btn-danger { color: var(--perigo); }
 .btn-danger:hover { border-color: var(--perigo); color: var(--perigo); }
 
+/* Segundo estágio do "Limpar tudo": o próprio botão pede a confirmação. */
+.btn-danger.confirmando,
+.btn-danger.confirmando:hover {
+  background: var(--perigo);
+  border-color: var(--perigo);
+  color: #fff;
+}
+
 .acoes-topo { display: flex; gap: 10px; flex-wrap: wrap; }
 .acoes-topo .btn { flex: 1; min-width: 150px; }
 

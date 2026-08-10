@@ -18,7 +18,8 @@
    CACHE só precisa mudar para descartar caches antigos de uma vez.
    ============================================================ */
 
-const CACHE = 'nutri-taco-v3';
+/* Manter em sincronia com VERSAO_APP em app.js. */
+const CACHE = 'nutri-taco-v1.4';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 

@@ -204,6 +204,22 @@ Por isso o `server.js` de desenvolvimento também envia `max-age=600`: com
 `no-cache` local, o ambiente deixava de reproduzir a produção e escondia
 exatamente esse tipo de bug.
 
+### Atualização automática
+
+Quando um service worker novo assume o controle, a página aberta ainda está
+rodando o código antigo. O app escuta `controllerchange` e recarrega **uma
+vez**, então a versão nova entra sozinha, sem o usuário precisar abrir o app
+duas vezes — algo que passava despercebido no celular e parecia "a correção
+não saiu".
+
+A primeira posse de controlador não conta: numa visita inicial a página carrega
+sem controlador e o `clients.claim()` dispara um `controllerchange` que não
+significa versão nova.
+
+O rodapé mostra a versão em execução (`VERSAO_APP` em `app.js`). Ao publicar,
+incremente `VERSAO_APP` **e** `CACHE` em `sw.js` — assim dá para confirmar,
+olhando o app, se o aparelho já recebeu a atualização.
+
 ---
 
 ## Regerando os ícones

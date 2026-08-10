@@ -10,6 +10,12 @@
 
 'use strict';
 
+/* Versão exibida no rodapé. Serve para saber, olhando o app, se o aparelho já
+   recebeu a atualização — sem isso não dá para distinguir "o bug voltou" de
+   "o celular ainda está com a versão antiga em cache".
+   Ao mudar, atualize também CACHE em sw.js. */
+const VERSAO_APP = '1.4';
+
 const CHAVE_STORAGE = 'calc-nutri:ficha:v2';
 const CHAVE_ANTIGA = 'calc-nutri:receita:v1';
 const MAX_SUGESTOES = 10;
@@ -91,9 +97,12 @@ const el = {
   percapita: $('#f-percapita'),
   dicaRendimento: $('#dica-rendimento'),
   qtdAlimentos: $('#qtd-alimentos'),
+  versaoApp: $('#versao-app'),
   toast: $('#toast'),
   btnInstalar: $('#btn-instalar')
 };
+
+if (el.versaoApp) el.versaoApp.textContent = VERSAO_APP;
 
 /* ───────────── Utilidades ───────────── */
 
@@ -1196,6 +1205,30 @@ function ligarPWA() {
     // chegamos aqui — nesse caso o listener nunca rodaria.
     if (document.readyState === 'complete') registrar();
     else window.addEventListener('load', registrar, { once: true });
+
+    /* Atualização automática.
+
+       Quando uma versão nova é publicada, o service worker novo instala e
+       assume o controle — mas a página aberta continua rodando o código
+       velho, e o usuário só via a correção se abrisse o app uma segunda vez.
+       No celular isso passa despercebido: parece que a correção não saiu.
+
+       Ao trocar de controlador, recarregamos uma vez.
+
+       A primeira posse não conta: numa visita inicial a página carrega sem
+       controlador e o clients.claim() dispara um controllerchange que não
+       significa versão nova — os arquivos vieram da rede agora mesmo. Por isso
+       `jaControlado` é atualizado dentro do próprio listener, e não lido uma
+       única vez na inicialização: se fosse fixo, uma página que começou sem
+       controlador nunca mais recarregaria em atualização nenhuma. */
+    let jaControlado = !!navigator.serviceWorker.controller;
+    let recarregando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!jaControlado) { jaControlado = true; return; }
+      if (recarregando) return;
+      recarregando = true;
+      window.location.reload();
+    });
   }
 
   let promptInstalacao = null;

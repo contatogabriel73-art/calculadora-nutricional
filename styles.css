@@ -93,10 +93,14 @@ body {
   background: transparent;
   border: 0;
   border-bottom: 3px solid transparent;
-  padding: 9px 14px;
+  /* 12px em cima e embaixo deixa o alvo de toque em 46px, acima do mínimo
+     recomendado de 44px para dedos. */
+  padding: 12px 15px;
   cursor: pointer;
   white-space: nowrap;
   transition: color .12s, border-color .12s;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, .2);
+  touch-action: manipulation;
 }
 .aba:hover { color: #fff; }
 .aba[aria-selected="true"] {

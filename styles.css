@@ -113,6 +113,11 @@ body {
   padding: 16px 0 28px;
 }
 
+/* O atributo hidden do HTML vale via `[hidden] { display: none }` da folha de
+   estilo do navegador, que perde para a regra de classe acima. Sem isto as três
+   abas aparecem empilhadas ao mesmo tempo. */
+.painel-aba[hidden] { display: none; }
+
 /* ───────────── Cards ───────────── */
 
 .card {

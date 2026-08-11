@@ -25,6 +25,7 @@
 
   <div id="conteudo" hidden>
 
+    <!-- ═══════ Cabeçalho do paciente ═══════ -->
     <div class="card cabecalho-paciente">
       <div class="cabecalho-paciente-topo">
         <span class="avatar avatar-grande" id="avatar" aria-hidden="true"></span>
@@ -40,35 +41,165 @@
 
       <dl class="dados-paciente">
         <div><dt>Nascimento</dt><dd id="d-nascimento">—</dd></div>
+        <div><dt>Sexo</dt><dd id="d-sexo">—</dd></div>
         <div><dt>Telefone</dt><dd id="d-telefone">—</dd></div>
         <div><dt>E-mail</dt><dd id="d-email">—</dd></div>
-        <div><dt>Cadastrado em</dt><dd id="d-criado">—</dd></div>
       </dl>
-
-      <div id="bloco-observacoes" class="observacoes" hidden>
-        <h3>Observações</h3>
-        <p id="d-observacoes"></p>
-      </div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
-        <h2 class="card-title">Fichas técnicas <span id="contador-fichas" class="badge">0</span></h2>
-        <a id="btn-nova-ficha" class="btn btn-primary btn-sm" href="#">Nova ficha técnica</a>
+    <!-- ═══════ Abas do prontuário ═══════ -->
+    <nav class="abas-prontuario" role="tablist" aria-label="Seções do prontuário">
+      <button class="aba-p" role="tab" aria-selected="true" data-aba="resumo">Resumo</button>
+      <button class="aba-p" role="tab" aria-selected="false" data-aba="anamnese">Anamnese</button>
+      <button class="aba-p" role="tab" aria-selected="false" data-aba="antropometria">
+        Antropometria <span id="badge-avaliacoes" class="badge badge-mini">0</span>
+      </button>
+      <button class="aba-p" role="tab" aria-selected="false" data-aba="fichas">
+        Fichas técnicas <span id="badge-fichas" class="badge badge-mini">0</span>
+      </button>
+      <button class="aba-p" role="tab" aria-selected="false" data-aba="linha">Linha do tempo</button>
+    </nav>
+
+    <!-- ─────── RESUMO ─────── -->
+    <section id="p-resumo" class="painel-p" role="tabpanel">
+      <div class="card">
+        <h3 class="card-title">Última avaliação</h3>
+        <div id="resumo-medidas"></div>
       </div>
 
-      <ul id="lista-fichas" class="lista-fichas"></ul>
+      <div class="card">
+        <h3 class="card-title">Observações gerais</h3>
+        <p id="d-observacoes" class="texto-longo">—</p>
+      </div>
+    </section>
 
-      <p id="sem-fichas" class="empty" hidden>
-        Nenhuma ficha técnica para este paciente ainda.<br>
-        Use <strong>Nova ficha técnica</strong> para criar a primeira.
-      </p>
-    </div>
+    <!-- ─────── ANAMNESE ─────── -->
+    <section id="p-anamnese" class="painel-p" role="tabpanel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3 class="card-title">Ficha de anamnese</h3>
+          <span id="anamnese-atualizada" class="dica"></span>
+        </div>
+
+        <form id="form-anamnese">
+          <div class="campo">
+            <label class="field-label" for="a-queixas">Queixa principal / motivo da consulta</label>
+            <textarea id="a-queixas" class="input" rows="3" data-anamnese="queixas"
+              placeholder="O que trouxe o paciente até aqui"></textarea>
+          </div>
+
+          <div class="campo">
+            <label class="field-label" for="a-historicoSaude">Histórico de saúde</label>
+            <textarea id="a-historicoSaude" class="input" rows="4" data-anamnese="historicoSaude"
+              placeholder="Doenças diagnosticadas, cirurgias, histórico familiar, exames recentes"></textarea>
+          </div>
+
+          <div class="campo">
+            <label class="field-label" for="a-medicamentos">Medicamentos e suplementos em uso</label>
+            <textarea id="a-medicamentos" class="input" rows="3" data-anamnese="medicamentos"></textarea>
+          </div>
+
+          <div class="grade-campos">
+            <div class="campo">
+              <label class="field-label" for="a-restricoes">Restrições alimentares</label>
+              <textarea id="a-restricoes" class="input" rows="3" data-anamnese="restricoes"
+                placeholder="Aversões, escolhas (vegetariano, etc.), intolerâncias"></textarea>
+            </div>
+            <div class="campo">
+              <label class="field-label" for="a-alergias">Alergias</label>
+              <textarea id="a-alergias" class="input" rows="3" data-anamnese="alergias"
+                placeholder="Alimentares e medicamentosas"></textarea>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label class="field-label" for="a-habitos">Hábitos alimentares</label>
+            <textarea id="a-habitos" class="input" rows="4" data-anamnese="habitos"
+              placeholder="Rotina de refeições, onde e com quem come, beliscos, consumo de ultraprocessados, álcool"></textarea>
+          </div>
+
+          <div class="grade-campos">
+            <div class="campo">
+              <label class="field-label" for="a-atividadeFisica">Atividade física</label>
+              <textarea id="a-atividadeFisica" class="input" rows="2" data-anamnese="atividadeFisica"
+                placeholder="Tipo, frequência e duração"></textarea>
+            </div>
+            <div class="campo">
+              <label class="field-label" for="a-sono">Sono</label>
+              <textarea id="a-sono" class="input" rows="2" data-anamnese="sono"
+                placeholder="Horas por noite, qualidade"></textarea>
+            </div>
+            <div class="campo">
+              <label class="field-label" for="a-hidratacao">Hidratação</label>
+              <textarea id="a-hidratacao" class="input" rows="2" data-anamnese="hidratacao"
+                placeholder="Litros de água por dia, outras bebidas"></textarea>
+            </div>
+            <div class="campo">
+              <label class="field-label" for="a-funcionamentoIntestinal">Funcionamento intestinal</label>
+              <textarea id="a-funcionamentoIntestinal" class="input" rows="2" data-anamnese="funcionamentoIntestinal"
+                placeholder="Frequência e características"></textarea>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label class="field-label" for="a-observacoes">Outras observações</label>
+            <textarea id="a-observacoes" class="input" rows="3" data-anamnese="observacoes"></textarea>
+          </div>
+
+          <div class="acoes-form">
+            <span id="anamnese-estado" class="dica"></span>
+            <button type="submit" class="btn btn-primary">Salvar anamnese</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ─────── ANTROPOMETRIA ─────── -->
+    <section id="p-antropometria" class="painel-p" role="tabpanel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3 class="card-title">Avaliações</h3>
+          <button id="btn-nova-avaliacao" class="btn btn-primary btn-sm" type="button">Nova avaliação</button>
+        </div>
+
+        <div id="evolucao" class="evolucao" hidden></div>
+
+        <ul id="lista-avaliacoes" class="lista-avaliacoes"></ul>
+
+        <p id="sem-avaliacoes" class="empty" hidden>
+          Nenhuma medição registrada.<br>
+          Use <strong>Nova avaliação</strong> para o primeiro registro.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─────── FICHAS ─────── -->
+    <section id="p-fichas" class="painel-p" role="tabpanel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3 class="card-title">Fichas técnicas</h3>
+          <a id="btn-nova-ficha" class="btn btn-primary btn-sm" href="#">Nova ficha técnica</a>
+        </div>
+        <ul id="lista-fichas" class="lista-fichas"></ul>
+        <p id="sem-fichas" class="empty" hidden>
+          Nenhuma ficha técnica para este paciente ainda.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─────── LINHA DO TEMPO ─────── -->
+    <section id="p-linha" class="painel-p" role="tabpanel" hidden>
+      <div class="card">
+        <h3 class="card-title">Histórico de atendimentos</h3>
+        <ol id="linha-tempo" class="linha-tempo"></ol>
+        <p id="sem-eventos" class="empty" hidden>Nada registrado ainda.</p>
+      </div>
+    </section>
 
   </div>
 </main>
 
-<!-- Formulário de edição -->
+<!-- ═══════ Diálogo: dados do paciente ═══════ -->
 <dialog id="dialogo" class="dialogo">
   <form id="form-paciente" method="dialog" novalidate>
     <div class="dialogo-topo">
@@ -86,14 +217,22 @@
           <input id="f-nascimento" class="input" type="date">
         </div>
         <div class="campo">
+          <label class="field-label" for="f-sexo">Sexo biológico</label>
+          <select id="f-sexo" class="input">
+            <option value="">Não informado</option>
+            <option value="F">Feminino</option>
+            <option value="M">Masculino</option>
+          </select>
+        </div>
+        <div class="campo">
           <label class="field-label" for="f-telefone">Telefone</label>
           <input id="f-telefone" class="input" type="tel" inputmode="tel" maxlength="30">
         </div>
-      </div>
-      <div class="campo">
-        <label class="field-label" for="f-email">E-mail</label>
-        <input id="f-email" class="input" type="email" inputmode="email"
-               autocapitalize="none" spellcheck="false" maxlength="120">
+        <div class="campo">
+          <label class="field-label" for="f-email">E-mail</label>
+          <input id="f-email" class="input" type="email" inputmode="email"
+                 autocapitalize="none" spellcheck="false" maxlength="120">
+        </div>
       </div>
       <div class="campo">
         <label class="field-label" for="f-observacoes">Observações gerais</label>
@@ -108,184 +247,95 @@
   </form>
 </dialog>
 
+<!-- ═══════ Diálogo: avaliação antropométrica ═══════ -->
+<dialog id="dialogo-avaliacao" class="dialogo dialogo-largo">
+  <form id="form-avaliacao" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2 id="titulo-avaliacao">Nova avaliação</h2>
+      <button type="button" class="btn-icon" id="fechar-avaliacao" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="dialogo-corpo">
+      <input type="hidden" id="av-id">
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="av-data">Data da avaliação *</label>
+          <input id="av-data" class="input" type="date" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="av-peso">Peso (kg)</label>
+          <input id="av-peso" class="input" type="text" inputmode="decimal" data-medida placeholder="Ex.: 68,5">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="av-altura">Altura (cm)</label>
+          <input id="av-altura" class="input" type="text" inputmode="decimal" data-medida placeholder="Ex.: 165">
+        </div>
+      </div>
+
+      <!-- Resultados calculados, atualizados enquanto se digita -->
+      <div id="av-resultados" class="resultados-calculados"></div>
+
+      <h3 class="subtitulo-form">Circunferências (cm)</h3>
+      <div class="grade-medidas">
+        <label class="mini-campo"><span>Cintura</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-cintura" data-circ="cintura" data-medida></span></label>
+        <label class="mini-campo"><span>Quadril</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-quadril" data-circ="quadril" data-medida></span></label>
+        <label class="mini-campo"><span>Abdômen</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-abdomen" data-circ="abdomen" data-medida></span></label>
+        <label class="mini-campo"><span>Braço</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-braco" data-circ="braco" data-medida></span></label>
+        <label class="mini-campo"><span>Panturrilha</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-panturrilha" data-circ="panturrilha" data-medida></span></label>
+        <label class="mini-campo"><span>Pescoço</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="c-pescoco" data-circ="pescoco" data-medida></span></label>
+      </div>
+
+      <h3 class="subtitulo-form">
+        Dobras cutâneas (mm)
+        <span class="subtitulo-nota">as quatro marcadas com † entram no cálculo de Faulkner</span>
+      </h3>
+      <div class="grade-medidas">
+        <label class="mini-campo"><span>Tricipital †</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-tricipital" data-dobra="tricipital" data-medida></span></label>
+        <label class="mini-campo"><span>Subescapular †</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-subescapular" data-dobra="subescapular" data-medida></span></label>
+        <label class="mini-campo"><span>Suprailíaca †</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-suprailiaca" data-dobra="suprailiaca" data-medida></span></label>
+        <label class="mini-campo"><span>Abdominal †</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-abdominal" data-dobra="abdominal" data-medida></span></label>
+        <label class="mini-campo"><span>Bicipital</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-bicipital" data-dobra="bicipital" data-medida></span></label>
+        <label class="mini-campo"><span>Coxa</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-coxa" data-dobra="coxa" data-medida></span></label>
+        <label class="mini-campo"><span>Panturrilha</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-panturrilhaD" data-dobra="panturrilha" data-medida></span></label>
+        <label class="mini-campo"><span>Peitoral</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="d-peitoral" data-dobra="peitoral" data-medida></span></label>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="av-observacoes">Observações da avaliação</label>
+        <textarea id="av-observacoes" class="input" rows="3" maxlength="2000"></textarea>
+      </div>
+
+      <p id="erro-avaliacao" class="erro-form" role="alert" hidden></p>
+    </div>
+
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost" id="cancelar-avaliacao">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar avaliação</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="js/auth.js"></script>
 <script src="js/pacientes-storage.js"></script>
 <script src="js/fichas-storage.js"></script>
+<script src="js/prontuario-storage.js"></script>
+<script src="js/antropometria.js"></script>
 <script src="js/shell.js"></script>
-<script>
-(async () => {
-  'use strict';
-
-  if (!(await Auth.exigirLogin())) return;
-  await Shell.montarCabecalho('pacientes');
-
-  const id = new URLSearchParams(location.search).get('id') || '';
-  let paciente = await PacientesStore.obterPaciente(id);
-
-  if (!paciente) {
-    document.querySelector('#nao-encontrado').hidden = false;
-    return;
-  }
-  document.querySelector('#conteudo').hidden = false;
-
-  const dialogo = document.querySelector('#dialogo');
-  const erroForm = document.querySelector('#erro-form');
-
-  function desenharPaciente() {
-    const idade = Shell.calcularIdade(paciente.nascimento);
-    document.title = paciente.nome + ' — NutriFicha';
-    document.querySelector('#avatar').textContent = Shell.iniciais(paciente.nome);
-    document.querySelector('#nome').textContent = paciente.nome;
-    document.querySelector('#subtitulo').textContent =
-      idade !== null ? idade + ' anos' : 'Idade não informada';
-
-    document.querySelector('#d-nascimento').textContent =
-      Shell.formatarData(paciente.nascimento) || '—';
-    document.querySelector('#d-telefone').textContent = paciente.telefone || '—';
-    document.querySelector('#d-email').textContent = paciente.email || '—';
-    document.querySelector('#d-criado').textContent =
-      Shell.formatarDataHora(paciente.criadoEm) || '—';
-
-    const bloco = document.querySelector('#bloco-observacoes');
-    bloco.hidden = !paciente.observacoes;
-    document.querySelector('#d-observacoes').textContent = paciente.observacoes || '';
-
-    document.querySelector('#btn-nova-ficha').href =
-      'ficha.html?paciente=' + encodeURIComponent(paciente.id);
-  }
-
-  async function desenharFichas() {
-    const fichas = await FichasStore.listarFichasDoPaciente(paciente.id);
-    document.querySelector('#contador-fichas').textContent = fichas.length;
-    document.querySelector('#sem-fichas').hidden = fichas.length > 0;
-
-    document.querySelector('#lista-fichas').innerHTML = fichas.map((f) => {
-      const r = f.resumo || {};
-      const partes = [
-        r.kcalPorcao != null ? Math.round(r.kcalPorcao) + ' kcal/porção' : '',
-        r.porcoes != null ? r.porcoes + (r.porcoes === 1 ? ' porção' : ' porções') : '',
-        r.rendimento != null ? Math.round(r.rendimento) + ' g' : '',
-        r.ingredientes != null ? r.ingredientes + (r.ingredientes === 1 ? ' ingrediente' : ' ingredientes') : ''
-      ].filter(Boolean).join(' · ');
-
-      const url = 'ficha.html?paciente=' + encodeURIComponent(paciente.id) +
-                  '&ficha=' + encodeURIComponent(f.id);
-
-      return `
-        <li class="ficha-item">
-          <a class="ficha-link" href="${url}">
-            <span class="ficha-info">
-              <span class="ficha-titulo">${Shell.escapar(f.titulo)}</span>
-              <span class="ficha-detalhe">${Shell.escapar(partes || 'Sem ingredientes')}</span>
-              <span class="ficha-data">Atualizada em ${Shell.escapar(Shell.formatarDataHora(f.atualizadoEm))}</span>
-            </span>
-          </a>
-          <button class="btn-remover-ficha" type="button" data-id="${f.id}"
-                  data-titulo="${Shell.escapar(f.titulo)}" aria-label="Remover ${Shell.escapar(f.titulo)}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M5 5l14 14M19 5L5 19"/>
-            </svg>
-          </button>
-        </li>`;
-    }).join('');
-  }
-
-  /* Confirmação em dois toques, igual à do botão "Limpar tudo" da ficha:
-     window.confirm() é suprimido em PWA instalado e devolve false sem avisar. */
-  function confirmarEmDoisToques(botao, textoConfirmacao, aoConfirmar) {
-    let armado = null;
-    return () => {
-      if (!armado) {
-        const original = botao.textContent;
-        botao.textContent = textoConfirmacao;
-        botao.classList.add('confirmando');
-        armado = setTimeout(() => {
-          clearTimeout(armado);
-          armado = null;
-          botao.textContent = original;
-          botao.classList.remove('confirmando');
-        }, 4000);
-        return;
-      }
-      clearTimeout(armado);
-      armado = null;
-      aoConfirmar();
-    };
-  }
-
-  const botaoRemover = document.querySelector('#btn-remover');
-  botaoRemover.addEventListener('click', confirmarEmDoisToques(
-    botaoRemover, 'Confirmar exclusão?', async () => {
-      await FichasStore.removerFichasDoPaciente(paciente.id);
-      await PacientesStore.removerPaciente(paciente.id);
-      location.replace('pacientes.html');
-    }
-  ));
-
-  document.querySelector('#lista-fichas').addEventListener('click', async (ev) => {
-    const botao = ev.target.closest('.btn-remover-ficha');
-    if (!botao) return;
-    ev.preventDefault();
-
-    if (botao.dataset.armado === 'sim') {
-      await FichasStore.removerFicha(botao.dataset.id);
-      await desenharFichas();
-      Shell.toast('Ficha removida.');
-      return;
-    }
-    botao.dataset.armado = 'sim';
-    botao.classList.add('confirmando');
-    botao.setAttribute('aria-label', 'Toque de novo para remover ' + botao.dataset.titulo);
-    setTimeout(() => {
-      if (!botao.isConnected) return;
-      botao.dataset.armado = '';
-      botao.classList.remove('confirmando');
-    }, 4000);
-  });
-
-  document.querySelector('#btn-editar').addEventListener('click', () => {
-    document.querySelector('#f-nome').value = paciente.nome;
-    document.querySelector('#f-nascimento').value = paciente.nascimento;
-    document.querySelector('#f-telefone').value = paciente.telefone;
-    document.querySelector('#f-email').value = paciente.email;
-    document.querySelector('#f-observacoes').value = paciente.observacoes;
-    erroForm.hidden = true;
-    dialogo.showModal();
-    document.querySelector('#f-nome').focus();
-  });
-
-  document.querySelector('#cancelar').addEventListener('click', () => dialogo.close());
-  document.querySelector('#fechar-dialogo').addEventListener('click', () => dialogo.close());
-
-  document.querySelector('#form-paciente').addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    erroForm.hidden = true;
-
-    const resultado = await PacientesStore.salvarPaciente({
-      id: paciente.id,
-      criadoEm: paciente.criadoEm,
-      nome: document.querySelector('#f-nome').value,
-      nascimento: document.querySelector('#f-nascimento').value,
-      telefone: document.querySelector('#f-telefone').value,
-      email: document.querySelector('#f-email').value,
-      observacoes: document.querySelector('#f-observacoes').value
-    });
-
-    if (!resultado.ok) {
-      erroForm.textContent = resultado.erro;
-      erroForm.hidden = false;
-      return;
-    }
-
-    paciente = resultado.paciente;
-    dialogo.close();
-    desenharPaciente();
-    Shell.toast('Dados atualizados.');
-  });
-
-  desenharPaciente();
-  await desenharFichas();
-})();
-</script>
+<script src="js/paciente-prontuario.js"></script>
 </body>
 </html>

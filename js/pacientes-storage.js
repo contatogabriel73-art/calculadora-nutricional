@@ -69,10 +69,15 @@ const PacientesStore = (() => {
     const lista = lerTudo();
     const agora = new Date().toISOString();
 
+    // `sexo` guarda 'F', 'M' ou '' (não informado). É usado nos pontos de
+    // corte de RCQ e circunferência da cintura, que diferem por sexo.
+    const sexo = ['F', 'M'].includes(dados.sexo) ? dados.sexo : '';
+
     const registro = {
       id: dados.id || novoId(),
       nome,
       nascimento: String(dados.nascimento || '').trim(),
+      sexo,
       telefone: String(dados.telefone || '').trim(),
       email: String(dados.email || '').trim(),
       observacoes: String(dados.observacoes || '').trim(),

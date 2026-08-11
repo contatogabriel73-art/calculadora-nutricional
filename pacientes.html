@@ -64,15 +64,23 @@
           <input id="nascimento" class="input" type="date">
         </div>
         <div class="campo">
+          <label class="field-label" for="sexo">Sexo biológico</label>
+          <select id="sexo" class="input">
+            <option value="">Não informado</option>
+            <option value="F">Feminino</option>
+            <option value="M">Masculino</option>
+          </select>
+          <p class="dica">Usado nos pontos de corte de cintura e RCQ.</p>
+        </div>
+        <div class="campo">
           <label class="field-label" for="telefone">Telefone</label>
           <input id="telefone" class="input" type="tel" inputmode="tel" autocomplete="off" maxlength="30">
         </div>
-      </div>
-
-      <div class="campo">
-        <label class="field-label" for="email">E-mail</label>
-        <input id="email" class="input" type="email" inputmode="email"
-               autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="120">
+        <div class="campo">
+          <label class="field-label" for="email">E-mail</label>
+          <input id="email" class="input" type="email" inputmode="email"
+                 autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="120">
+        </div>
       </div>
 
       <div class="campo">
@@ -161,6 +169,7 @@
     document.querySelector('#paciente-id').value = paciente ? paciente.id : '';
     document.querySelector('#nome').value = paciente ? paciente.nome : '';
     document.querySelector('#nascimento').value = paciente ? paciente.nascimento : '';
+    document.querySelector('#sexo').value = paciente ? (paciente.sexo || '') : '';
     document.querySelector('#telefone').value = paciente ? paciente.telefone : '';
     document.querySelector('#email').value = paciente ? paciente.email : '';
     document.querySelector('#observacoes').value = paciente ? paciente.observacoes : '';
@@ -190,6 +199,7 @@
       id: document.querySelector('#paciente-id').value || undefined,
       nome: document.querySelector('#nome').value,
       nascimento: document.querySelector('#nascimento').value,
+      sexo: document.querySelector('#sexo').value,
       telefone: document.querySelector('#telefone').value,
       email: document.querySelector('#email').value,
       observacoes: document.querySelector('#observacoes').value

@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v1.4';
+const CACHE = 'nutri-taco-v2.0';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 
@@ -36,8 +36,18 @@ function buscarDaRede(url) {
 const SHELL = [
   './',
   './index.html',
+  './login.html',
+  './pacientes.html',
+  './paciente.html',
+  './ficha.html',
   './styles.css',
+  './plataforma.css',
   './app.js',
+  './js/auth.js',
+  './js/pacientes-storage.js',
+  './js/fichas-storage.js',
+  './js/shell.js',
+  './js/ficha-paciente.js',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',
@@ -93,18 +103,27 @@ self.addEventListener('fetch', (evento) => {
     return;
   }
 
-  // Navegação: cache do index como reserva, para abrir offline em qualquer rota.
+  /* Navegação: rede primeiro, cache como reserva para funcionar offline.
+
+     Cada página é guardada sob a própria URL. Antes tudo era gravado como
+     './index.html', o que fazia a última página visitada sobrescrever a
+     inicial no cache — inofensivo quando o app tinha uma página só, mas
+     agora bagunçaria todas. */
   if (req.mode === 'navigate') {
     evento.respondWith(
       buscarDaRede(req.url)
         .then((resp) => {
           if (resp && resp.ok) {
             const copia = resp.clone();
-            caches.open(CACHE).then((c) => c.put('./index.html', copia));
+            caches.open(CACHE).then((c) => c.put(req.url, copia));
           }
           return resp;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(async () =>
+          (await caches.match(req.url)) ||
+          (await caches.match('./index.html')) ||
+          Response.error()
+        )
     );
     return;
   }

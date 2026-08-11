@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paciente — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <p class="migalhas"><a href="pacientes.html">← Todos os pacientes</a></p>
+
+  <div id="nao-encontrado" class="card" hidden>
+    <p class="empty">Paciente não encontrado. Ele pode ter sido removido.</p>
+  </div>
+
+  <div id="conteudo" hidden>
+
+    <div class="card cabecalho-paciente">
+      <div class="cabecalho-paciente-topo">
+        <span class="avatar avatar-grande" id="avatar" aria-hidden="true"></span>
+        <div class="cabecalho-paciente-info">
+          <h2 id="nome"></h2>
+          <p id="subtitulo" class="paciente-detalhe"></p>
+        </div>
+        <div class="cabecalho-paciente-acoes">
+          <button id="btn-editar" class="btn btn-ghost btn-sm" type="button">Editar</button>
+          <button id="btn-remover" class="btn btn-ghost btn-sm btn-danger" type="button">Remover</button>
+        </div>
+      </div>
+
+      <dl class="dados-paciente">
+        <div><dt>Nascimento</dt><dd id="d-nascimento">—</dd></div>
+        <div><dt>Telefone</dt><dd id="d-telefone">—</dd></div>
+        <div><dt>E-mail</dt><dd id="d-email">—</dd></div>
+        <div><dt>Cadastrado em</dt><dd id="d-criado">—</dd></div>
+      </dl>
+
+      <div id="bloco-observacoes" class="observacoes" hidden>
+        <h3>Observações</h3>
+        <p id="d-observacoes"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Fichas técnicas <span id="contador-fichas" class="badge">0</span></h2>
+        <a id="btn-nova-ficha" class="btn btn-primary btn-sm" href="#">Nova ficha técnica</a>
+      </div>
+
+      <ul id="lista-fichas" class="lista-fichas"></ul>
+
+      <p id="sem-fichas" class="empty" hidden>
+        Nenhuma ficha técnica para este paciente ainda.<br>
+        Use <strong>Nova ficha técnica</strong> para criar a primeira.
+      </p>
+    </div>
+
+  </div>
+</main>
+
+<!-- Formulário de edição -->
+<dialog id="dialogo" class="dialogo">
+  <form id="form-paciente" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2>Editar paciente</h2>
+      <button type="button" class="btn-icon" id="fechar-dialogo" aria-label="Fechar">&times;</button>
+    </div>
+    <div class="dialogo-corpo">
+      <div class="campo">
+        <label class="field-label" for="f-nome">Nome completo *</label>
+        <input id="f-nome" class="input" type="text" required maxlength="120">
+      </div>
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="f-nascimento">Data de nascimento</label>
+          <input id="f-nascimento" class="input" type="date">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="f-telefone">Telefone</label>
+          <input id="f-telefone" class="input" type="tel" inputmode="tel" maxlength="30">
+        </div>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-email">E-mail</label>
+        <input id="f-email" class="input" type="email" inputmode="email"
+               autocapitalize="none" spellcheck="false" maxlength="120">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-observacoes">Observações gerais</label>
+        <textarea id="f-observacoes" class="input" rows="4" maxlength="2000"></textarea>
+      </div>
+      <p id="erro-form" class="erro-form" role="alert" hidden></p>
+    </div>
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/fichas-storage.js"></script>
+<script src="js/shell.js"></script>
+<script>
+(async () => {
+  'use strict';
+
+  if (!(await Auth.exigirLogin())) return;
+  await Shell.montarCabecalho('pacientes');
+
+  const id = new URLSearchParams(location.search).get('id') || '';
+  let paciente = await PacientesStore.obterPaciente(id);
+
+  if (!paciente) {
+    document.querySelector('#nao-encontrado').hidden = false;
+    return;
+  }
+  document.querySelector('#conteudo').hidden = false;
+
+  const dialogo = document.querySelector('#dialogo');
+  const erroForm = document.querySelector('#erro-form');
+
+  function desenharPaciente() {
+    const idade = Shell.calcularIdade(paciente.nascimento);
+    document.title = paciente.nome + ' — NutriFicha';
+    document.querySelector('#avatar').textContent = Shell.iniciais(paciente.nome);
+    document.querySelector('#nome').textContent = paciente.nome;
+    document.querySelector('#subtitulo').textContent =
+      idade !== null ? idade + ' anos' : 'Idade não informada';
+
+    document.querySelector('#d-nascimento').textContent =
+      Shell.formatarData(paciente.nascimento) || '—';
+    document.querySelector('#d-telefone').textContent = paciente.telefone || '—';
+    document.querySelector('#d-email').textContent = paciente.email || '—';
+    document.querySelector('#d-criado').textContent =
+      Shell.formatarDataHora(paciente.criadoEm) || '—';
+
+    const bloco = document.querySelector('#bloco-observacoes');
+    bloco.hidden = !paciente.observacoes;
+    document.querySelector('#d-observacoes').textContent = paciente.observacoes || '';
+
+    document.querySelector('#btn-nova-ficha').href =
+      'ficha.html?paciente=' + encodeURIComponent(paciente.id);
+  }
+
+  async function desenharFichas() {
+    const fichas = await FichasStore.listarFichasDoPaciente(paciente.id);
+    document.querySelector('#contador-fichas').textContent = fichas.length;
+    document.querySelector('#sem-fichas').hidden = fichas.length > 0;
+
+    document.querySelector('#lista-fichas').innerHTML = fichas.map((f) => {
+      const r = f.resumo || {};
+      const partes = [
+        r.kcalPorcao != null ? Math.round(r.kcalPorcao) + ' kcal/porção' : '',
+        r.porcoes != null ? r.porcoes + (r.porcoes === 1 ? ' porção' : ' porções') : '',
+        r.rendimento != null ? Math.round(r.rendimento) + ' g' : '',
+        r.ingredientes != null ? r.ingredientes + (r.ingredientes === 1 ? ' ingrediente' : ' ingredientes') : ''
+      ].filter(Boolean).join(' · ');
+
+      const url = 'ficha.html?paciente=' + encodeURIComponent(paciente.id) +
+                  '&ficha=' + encodeURIComponent(f.id);
+
+      return `
+        <li class="ficha-item">
+          <a class="ficha-link" href="${url}">
+            <span class="ficha-info">
+              <span class="ficha-titulo">${Shell.escapar(f.titulo)}</span>
+              <span class="ficha-detalhe">${Shell.escapar(partes || 'Sem ingredientes')}</span>
+              <span class="ficha-data">Atualizada em ${Shell.escapar(Shell.formatarDataHora(f.atualizadoEm))}</span>
+            </span>
+          </a>
+          <button class="btn-remover-ficha" type="button" data-id="${f.id}"
+                  data-titulo="${Shell.escapar(f.titulo)}" aria-label="Remover ${Shell.escapar(f.titulo)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M5 5l14 14M19 5L5 19"/>
+            </svg>
+          </button>
+        </li>`;
+    }).join('');
+  }
+
+  /* Confirmação em dois toques, igual à do botão "Limpar tudo" da ficha:
+     window.confirm() é suprimido em PWA instalado e devolve false sem avisar. */
+  function confirmarEmDoisToques(botao, textoConfirmacao, aoConfirmar) {
+    let armado = null;
+    return () => {
+      if (!armado) {
+        const original = botao.textContent;
+        botao.textContent = textoConfirmacao;
+        botao.classList.add('confirmando');
+        armado = setTimeout(() => {
+          clearTimeout(armado);
+          armado = null;
+          botao.textContent = original;
+          botao.classList.remove('confirmando');
+        }, 4000);
+        return;
+      }
+      clearTimeout(armado);
+      armado = null;
+      aoConfirmar();
+    };
+  }
+
+  const botaoRemover = document.querySelector('#btn-remover');
+  botaoRemover.addEventListener('click', confirmarEmDoisToques(
+    botaoRemover, 'Confirmar exclusão?', async () => {
+      await FichasStore.removerFichasDoPaciente(paciente.id);
+      await PacientesStore.removerPaciente(paciente.id);
+      location.replace('pacientes.html');
+    }
+  ));
+
+  document.querySelector('#lista-fichas').addEventListener('click', async (ev) => {
+    const botao = ev.target.closest('.btn-remover-ficha');
+    if (!botao) return;
+    ev.preventDefault();
+
+    if (botao.dataset.armado === 'sim') {
+      await FichasStore.removerFicha(botao.dataset.id);
+      await desenharFichas();
+      Shell.toast('Ficha removida.');
+      return;
+    }
+    botao.dataset.armado = 'sim';
+    botao.classList.add('confirmando');
+    botao.setAttribute('aria-label', 'Toque de novo para remover ' + botao.dataset.titulo);
+    setTimeout(() => {
+      if (!botao.isConnected) return;
+      botao.dataset.armado = '';
+      botao.classList.remove('confirmando');
+    }, 4000);
+  });
+
+  document.querySelector('#btn-editar').addEventListener('click', () => {
+    document.querySelector('#f-nome').value = paciente.nome;
+    document.querySelector('#f-nascimento').value = paciente.nascimento;
+    document.querySelector('#f-telefone').value = paciente.telefone;
+    document.querySelector('#f-email').value = paciente.email;
+    document.querySelector('#f-observacoes').value = paciente.observacoes;
+    erroForm.hidden = true;
+    dialogo.showModal();
+    document.querySelector('#f-nome').focus();
+  });
+
+  document.querySelector('#cancelar').addEventListener('click', () => dialogo.close());
+  document.querySelector('#fechar-dialogo').addEventListener('click', () => dialogo.close());
+
+  document.querySelector('#form-paciente').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroForm.hidden = true;
+
+    const resultado = await PacientesStore.salvarPaciente({
+      id: paciente.id,
+      criadoEm: paciente.criadoEm,
+      nome: document.querySelector('#f-nome').value,
+      nascimento: document.querySelector('#f-nascimento').value,
+      telefone: document.querySelector('#f-telefone').value,
+      email: document.querySelector('#f-email').value,
+      observacoes: document.querySelector('#f-observacoes').value
+    });
+
+    if (!resultado.ok) {
+      erroForm.textContent = resultado.erro;
+      erroForm.hidden = false;
+      return;
+    }
+
+    paciente = resultado.paciente;
+    dialogo.close();
+    desenharPaciente();
+    Shell.toast('Dados atualizados.');
+  });
+
+  desenharPaciente();
+  await desenharFichas();
+})();
+</script>
+</body>
+</html>

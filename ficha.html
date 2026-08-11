@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ficha Técnica de Preparo — NutriFicha</title>
+<meta name="description" content="Monte a receita com ingredientes da Tabela TACO e gere automaticamente a Ficha Técnica de Preparo completa e a tabela nutricional.">
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ficha Técnica">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<!-- Barra de contexto: aparece só quando a ficha pertence a um paciente -->
+<div id="barra-paciente" class="barra-paciente naoimprimir" hidden>
+  <div class="wrap barra-paciente-inner">
+    <div class="barra-paciente-info">
+      <span class="avatar avatar-pequeno" id="bp-avatar" aria-hidden="true"></span>
+      <span>
+        <a id="bp-link" class="bp-nome" href="#"></a>
+        <span class="bp-estado" id="bp-estado">Nova ficha</span>
+      </span>
+    </div>
+    <div class="barra-paciente-acoes">
+      <span class="bp-alteracoes" id="bp-alteracoes" hidden>alterações não salvas</span>
+      <button id="btn-salvar-ficha" class="btn btn-claro btn-sm" type="button">Salvar no prontuário</button>
+    </div>
+  </div>
+</div>
+
+<nav class="abas-ferramenta naoimprimir">
+  <div class="wrap abas" role="tablist" aria-label="Seções da ficha">
+    <button class="aba" role="tab" id="tab-montar" aria-controls="aba-montar" aria-selected="true" data-aba="montar">Montar</button>
+    <button class="aba" role="tab" id="tab-ficha" aria-controls="aba-ficha" aria-selected="false" data-aba="ficha">Ficha Técnica</button>
+    <button class="aba" role="tab" id="tab-rotulo" aria-controls="aba-rotulo" aria-selected="false" data-aba="rotulo">Rótulo</button>
+    <button id="btn-instalar" class="btn btn-ghost btn-sm aba-instalar" hidden>Instalar app</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ══════════════════ ABA: MONTAR ══════════════════ -->
+<section id="aba-montar" class="painel-aba ativa" role="tabpanel" aria-labelledby="tab-montar">
+
+  <div class="card">
+    <h2 class="card-title">Identificação</h2>
+    <div class="grade-campos">
+      <div class="campo">
+        <label class="field-label" for="f-tema">Tema da aula</label>
+        <input id="f-tema" class="input" type="text" data-campo="tema" autocomplete="off" placeholder="Ex.: Técnica dietética de cereais">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-nome">Nome da preparação</label>
+        <input id="f-nome" class="input" type="text" data-campo="nome" autocomplete="off" placeholder="Ex.: Arroz de forno com frango">
+      </div>
+      <div class="campo campo-largo">
+        <label class="field-label" for="f-descricao">Descrição da preparação</label>
+        <textarea id="f-descricao" class="input" rows="2" data-campo="descricao" placeholder="Breve descrição do prato"></textarea>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-tempo">Tempo de preparo (min)</label>
+        <input id="f-tempo" class="input" type="text" inputmode="numeric" data-campo="tempo" placeholder="45">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-temperatura">Temperatura de cocção</label>
+        <input id="f-temperatura" class="input" type="text" data-campo="temperatura" placeholder="Ex.: 180 °C">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-tecnica">Técnica utilizada</label>
+        <input id="f-tecnica" class="input" type="text" data-campo="tecnica" placeholder="Ex.: Calor seco, assar">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Adicionar ingrediente</h2>
+
+    <div class="combo" role="combobox" aria-expanded="false" aria-owns="sugestoes" aria-haspopup="listbox">
+      <svg class="combo-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="busca" class="input input-search" type="text" placeholder="Buscar alimento (ex.: arroz, frango, ovo…)"
+             autocomplete="off" autocorrect="off" spellcheck="false"
+             aria-autocomplete="list" aria-controls="sugestoes">
+      <button id="btn-limpar-busca" class="combo-clear" type="button" aria-label="Limpar busca" hidden>&times;</button>
+      <ul id="sugestoes" class="sugestoes" role="listbox" aria-label="Sugestões de alimentos" hidden></ul>
+    </div>
+
+    <div id="painel-qtd" class="painel-qtd" hidden>
+      <div class="painel-qtd-topo">
+        <div class="painel-qtd-nome" id="painel-qtd-nome"></div>
+        <button id="painel-qtd-cancelar" class="btn-icon" type="button" aria-label="Cancelar">&times;</button>
+      </div>
+      <div class="painel-qtd-controles">
+        <div class="qtd-wrap">
+          <!-- type=text + inputmode=decimal: aceita vírgula ("1,5") como decimal,
+               que type=number rejeita em várias combinações de locale/teclado. -->
+          <input id="painel-qtd-valor" class="input input-qtd" type="text" inputmode="decimal" value="100" aria-label="Quantidade">
+          <span class="qtd-sufixo" id="painel-qtd-sufixo">g</span>
+        </div>
+        <select id="painel-qtd-medida" class="input input-medida" aria-label="Medida caseira">
+          <option value="g">gramas (g)</option>
+        </select>
+        <button id="painel-qtd-add" class="btn btn-primary" type="button">Adicionar</button>
+      </div>
+      <p class="painel-qtd-equiv" id="painel-qtd-equiv"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Ingredientes <span id="contador-ingredientes" class="badge">0</span></h2>
+      <button id="btn-limpar-tudo" class="btn btn-ghost btn-sm btn-danger" type="button" hidden>Limpar tudo</button>
+    </div>
+
+    <p class="ajuda">
+      O <strong>peso bruto</strong> é o alimento como veio (com casca, osso, aparas).
+      O <strong>líquido inicial</strong> é o que sobra limpo e vai para a panela.
+      O <strong>líquido final</strong> é o peso depois de pronto. Preencha o que fizer sentido —
+      os índices se calculam sozinhos.
+    </p>
+
+    <div id="lista-ingredientes" class="lista-ingredientes"></div>
+
+    <p id="vazio-ingredientes" class="empty">
+      Nenhum ingrediente ainda.<br>
+      Use a busca acima para montar a preparação.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Rendimento</h2>
+    <div class="grade-campos">
+      <div class="campo">
+        <label class="field-label" for="f-rendimento">Rendimento da receita (g)</label>
+        <input id="f-rendimento" class="input" type="text" inputmode="decimal" data-campo="rendimento" placeholder="calculado">
+        <p class="dica" id="dica-rendimento">Peso final da preparação na balança. Em branco, usa o total dos pesos.</p>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-porcoes">Rendimento da porção (nº de porções)</label>
+        <input id="f-porcoes" class="input" type="text" inputmode="decimal" data-campo="porcoes" value="1">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-percapita">Peso da porção — per capita (g)</label>
+        <input id="f-percapita" class="input" type="text" inputmode="decimal" data-campo="percapita" placeholder="calculado">
+        <p class="dica">Editar este campo recalcula o nº de porções.</p>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-medida-prep">Medida caseira da preparação</label>
+        <input id="f-medida-prep" class="input" type="text" data-campo="medidaPreparacao" placeholder="Ex.: 1 escumadeira cheia">
+      </div>
+      <div class="campo campo-largo">
+        <label class="field-label" for="f-base-nutri">Base do cálculo nutricional</label>
+        <select id="f-base-nutri" class="input" data-campo="baseNutricional">
+          <option value="plIn">Peso líquido inicial (padrão) — para alimentos cadastrados crus</option>
+          <option value="plFin">Peso líquido final — para alimentos cadastrados já cozidos</option>
+          <option value="pb">Peso bruto</option>
+        </select>
+        <p class="dica">Escolha o peso que corresponde ao estado do alimento na base TACO.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Modo de preparo</h2>
+    <textarea id="f-modo" class="input" rows="7" data-campo="modoPreparo"
+      placeholder="1. Higienize e porcione os ingredientes.&#10;2. …"></textarea>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Análise sensorial da porção</h2>
+    <div class="grade-campos">
+      <div class="campo">
+        <label class="field-label" for="f-cor">Cor</label>
+        <input id="f-cor" class="input" type="text" data-campo="cor">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-sabor">Sabor</label>
+        <input id="f-sabor" class="input" type="text" data-campo="sabor">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-cheiro">Cheiro</label>
+        <input id="f-cheiro" class="input" type="text" data-campo="cheiro">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-consistencia">Consistência</label>
+        <input id="f-consistencia" class="input" type="text" data-campo="consistencia">
+      </div>
+      <div class="campo">
+        <label class="field-label" for="f-aceitacao">Aceitação</label>
+        <input id="f-aceitacao" class="input" type="text" data-campo="aceitacao">
+      </div>
+      <div class="campo">
+        <span class="field-label">Nível de dificuldade</span>
+        <div class="radios">
+          <label><input type="radio" name="dificuldade" value="Difícil"> Difícil</label>
+          <label><input type="radio" name="dificuldade" value="Médio"> Médio</label>
+          <label><input type="radio" name="dificuldade" value="Fácil"> Fácil</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════ ABA: FICHA TÉCNICA ══════════════════ -->
+<section id="aba-ficha" class="painel-aba" role="tabpanel" aria-labelledby="tab-ficha" hidden>
+
+  <div class="acoes-topo naoimprimir">
+    <button id="btn-imprimir-ficha" class="btn btn-primary" type="button">Imprimir / Salvar PDF</button>
+    <button id="btn-copiar-ficha" class="btn btn-ghost" type="button">Copiar como texto</button>
+  </div>
+
+  <!-- ── FOLHA 1 ── -->
+  <article class="folha" id="folha-1">
+    <table class="ft-cabecalho">
+      <tbody>
+        <tr><th>Tema da aula:</th><td id="v-tema"></td></tr>
+        <tr><th>Nome da preparação:</th><td id="v-nome"></td></tr>
+        <tr><th>Descrição da preparação:</th><td id="v-descricao"></td></tr>
+        <tr><th>Rendimento da receita:</th><td><span id="v-rendimento"></span> g</td></tr>
+        <tr><th>Peso da porção (per capita):</th><td><span id="v-percapita"></span> g</td></tr>
+        <tr><th>Rendimento da porção:</th><td><span id="v-porcoes"></span> porções</td></tr>
+        <tr><th>Tempo de preparo:</th><td><span id="v-tempo"></span> min</td></tr>
+        <tr><th>Medida caseira da preparação:</th><td id="v-medida-prep"></td></tr>
+      </tbody>
+    </table>
+
+    <div class="rolagem-tabela">
+      <table class="ft-tabela" id="tabela-ingredientes">
+        <thead>
+          <tr>
+            <th rowspan="2" class="col-ing">INGREDIENTES</th>
+            <th>Peso Bruto</th>
+            <th>Peso Líq<br>inicial</th>
+            <th>Peso Líq<br>final</th>
+            <th>Fator de<br>Cocção</th>
+            <th>Índice de<br>Correção</th>
+            <th>Indicador de<br>Reidratação</th>
+            <th colspan="2">Custo da Preparação</th>
+            <th rowspan="2">Medida Caseira</th>
+          </tr>
+          <tr>
+            <th>PB (g)</th>
+            <th>PL in (g)</th>
+            <th>PL fin (g)</th>
+            <th>FC</th>
+            <th>IC</th>
+            <th>IR</th>
+            <th>CB (R$)</th>
+            <th>CP (R$)</th>
+          </tr>
+        </thead>
+        <tbody id="ft-corpo"></tbody>
+        <tfoot>
+          <tr>
+            <th class="col-ing">TOTAL</th>
+            <td id="t-pb"></td>
+            <td id="t-plin"></td>
+            <td id="t-plfin"></td>
+            <td class="asterisco">****</td>
+            <td class="asterisco">****</td>
+            <td class="asterisco">****</td>
+            <td id="t-cb"></td>
+            <td id="t-cp"></td>
+            <td class="asterisco">****</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <p class="ft-legenda">
+      <strong>PB</strong> peso bruto · <strong>PL in</strong> peso líquido inicial (limpo, cru) ·
+      <strong>PL fin</strong> peso líquido final (após cocção) ·
+      <strong>FC</strong> fator de cocção = PL fin ÷ PL in ·
+      <strong>IC</strong> índice de correção = PB ÷ PL in ·
+      <strong>IR</strong> indicador de reidratação = peso reidratado ÷ peso seco ·
+      <strong>CB</strong> custo bruto do ingrediente ·
+      <strong>CP</strong> custo por porção = CB ÷ nº de porções.
+      Valores <span class="assumido">(entre parênteses)</span> na coluna PL fin não foram medidos:
+      assume-se que o ingrediente não muda de peso, e é esse valor que entra no total.
+    </p>
+  </article>
+
+  <!-- ── FOLHA 2 ── -->
+  <article class="folha" id="folha-2">
+    <table class="ft-cabecalho">
+      <tbody>
+        <tr><th>Tema da aula:</th><td class="v-tema-2"></td></tr>
+        <tr><th>Nome da preparação:</th><td class="v-nome-2"></td></tr>
+        <tr><th>Rendimento da receita:</th><td><span class="v-rendimento-2"></span> g</td></tr>
+        <tr><th>Peso da porção (per capita):</th><td><span class="v-percapita-2"></span> g</td></tr>
+        <tr><th>Rendimento da porção:</th><td><span class="v-porcoes-2"></span> porções</td></tr>
+      </tbody>
+    </table>
+
+    <div class="rolagem-tabela">
+      <table class="ft-tabela" id="tabela-nutricional">
+        <thead>
+          <tr>
+            <th class="col-ing">Alimento</th>
+            <th>Quant.<br>(g)</th>
+            <th>Caloria<br>(Kcal)</th>
+            <th>Carboidrato<br>(g)</th>
+            <th>Proteína<br>(g)</th>
+            <th>Lipídio<br>(g)</th>
+            <th>Fibra<br>(g)</th>
+            <th>Na<br>(mg)</th>
+          </tr>
+        </thead>
+        <tbody id="nut-corpo"></tbody>
+        <tfoot>
+          <tr>
+            <th class="col-ing">TOTAL</th>
+            <td id="n-quant"></td>
+            <td id="n-kcal"></td>
+            <td id="n-carb"></td>
+            <td id="n-prot"></td>
+            <td id="n-lip"></td>
+            <td id="n-fibra"></td>
+            <td id="n-na"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <h3 class="ft-subtitulo">VALOR NUTRITIVO PER CAPITA</h3>
+    <table class="ft-tabela ft-tabela-pc">
+      <thead>
+        <tr>
+          <th class="col-ing">Nutrientes</th>
+          <th>Quantidade (g)<br>Per capita</th>
+          <th>Kcal<br>Per capita</th>
+          <th>%</th>
+        </tr>
+      </thead>
+      <tbody id="pc-corpo"></tbody>
+    </table>
+
+    <p class="ft-fontes">
+      <strong>Fontes:</strong> <span id="v-fontes"></span>
+    </p>
+  </article>
+
+  <!-- ── FOLHA 3 ── -->
+  <article class="folha" id="folha-3">
+    <table class="ft-cabecalho">
+      <tbody>
+        <tr><th>Tema da aula:</th><td class="v-tema-3"></td></tr>
+        <tr><th>Nome da preparação:</th><td class="v-nome-3"></td></tr>
+      </tbody>
+    </table>
+
+    <table class="ft-tabela ft-modo">
+      <thead>
+        <tr>
+          <th>Modo de preparo</th>
+          <th class="col-tecnica">Técnica utilizada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="v-modo" class="celula-modo"></td>
+          <td id="v-tecnica" class="celula-tecnica"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="ft-tabela ft-caracteristicas">
+      <thead>
+        <tr>
+          <th colspan="2">Características da Preparação</th>
+          <th colspan="2">Análise Sensorial da Porção</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Tempo de preparo (min):</th><td class="v-tempo-3"></td>
+          <th>Cor:</th><td id="v-cor"></td>
+        </tr>
+        <tr>
+          <th>Temperatura de Cocção:</th><td id="v-temperatura"></td>
+          <th>Sabor:</th><td id="v-sabor"></td>
+        </tr>
+        <tr>
+          <th>Peso Bruto Total (g):</th><td id="v-pb-total"></td>
+          <th>Cheiro:</th><td id="v-cheiro"></td>
+        </tr>
+        <tr>
+          <th>Peso Líquido Inicial (g):</th><td id="v-plin-total"></td>
+          <th>Consistência:</th><td id="v-consistencia"></td>
+        </tr>
+        <tr>
+          <th>Peso Líquido Final (g):</th><td id="v-plfin-total"></td>
+          <th>Aceitação:</th><td id="v-aceitacao"></td>
+        </tr>
+        <tr>
+          <th>Fator de Cocção da preparação:</th><td id="v-fc-preparacao"></td>
+          <td colspan="2" class="celula-vazia"></td>
+        </tr>
+        <tr>
+          <th>Valor Calórico da Porção (kcal):</th><td id="v-kcal-porcao"></td>
+          <th colspan="2" class="th-dificuldade">Nível de Dificuldade</th>
+        </tr>
+        <tr>
+          <th>Peso da porção per capita (g):</th><td class="v-percapita-3"></td>
+          <td colspan="2" class="opcao-dif"><span class="marca" data-dif="Difícil">(&nbsp;&nbsp;&nbsp;&nbsp;)</span> Difícil</td>
+        </tr>
+        <tr>
+          <th>Medida caseira da preparação:</th><td class="v-medida-prep-3"></td>
+          <td colspan="2" class="opcao-dif"><span class="marca" data-dif="Médio">(&nbsp;&nbsp;&nbsp;&nbsp;)</span> Médio</td>
+        </tr>
+        <tr>
+          <th>Rendimento da porção:</th><td class="v-porcoes-3"></td>
+          <td colspan="2" class="opcao-dif"><span class="marca" data-dif="Fácil">(&nbsp;&nbsp;&nbsp;&nbsp;)</span> Fácil</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+</section>
+
+<!-- ══════════════════ ABA: RÓTULO ══════════════════ -->
+<section id="aba-rotulo" class="painel-aba" role="tabpanel" aria-labelledby="tab-rotulo" hidden>
+
+  <div class="rotulo" id="rotulo">
+    <h2 class="rotulo-titulo">INFORMAÇÃO NUTRICIONAL</h2>
+    <p class="rotulo-porcao" id="rotulo-porcao">Porções por receita: 1 porção de 0 g</p>
+
+    <table class="rotulo-tabela">
+      <thead>
+        <tr>
+          <th scope="col" class="c-nome"></th>
+          <th scope="col" class="c-num">100 g</th>
+          <th scope="col" class="c-num">Porção<br><span id="th-porcao-g">(0 g)</span></th>
+          <th scope="col" class="c-num">%VD*</th>
+        </tr>
+      </thead>
+      <tbody id="rotulo-corpo"></tbody>
+    </table>
+
+    <p class="rotulo-nota">
+      *Percentual de valores diários fornecidos pela porção, com base em uma dieta de 2.000&nbsp;kcal ou 8.400&nbsp;kJ.
+      Seus valores diários podem ser maiores ou menores dependendo de suas necessidades energéticas.
+    </p>
+    <p class="rotulo-nota rotulo-nota-alerta" id="nota-acucares" hidden>
+      † Açúcares totais estimados: a TACO não publica esse nutriente. Valores derivados de tabelas complementares.
+    </p>
+  </div>
+
+  <div class="acoes-rotulo naoimprimir">
+    <button id="btn-copiar" class="btn btn-ghost" type="button">Copiar como texto</button>
+    <button id="btn-imprimir" class="btn btn-ghost" type="button">Imprimir / PDF</button>
+  </div>
+
+</section>
+
+</main>
+
+<footer class="app-footer naoimprimir">
+  <div class="wrap">
+    <p>
+      Dados nutricionais: <strong>Tabela TACO</strong> — Tabela Brasileira de Composição de Alimentos,
+      4ª edição (NEPA/UNICAMP, 2011), complementada pontualmente pela base USDA FoodData Central.
+    </p>
+    <p class="disclaimer">
+      Protótipo com <span id="qtd-alimentos">—</span> alimentos. Os valores são médias de referência e podem variar
+      conforme cultivar, origem e preparo. Não substitui orientação de nutricionista.
+    </p>
+    <p class="disclaimer">Versão <span id="versao-app">—</span></p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/fichas-storage.js"></script>
+<script src="js/shell.js"></script>
+<script src="app.js"></script>
+<script src="js/ficha-paciente.js"></script>
+</body>
+</html>

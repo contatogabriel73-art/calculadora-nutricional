@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrar — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="pagina-login">
+
+<main class="login-caixa">
+  <a class="brand brand-login" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <rect width="48" height="48" rx="12" fill="currentColor"/>
+      <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>NutriFicha</h1>
+      <p class="brand-sub">Plataforma para nutricionistas</p>
+    </div>
+  </a>
+
+  <div class="card card-login">
+    <h2 class="card-title">Entrar</h2>
+
+    <div class="aviso-demo">
+      <strong>Acesso de demonstração</strong>
+      <p>
+        Ainda não existe cadastro nem senha de verdade. Use os dados abaixo
+        — eles estão no código do site e servem só para você navegar pelas telas.
+      </p>
+      <dl class="credenciais">
+        <div><dt>E-mail</dt><dd id="demo-email">—</dd></div>
+        <div><dt>Senha</dt><dd id="demo-senha">—</dd></div>
+      </dl>
+      <button id="btn-preencher" class="btn btn-ghost btn-sm" type="button">Preencher para mim</button>
+    </div>
+
+    <form id="form-login" novalidate>
+      <div class="campo">
+        <label class="field-label" for="email">E-mail</label>
+        <input id="email" class="input" type="email" autocomplete="username"
+               inputmode="email" autocapitalize="none" spellcheck="false" required>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="senha">Senha</label>
+        <input id="senha" class="input" type="password" autocomplete="current-password" required>
+      </div>
+
+      <p id="erro-login" class="erro-form" role="alert" hidden></p>
+
+      <button class="btn btn-primary btn-bloco" type="submit">Entrar</button>
+    </form>
+
+    <p class="login-voltar"><a href="index.html">← Voltar para a página inicial</a></p>
+  </div>
+</main>
+
+<script src="js/auth.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const form = document.querySelector('#form-login');
+  const email = document.querySelector('#email');
+  const senha = document.querySelector('#senha');
+  const erro = document.querySelector('#erro-login');
+
+  const demo = Auth.credenciaisDemo();
+  document.querySelector('#demo-email').textContent = demo.email;
+  document.querySelector('#demo-senha').textContent = demo.senha;
+
+  document.querySelector('#btn-preencher').addEventListener('click', () => {
+    email.value = demo.email;
+    senha.value = demo.senha;
+    erro.hidden = true;
+    senha.focus();
+  });
+
+  // Para onde ir depois de entrar. Só aceitamos caminhos internos:
+  // um destino vindo da URL não pode virar redirecionamento para outro site.
+  function destinoSeguro() {
+    const bruto = new URLSearchParams(location.search).get('destino') || 'pacientes.html';
+    if (/^[a-z0-9._-]+\.html(\?[^#]*)?$/i.test(bruto)) return bruto;
+    return 'pacientes.html';
+  }
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erro.hidden = true;
+
+    const resultado = await Auth.login(email.value, senha.value);
+    if (!resultado.ok) {
+      erro.textContent = resultado.erro;
+      erro.hidden = false;
+      senha.focus();
+      senha.select();
+      return;
+    }
+    location.replace(destinoSeguro());
+  });
+
+  // Já logado? Vai direto.
+  Auth.estaLogado().then((sim) => { if (sim) location.replace(destinoSeguro()); });
+})();
+</script>
+</body>
+</html>

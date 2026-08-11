@@ -1,13 +1,26 @@
-# Ficha Técnica de Preparo — Base TACO
+# NutriFicha — plataforma para nutricionistas
 
 Aplicativo web (PWA) que monta uma **Ficha Técnica de Preparo** completa a partir
 dos ingredientes: você digita o nome do alimento e os pesos, e o app preenche
 sozinho os índices, os totais, a composição nutricional e o valor per capita,
 usando a **Tabela TACO** (NEPA/UNICAMP).
 
-Gera também a tabela nutricional no padrão de rótulo brasileiro (RDC 429/2020).
+Gera também a tabela nutricional no padrão de rótulo brasileiro (RDC 429/2020),
+e guarda as fichas no prontuário de cada paciente.
 
 HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
+
+> ## ⚠️ Estado atual: protótipo
+>
+> **Não há backend.** O login é fictício, com credenciais no próprio código, e
+> todos os dados ficam no `localStorage` do navegador — sem servidor, sem backup
+> e sem sincronizar entre aparelhos. Qualquer pessoa consegue ler as credenciais
+> ou marcar a flag de sessão pelo console.
+>
+> **Não cadastre dados reais de paciente.** Nome, contato e observações de saúde
+> são dados pessoais sensíveis; guardá-los num protótipo público sem controle de
+> acesso não é adequado nem do ponto de vista da LGPD. Use dados fictícios até a
+> versão com banco de dados.
 
 ### ▶ Testar agora
 
@@ -19,13 +32,69 @@ Depois de instalado funciona **offline**.
 
 ---
 
-## As três abas
+## As telas
+
+| Página | O que é |
+|---|---|
+| `index.html` | Landing pública que apresenta o produto. |
+| `login.html` | Entrada. Mostra as credenciais de demonstração na própria tela. |
+| `pacientes.html` | Lista, busca, cadastro e edição de pacientes. |
+| `paciente.html?id=…` | Ficha do paciente e histórico de fichas técnicas. |
+| `ficha.html` | A ferramenta de cálculo. |
+
+**Credenciais de demonstração:** `nutricionista@teste.com` / `123456`
+
+### Modos da ferramenta de ficha
+
+| URL | Comportamento |
+|---|---|
+| `ficha.html` | Ferramenta avulsa, sem paciente. |
+| `ficha.html?paciente=ID` | Ficha nova, vinculada ao paciente. |
+| `ficha.html?paciente=ID&ficha=FID` | Abre uma ficha já salva no prontuário. |
+
+Dentro dela existem três abas:
 
 | Aba | O que é |
 |---|---|
 | **Montar** | Onde você digita. Busca de alimentos, pesos, preço, modo de preparo e análise sensorial. |
 | **Ficha Técnica** | O documento pronto, em 3 folhas A4, para imprimir ou salvar em PDF. |
 | **Rótulo** | Tabela de informação nutricional no modelo ANVISA. |
+
+---
+
+## Arquitetura: os módulos que serão trocados por Supabase
+
+A persistência e a autenticação foram isoladas de propósito. Para ligar um
+backend real, **só estes três arquivos mudam** — nenhuma tela precisa ser tocada,
+porque todas as funções já são assíncronas e as assinaturas não mudam:
+
+| Módulo | Responsabilidade | Vira, no Supabase |
+|---|---|---|
+| `js/auth.js` | `login()`, `logout()`, `estaLogado()`, `usuarioAtual()`, `exigirLogin()` | `supabase.auth.*` |
+| `js/pacientes-storage.js` | `listarPacientes()`, `obterPaciente()`, `salvarPaciente()`, `removerPaciente()`, `buscarPacientes()` | tabela `pacientes` |
+| `js/fichas-storage.js` | `listarFichasDoPaciente()`, `obterFicha()`, `salvarFicha()`, `removerFicha()` | tabela `fichas` |
+
+Os demais arquivos de apoio:
+
+| Arquivo | Papel |
+|---|---|
+| `js/shell.js` | Cabeçalho comum das telas internas e utilidades (datas, iniciais, toast). |
+| `js/ficha-paciente.js` | Única camada que sabe que uma ficha pertence a um paciente. |
+| `app.js` | Toda a lógica de cálculo. Expõe `FichaTool` (`exportar`, `importar`, `resumo`, `titulo`, `aoMudar`) para a camada acima — não conhece pacientes. |
+
+### Rascunho x ficha salva
+
+São duas coisas diferentes, de propósito:
+
+- **Rascunho** — o que está na tela agora, salvo a cada tecla. A chave varia
+  conforme o contexto (`calc-nutri:rascunho:p:<id>`, `…:f:<id>`), para que uma
+  ficha pela metade de um paciente não apareça na de outro.
+- **Ficha salva** — o registro fechado no prontuário, gravado ao clicar em
+  *Salvar no prontuário*. É esse que aparece no histórico do paciente.
+
+Ao reabrir uma ficha salva que tenha rascunho pendente, o rascunho vence — são
+edições não salvas, e descartá-las em silêncio seria pior. A barra do topo
+mostra "alterações não salvas" nesse caso.
 
 ---
 
@@ -104,21 +173,32 @@ npx serve .
 
 ```
 calculadora/
-├── index.html          Interface: 3 abas e as 3 folhas da ficha
-├── styles.css          Estilos (mobile-first) + regras de impressão A4
-├── app.js              Busca, cálculo, renderização, persistência e PWA
-├── manifest.json       Manifesto do PWA
-├── sw.js               Service worker (offline)
-├── server.js           Servidor estático de desenvolvimento
+├── index.html              Landing pública
+├── login.html              Entrada (credenciais de demonstração)
+├── pacientes.html          Lista e cadastro de pacientes
+├── paciente.html           Detalhe do paciente + histórico de fichas
+├── ficha.html              A ferramenta: 3 abas e as 3 folhas da ficha
+├── styles.css              Tokens, componentes e a ficha (com impressão A4)
+├── plataforma.css          Landing, login, pacientes e casca do sistema
+├── app.js                  Busca, cálculo, renderização e PWA. Expõe FichaTool
+├── js/
+│   ├── auth.js             ← trocar por Supabase Auth
+│   ├── pacientes-storage.js ← trocar por tabela `pacientes`
+│   ├── fichas-storage.js   ← trocar por tabela `fichas`
+│   ├── shell.js            Cabeçalho comum e utilidades
+│   └── ficha-paciente.js   Vínculo ficha ↔ paciente
+├── manifest.json           Manifesto do PWA
+├── sw.js                   Service worker (offline)
+├── server.js               Servidor estático de desenvolvimento
 ├── data/
-│   └── taco.json       Base de alimentos  ← ponto de expansão
+│   └── taco.json           Base de alimentos  ← ponto de expansão
 ├── icons/
 │   ├── icon.svg
 │   ├── icon-192.png
 │   ├── icon-512.png
 │   └── icon-maskable-512.png
 └── tools/
-    └── gen-icons.js    Regera os PNGs a partir do desenho vetorial
+    └── gen-icons.js        Regera os PNGs a partir do desenho vetorial
 ```
 
 ---
@@ -233,10 +313,16 @@ Se alterar o desenho, ajuste também `icons/icon.svg` para manter os dois iguais
 
 ---
 
-## Próximos passos possíveis
+## Próximos passos
 
-- Importar a TACO completa (597 alimentos) — ver *Expandindo a base*.
-- Salvar múltiplas fichas nomeadas, não só a ficha atual.
-- Exportar a ficha em `.docx` além de PDF.
-- Campo de fator de correção tabelado, para comparar o IC medido com a referência.
-- Gorduras trans e colesterol (a TACO traz colesterol; trans não).
+Na ordem em que fazem sentido:
+
+1. **Supabase** — autenticação real e banco de dados. Trocar os três módulos
+   listados acima; nenhuma tela precisa mudar. É o que destrava usar com
+   paciente de verdade.
+2. **Agendamento** — agenda de consultas ligada ao cadastro de pacientes.
+3. Importar a TACO completa (597 alimentos) — ver *Expandindo a base*.
+4. Escrever direto na ficha impressa (modo de preparo, análise sensorial),
+   em vez de só na aba Montar.
+5. Exportar a ficha em `.docx` além de PDF.
+6. Gorduras trans e colesterol (a TACO traz colesterol; trans não).

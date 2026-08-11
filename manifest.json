@@ -1,7 +1,7 @@
 {
-  "name": "Calculadora Nutricional — Tabela TACO",
-  "short_name": "Nutri TACO",
-  "description": "Monte uma receita com ingredientes da Tabela TACO e veja a tabela nutricional completa no padrão de rótulo brasileiro.",
+  "name": "NutriFicha — Ficha técnica e rótulo nutricional",
+  "short_name": "NutriFicha",
+  "description": "Plataforma para nutricionistas: ficha técnica de preparo e rótulo nutricional a partir da Tabela TACO, com cadastro de pacientes.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "./index.html",

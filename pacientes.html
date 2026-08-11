@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pacientes — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <div id="aviso"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Pacientes <span id="contador" class="badge">0</span></h2>
+      <button id="btn-novo" class="btn btn-primary btn-sm" type="button">Novo paciente</button>
+    </div>
+
+    <div class="combo combo-simples">
+      <svg class="combo-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="busca" class="input input-search" type="text" placeholder="Buscar por nome, e-mail ou telefone"
+             autocomplete="off" spellcheck="false">
+    </div>
+
+    <ul id="lista" class="lista-pacientes"></ul>
+
+    <p id="vazio" class="empty" hidden>
+      Nenhum paciente cadastrado ainda.<br>
+      Use <strong>Novo paciente</strong> para começar.
+    </p>
+    <p id="sem-resultado" class="empty" hidden>Nenhum paciente encontrado para essa busca.</p>
+  </div>
+
+</main>
+
+<!-- ═══════════ Formulário (diálogo) ═══════════ -->
+<dialog id="dialogo" class="dialogo">
+  <form id="form-paciente" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2 id="dialogo-titulo">Novo paciente</h2>
+      <button type="button" class="btn-icon" id="fechar-dialogo" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="dialogo-corpo">
+      <input type="hidden" id="paciente-id">
+
+      <div class="campo">
+        <label class="field-label" for="nome">Nome completo *</label>
+        <input id="nome" class="input" type="text" required autocomplete="off" maxlength="120">
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="nascimento">Data de nascimento</label>
+          <input id="nascimento" class="input" type="date">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="telefone">Telefone</label>
+          <input id="telefone" class="input" type="tel" inputmode="tel" autocomplete="off" maxlength="30">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="email">E-mail</label>
+        <input id="email" class="input" type="email" inputmode="email"
+               autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="120">
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="observacoes">Observações gerais</label>
+        <textarea id="observacoes" class="input" rows="4" maxlength="2000"
+                  placeholder="Restrições, alergias, objetivo do acompanhamento…"></textarea>
+      </div>
+
+      <p id="erro-form" class="erro-form" role="alert" hidden></p>
+    </div>
+
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/fichas-storage.js"></script>
+<script src="js/shell.js"></script>
+<script>
+(async () => {
+  'use strict';
+
+  if (!(await Auth.exigirLogin())) return;
+  await Shell.montarCabecalho('pacientes');
+  document.querySelector('#aviso').innerHTML = Shell.avisoArmazenamento();
+
+  const lista = document.querySelector('#lista');
+  const vazio = document.querySelector('#vazio');
+  const semResultado = document.querySelector('#sem-resultado');
+  const contador = document.querySelector('#contador');
+  const busca = document.querySelector('#busca');
+  const dialogo = document.querySelector('#dialogo');
+  const form = document.querySelector('#form-paciente');
+  const erroForm = document.querySelector('#erro-form');
+
+  async function desenhar() {
+    const todos = await PacientesStore.listarPacientes();
+    const filtrados = await PacientesStore.buscarPacientes(busca.value);
+
+    contador.textContent = todos.length;
+    vazio.hidden = todos.length > 0;
+    semResultado.hidden = !(todos.length > 0 && filtrados.length === 0);
+
+    // Conta as fichas de cada paciente antes de montar o HTML.
+    const contagens = await Promise.all(
+      filtrados.map((p) => FichasStore.contarPorPaciente(p.id))
+    );
+
+    lista.innerHTML = filtrados.map((p, i) => {
+      const idade = Shell.calcularIdade(p.nascimento);
+      const detalhes = [
+        idade !== null ? idade + ' anos' : '',
+        p.telefone,
+        p.email
+      ].filter(Boolean).join(' · ');
+
+      const n = contagens[i];
+      const fichas = n === 0 ? 'Nenhuma ficha' : n === 1 ? '1 ficha' : n + ' fichas';
+
+      return `
+        <li class="paciente-item">
+          <a class="paciente-link" href="paciente.html?id=${encodeURIComponent(p.id)}">
+            <span class="avatar" aria-hidden="true">${Shell.escapar(Shell.iniciais(p.nome))}</span>
+            <span class="paciente-info">
+              <span class="paciente-nome">${Shell.escapar(p.nome)}</span>
+              <span class="paciente-detalhe">${Shell.escapar(detalhes || 'Sem dados de contato')}</span>
+            </span>
+            <span class="paciente-fichas">${fichas}</span>
+          </a>
+          <button class="btn-editar" type="button" data-id="${p.id}" aria-label="Editar ${Shell.escapar(p.nome)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>
+        </li>`;
+    }).join('');
+  }
+
+  function abrirDialogo(paciente) {
+    document.querySelector('#dialogo-titulo').textContent =
+      paciente ? 'Editar paciente' : 'Novo paciente';
+    document.querySelector('#paciente-id').value = paciente ? paciente.id : '';
+    document.querySelector('#nome').value = paciente ? paciente.nome : '';
+    document.querySelector('#nascimento').value = paciente ? paciente.nascimento : '';
+    document.querySelector('#telefone').value = paciente ? paciente.telefone : '';
+    document.querySelector('#email').value = paciente ? paciente.email : '';
+    document.querySelector('#observacoes').value = paciente ? paciente.observacoes : '';
+    erroForm.hidden = true;
+    dialogo.showModal();
+    document.querySelector('#nome').focus();
+  }
+
+  document.querySelector('#btn-novo').addEventListener('click', () => abrirDialogo(null));
+  document.querySelector('#cancelar').addEventListener('click', () => dialogo.close());
+  document.querySelector('#fechar-dialogo').addEventListener('click', () => dialogo.close());
+
+  lista.addEventListener('click', async (ev) => {
+    const botao = ev.target.closest('.btn-editar');
+    if (!botao) return;
+    ev.preventDefault();
+    abrirDialogo(await PacientesStore.obterPaciente(botao.dataset.id));
+  });
+
+  busca.addEventListener('input', desenhar);
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erroForm.hidden = true;
+
+    const resultado = await PacientesStore.salvarPaciente({
+      id: document.querySelector('#paciente-id').value || undefined,
+      nome: document.querySelector('#nome').value,
+      nascimento: document.querySelector('#nascimento').value,
+      telefone: document.querySelector('#telefone').value,
+      email: document.querySelector('#email').value,
+      observacoes: document.querySelector('#observacoes').value
+    });
+
+    if (!resultado.ok) {
+      erroForm.textContent = resultado.erro;
+      erroForm.hidden = false;
+      return;
+    }
+
+    dialogo.close();
+    await desenhar();
+    Shell.toast('Paciente salvo.');
+  });
+
+  await desenhar();
+})();
+</script>
+</body>
+</html>

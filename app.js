@@ -14,11 +14,27 @@
    recebeu a atualização — sem isso não dá para distinguir "o bug voltou" de
    "o celular ainda está com a versão antiga em cache".
    Ao mudar, atualize também CACHE em sw.js. */
-const VERSAO_APP = '1.4';
+const VERSAO_APP = '2.0';
 
-const CHAVE_STORAGE = 'calc-nutri:ficha:v2';
 const CHAVE_ANTIGA = 'calc-nutri:receita:v1';
 const MAX_SUGESTOES = 10;
+
+/* Rascunho automático — o que está na tela agora, salvo a cada tecla.
+   É diferente da ficha salva no prontuário (js/fichas-storage.js).
+
+   A chave muda conforme o contexto para que o rascunho de um paciente não
+   apareça na ficha de outro: abrir "nova ficha" do paciente B mostraria o
+   que ficou pela metade no paciente A. */
+function chaveRascunho() {
+  const params = new URLSearchParams(location.search);
+  const ficha = params.get('ficha');
+  const paciente = params.get('paciente');
+  if (ficha) return 'calc-nutri:rascunho:f:' + ficha;
+  if (paciente) return 'calc-nutri:rascunho:p:' + paciente;
+  return 'calc-nutri:ficha:v2';   // ferramenta avulsa: mantém a chave histórica
+}
+
+const CHAVE_STORAGE = chaveRascunho();
 
 /* Coeficientes de Atwater: kcal por grama de cada macronutriente.
    Usados só para repartir as calorias entre os macros no bloco
@@ -757,6 +773,7 @@ function atualizarTudo() {
   renderRotulo(calc);
   renderCamposDerivados(calc);
   salvar();
+  notificarMudanca();
 }
 
 /* ───────────── Persistência ───────────── */
@@ -776,12 +793,25 @@ function salvar() {
   }
 }
 
+/** Copia o estado da ficha para os campos visíveis da aba Montar. */
+function refletirFichaNosCampos() {
+  CAMPOS_FICHA.forEach((campo) => {
+    const input = document.querySelector(`[data-campo="${campo}"]`);
+    if (input) input.value = estado.ficha[campo] || '';
+  });
+  $$('input[name="dificuldade"]').forEach((r) => {
+    r.checked = r.value === estado.ficha.dificuldade;
+  });
+}
+
 function restaurar() {
   let dados = null;
   try { dados = JSON.parse(localStorage.getItem(CHAVE_STORAGE) || 'null'); } catch (e) {}
+  FichaTool.tinhaRascunho = !!dados;
 
   // Migração da versão anterior do app, que só guardava gramas por ingrediente.
-  if (!dados) {
+  // Só faz sentido na ferramenta avulsa: fichas de paciente nunca existiram lá.
+  if (!dados && CHAVE_STORAGE === 'calc-nutri:ficha:v2') {
     let antigo = null;
     try { antigo = JSON.parse(localStorage.getItem(CHAVE_ANTIGA) || 'null'); } catch (e) {}
     if (antigo && Array.isArray(antigo.itens)) {
@@ -819,13 +849,7 @@ function restaurar() {
     return acc;
   }, []);
 
-  // Reflete o estado nos campos da aba Montar.
-  CAMPOS_FICHA.forEach((campo) => {
-    const input = document.querySelector(`[data-campo="${campo}"]`);
-    if (input) input.value = estado.ficha[campo] || '';
-  });
-  const radio = document.querySelector(`input[name="dificuldade"][value="${estado.ficha.dificuldade}"]`);
-  if (radio) radio.checked = true;
+  refletirFichaNosCampos();
 
   if (descartados > 0) {
     toast(`${descartados} ingrediente(s) não existem mais na base e foram removidos.`);
@@ -1263,7 +1287,7 @@ async function iniciar() {
       '<tr><td colspan="10">Não foi possível carregar data/taco.json. ' +
       'Abra o app por um servidor HTTP (veja o README), não por file://.</td></tr>';
     console.error('Falha ao carregar a base TACO:', erro);
-    return;
+    throw erro;
   }
 
   restaurar();
@@ -1273,5 +1297,88 @@ async function iniciar() {
   ligarPWA();
 }
 
-iniciar();
+/* ============================================================
+   FichaTool — interface pública da ferramenta
+
+   É por aqui que a camada de pacientes (js/ficha-paciente.js) lê e
+   escreve o conteúdo da ficha. Existe para que aquela camada não
+   precise mexer em `estado` nem conhecer o funcionamento interno —
+   quando o backend entrar, só ela muda.
+   ============================================================ */
+
+const ouvintesMudanca = [];
+
+function notificarMudanca() {
+  for (const fn of ouvintesMudanca) {
+    try { fn(); } catch (e) { console.error(e); }
+  }
+}
+
+const FichaTool = {
+  /** Promise que resolve quando a base carregou e a tela está montada. */
+  pronto: iniciar(),
+
+  /** true se havia rascunho salvo para este contexto ao abrir a página. */
+  tinhaRascunho: false,
+
+  /** Conteúdo completo, no formato guardado no prontuário. */
+  exportar() {
+    return {
+      ficha: Object.assign({}, estado.ficha),
+      ingredientes: estado.ingredientes.map((i) => ({
+        foodId: i.foodId, pb: i.pb, plIn: i.plIn, plFin: i.plFin,
+        ir: i.ir, precoKg: i.precoKg,
+        medidaCaseira: i.medidaCaseira, medidaManual: i.medidaManual
+      }))
+    };
+  },
+
+  /** Substitui o conteúdo da tela. Ingredientes que sumiram da base são ignorados. */
+  importar(dados) {
+    if (!dados) return;
+    Object.assign(estado.ficha, dados.ficha || {});
+    estado.ingredientes = (dados.ingredientes || []).reduce((acc, i) => {
+      if (!estado.porId.has(i.foodId)) return acc;
+      acc.push({
+        uid: proximoUid++,
+        foodId: i.foodId,
+        pb: paraNumero(i.pb),
+        plIn: paraNumero(i.plIn),
+        plFin: paraNumero(i.plFin),
+        ir: paraNumero(i.ir),
+        precoKg: paraNumero(i.precoKg),
+        medidaCaseira: i.medidaCaseira || '',
+        medidaManual: !!i.medidaManual
+      });
+      return acc;
+    }, []);
+    refletirFichaNosCampos();
+    atualizarTudo();
+  },
+
+  /** Números já calculados, para a listagem de fichas não refazer as contas. */
+  resumo() {
+    const calc = calcular();
+    return {
+      kcalPorcao: calc.kcalPorcao,
+      porcoes: calc.porcoes,
+      rendimento: calc.rendimento,
+      ingredientes: calc.linhas.length
+    };
+  },
+
+  /** Nome da preparação, usado como título da ficha salva. */
+  titulo() {
+    return estado.ficha.nome || '';
+  },
+
+  vazia() {
+    return estado.ingredientes.length === 0 && !estado.ficha.nome;
+  },
+
+  /** Registra um callback disparado a cada alteração do conteúdo. */
+  aoMudar(fn) {
+    if (typeof fn === 'function') ouvintesMudanca.push(fn);
+  }
+};
 

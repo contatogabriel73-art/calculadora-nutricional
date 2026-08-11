@@ -14,7 +14,7 @@
    recebeu a atualização — sem isso não dá para distinguir "o bug voltou" de
    "o celular ainda está com a versão antiga em cache".
    Ao mudar, atualize também CACHE em sw.js. */
-const VERSAO_APP = '2.1';
+const VERSAO_APP = '2.2';
 
 const CHAVE_ANTIGA = 'calc-nutri:receita:v1';
 const MAX_SUGESTOES = 10;
@@ -41,18 +41,10 @@ const CHAVE_STORAGE = chaveRascunho();
    "valor nutritivo per capita" (a coluna %). */
 const ATWATER = { proteinas: 4, lipidios: 9, glicidios: 4 };
 
-/* Nutrientes do rótulo ANVISA, na ordem em que aparecem.
-   `recuo` → sub-item indentado; `vd` → chave em valoresDiarios (null = sem %VD) */
-const NUTRIENTES = [
-  { chave: 'kcal',              rotulo: 'Valor energético',    unidade: 'kcal', casas: 0, vd: 'kcal', destaque: true },
-  { chave: 'carboidratos',      rotulo: 'Carboidratos totais', unidade: 'g',    casas: 1, vd: 'carboidratos' },
-  { chave: 'acucares',          rotulo: 'Açúcares totais',     unidade: 'g',    casas: 1, vd: null, recuo: true },
-  { chave: 'proteinas',         rotulo: 'Proteínas',           unidade: 'g',    casas: 1, vd: 'proteinas' },
-  { chave: 'gordurasTotais',    rotulo: 'Gorduras totais',     unidade: 'g',    casas: 1, vd: 'gordurasTotais' },
-  { chave: 'gordurasSaturadas', rotulo: 'Gorduras saturadas',  unidade: 'g',    casas: 1, vd: 'gordurasSaturadas', recuo: true },
-  { chave: 'fibras',            rotulo: 'Fibra alimentar',     unidade: 'g',    casas: 1, vd: 'fibras' },
-  { chave: 'sodio',             rotulo: 'Sódio',               unidade: 'mg',   casas: 0, vd: 'sodio' }
-];
+/* Base de alimentos, busca e definição dos nutrientes vêm de js/taco.js.
+   O plano alimentar usa o mesmo módulo: manter duas cópias da conta faria
+   as duas telas divergirem para o mesmo alimento. */
+const NUTRIENTES = TacoBase.NUTRIENTES;
 
 /* Campos de texto da ficha ligados por data-campo. */
 const CAMPOS_FICHA = [
@@ -122,14 +114,7 @@ if (el.versaoApp) el.versaoApp.textContent = VERSAO_APP;
 
 /* ───────────── Utilidades ───────────── */
 
-/** Remove acentos e caixa para busca tolerante ("acucar" acha "Açúcar"). */
-function normalizar(txt) {
-  return (txt || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '') // tira os diacríticos do NFD
-    .replace(/\s+/g, ' ');
-}
+const normalizar = TacoBase.normalizar;
 
 /** Aceita "1,5" e "1.5"; devolve número finito >= 0 (0 quando vazio/inválido). */
 function paraNumero(valor) {
@@ -174,60 +159,18 @@ function toast(msg) {
 /* ───────────── Carregamento da base ───────────── */
 
 async function carregarBase() {
-  const resp = await fetch('data/taco.json', { cache: 'no-cache' });
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  const dados = await resp.json();
-
-  estado.base = dados.alimentos || [];
-  estado.vd = dados.valoresDiarios || {};
-  estado.fonteBase = dados.fonte || 'Tabela TACO — NEPA/UNICAMP';
-  estado.porId = new Map(estado.base.map((a) => [a.id, a]));
-
-  // Índice de busca pré-calculado (nome + categoria sem acento).
-  estado.base.forEach((a) => {
-    a._busca = normalizar(a.nome + ' ' + a.categoria);
-    a._palavras = a._busca.split(/[\s,()\-—/]+/).filter(Boolean);
-  });
-
+  await TacoBase.carregar();
+  estado.base = TacoBase.todos();
+  estado.porId = TacoBase.porId();
+  estado.vd = TacoBase.valoresDiarios();
+  estado.fonteBase = TacoBase.fonte();
   el.qtdAlimentos.textContent = estado.base.length;
 }
 
 /* ───────────── Busca / autocomplete ───────────── */
 
-function buscar(termo) {
-  const q = normalizar(termo).trim();
-  if (q.length < 1) return [];
-
-  const termos = q.split(/\s+/).filter(Boolean);
-  const achados = [];
-
-  for (const alimento of estado.base) {
-    // Todos os termos digitados precisam aparecer no alimento (busca "E").
-    if (!termos.every((t) => alimento._busca.includes(t))) continue;
-
-    // Pontuação: começo do nome > começo de alguma palavra > qualquer posição.
-    const primeiro = termos[0];
-    let pontos = 2;
-    if (alimento._busca.startsWith(primeiro)) pontos = 0;
-    else if (alimento._palavras.some((p) => p.startsWith(primeiro))) pontos = 1;
-
-    achados.push({ alimento, pontos });
-  }
-
-  achados.sort((a, b) => a.pontos - b.pontos || a.alimento.nome.localeCompare(b.alimento.nome, 'pt-BR'));
-  return achados.slice(0, MAX_SUGESTOES).map((r) => r.alimento);
-}
-
-/** Envolve em <mark> a primeira ocorrência do termo, ignorando acentos. */
-function destacar(nome, termo) {
-  const q = normalizar(termo).trim().split(/\s+/)[0];
-  if (!q) return escaparHtml(nome);
-  const i = normalizar(nome).indexOf(q);
-  if (i < 0) return escaparHtml(nome);
-  return escaparHtml(nome.slice(0, i)) +
-         '<mark>' + escaparHtml(nome.slice(i, i + q.length)) + '</mark>' +
-         escaparHtml(nome.slice(i + q.length));
-}
+const buscar = (termo) => TacoBase.buscar(termo, MAX_SUGESTOES);
+const destacar = TacoBase.destacar;
 
 function renderSugestoes(lista, termo) {
   estado.sugestoesAtuais = lista;

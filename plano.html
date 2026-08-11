@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plano alimentar — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<div id="barra-paciente" class="barra-paciente naoimprimir">
+  <div class="wrap barra-paciente-inner">
+    <div class="barra-paciente-info">
+      <span class="avatar avatar-pequeno" id="bp-avatar" aria-hidden="true"></span>
+      <span>
+        <a id="bp-link" class="bp-nome" href="#"></a>
+        <span class="bp-estado" id="bp-estado">Novo plano</span>
+      </span>
+    </div>
+    <div class="barra-paciente-acoes">
+      <span class="bp-alteracoes" id="bp-alteracoes" hidden>alterações não salvas</span>
+      <button id="btn-imprimir" class="btn btn-ghost btn-sm" type="button">Imprimir</button>
+      <button id="btn-salvar" class="btn btn-claro btn-sm" type="button">Salvar plano</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap conteudo">
+
+  <div id="erro-carga" class="card" hidden>
+    <p class="empty" id="erro-texto"></p>
+  </div>
+
+  <div id="conteudo" hidden>
+
+    <!-- ═══════ Identificação do plano ═══════ -->
+    <div class="card naoimprimir">
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="pl-nome">Nome do plano</label>
+          <input id="pl-nome" class="input" type="text" maxlength="120"
+                 placeholder="Ex.: Plano de manutenção — agosto">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pl-data">Data</label>
+          <input id="pl-data" class="input" type="date">
+        </div>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="pl-observacoes">Orientações gerais</label>
+        <textarea id="pl-observacoes" class="input" rows="2" maxlength="2000"
+          placeholder="Recomendações que valem para o plano todo"></textarea>
+      </div>
+    </div>
+
+    <!-- ═══════ Metas ═══════ -->
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Metas do paciente</h2>
+        <button id="btn-sugerir" class="btn btn-ghost btn-sm naoimprimir" type="button">
+          Sugerir meta calórica
+        </button>
+      </div>
+
+      <p class="dica naoimprimir">
+        As metas valem para o paciente, não só para este plano — servem de referência
+        em todos os planos dele.
+      </p>
+
+      <div class="grade-campos naoimprimir">
+        <div class="campo">
+          <label class="field-label" for="m-peso">Meta de peso (kg)</label>
+          <input id="m-peso" class="input" type="text" inputmode="decimal" data-meta="pesoMeta">
+          <p class="dica" id="dica-peso"></p>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="m-kcal">Meta calórica (kcal/dia)</label>
+          <input id="m-kcal" class="input" type="text" inputmode="decimal" data-meta="kcalMeta">
+          <p class="dica" id="dica-kcal"></p>
+        </div>
+      </div>
+
+      <h3 class="subtitulo-form naoimprimir">
+        Distribuição de macronutrientes
+        <span class="subtitulo-nota">percentual do valor energético; a soma precisa dar 100%</span>
+      </h3>
+      <div class="grade-medidas naoimprimir">
+        <label class="mini-campo"><span>Proteínas %</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="m-prot" data-meta="pctProteina"></span></label>
+        <label class="mini-campo"><span>Carboidratos %</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="m-carb" data-meta="pctCarboidrato"></span></label>
+        <label class="mini-campo"><span>Lipídios %</span>
+          <span class="mini-wrap"><input type="text" inputmode="decimal" id="m-lip" data-meta="pctLipidio"></span></label>
+        <label class="mini-campo"><span>Soma</span>
+          <span class="mini-wrap"><input type="text" id="m-soma" readonly tabindex="-1"></span></label>
+      </div>
+
+      <div id="metas-resultado" class="resultados-calculados"></div>
+    </div>
+
+    <!-- ═══════ Comparação plano x meta ═══════ -->
+    <div class="card">
+      <h2 class="card-title">Total do dia</h2>
+      <div id="painel-total"></div>
+    </div>
+
+    <!-- ═══════ Refeições ═══════ -->
+    <div id="refeicoes"></div>
+
+    <div class="naoimprimir">
+      <button id="btn-nova-refeicao" class="btn btn-ghost btn-bloco" type="button">
+        + Acrescentar refeição
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<!-- ═══════ Diálogo: adicionar alimento ═══════ -->
+<dialog id="dialogo-alimento" class="dialogo">
+  <form id="form-alimento" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2 id="titulo-alimento">Adicionar alimento</h2>
+      <button type="button" class="btn-icon" id="fechar-alimento" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="dialogo-corpo">
+      <input type="hidden" id="al-refeicao">
+      <input type="hidden" id="al-indice">
+
+      <div class="campo">
+        <label class="field-label" for="al-refeicao-nome">Refeição</label>
+        <input id="al-refeicao-nome" class="input" type="text" readonly tabindex="-1">
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="busca">Alimento</label>
+        <div class="combo" role="combobox" aria-expanded="false" aria-owns="sugestoes" aria-haspopup="listbox">
+          <svg class="combo-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="busca" class="input input-search" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Buscar na base TACO" aria-autocomplete="list" aria-controls="sugestoes">
+          <ul id="sugestoes" class="sugestoes" role="listbox" aria-label="Sugestões" hidden></ul>
+        </div>
+        <p class="dica" id="al-escolhido">Nenhum alimento selecionado.</p>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="al-quantidade">Quantidade</label>
+          <input id="al-quantidade" class="input" type="text" inputmode="decimal" value="100">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="al-medida">Medida</label>
+          <select id="al-medida" class="input">
+            <option value="g">gramas (g)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="al-previa" class="resultados-calculados"></div>
+      <p id="erro-alimento" class="erro-form" role="alert" hidden></p>
+    </div>
+
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost" id="cancelar-alimento">Cancelar</button>
+      <button type="submit" class="btn btn-primary" id="confirmar-alimento">Adicionar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/taco.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/prontuario-storage.js"></script>
+<script src="js/planos-storage.js"></script>
+<script src="js/antropometria.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/plano.js"></script>
+</body>
+</html>

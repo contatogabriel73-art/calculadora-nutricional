@@ -54,6 +54,9 @@
       <button class="aba-p" role="tab" aria-selected="false" data-aba="antropometria">
         Antropometria <span id="badge-avaliacoes" class="badge badge-mini">0</span>
       </button>
+      <button class="aba-p" role="tab" aria-selected="false" data-aba="planos">
+        Plano alimentar <span id="badge-planos" class="badge badge-mini">0</span>
+      </button>
       <button class="aba-p" role="tab" aria-selected="false" data-aba="fichas">
         Fichas técnicas <span id="badge-fichas" class="badge badge-mini">0</span>
       </button>
@@ -169,6 +172,20 @@
         <p id="sem-avaliacoes" class="empty" hidden>
           Nenhuma medição registrada.<br>
           Use <strong>Nova avaliação</strong> para o primeiro registro.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─────── PLANOS ─────── -->
+    <section id="p-planos" class="painel-p" role="tabpanel" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h3 class="card-title">Planos alimentares</h3>
+          <a id="btn-novo-plano" class="btn btn-primary btn-sm" href="#">Novo plano</a>
+        </div>
+        <ul id="lista-planos" class="lista-planos"></ul>
+        <p id="sem-planos" class="empty" hidden>
+          Nenhum plano alimentar para este paciente ainda.
         </p>
       </div>
     </section>
@@ -334,6 +351,7 @@
 <script src="js/pacientes-storage.js"></script>
 <script src="js/fichas-storage.js"></script>
 <script src="js/prontuario-storage.js"></script>
+<script src="js/planos-storage.js"></script>
 <script src="js/antropometria.js"></script>
 <script src="js/shell.js"></script>
 <script src="js/paciente-prontuario.js"></script>

@@ -76,6 +76,7 @@
     $('#d-observacoes').textContent = paciente.observacoes || '—';
 
     $('#btn-nova-ficha').href = 'ficha.html?paciente=' + encodeURIComponent(paciente.id);
+    $('#btn-novo-plano').href = 'plano.html?paciente=' + encodeURIComponent(paciente.id);
   }
 
   /* ───────────── Resumo ───────────── */
@@ -360,6 +361,65 @@
     }, 4000);
   });
 
+  /* ───────────── Planos alimentares ───────────── */
+
+  let planos = [];
+
+  async function recarregarPlanos() {
+    planos = await PlanosStore.listarPlanos(paciente.id);
+    $('#badge-planos').textContent = planos.length;
+    $('#sem-planos').hidden = planos.length > 0;
+
+    $('#lista-planos').innerHTML = planos.map((p) => {
+      const r = p.resumo || {};
+      const partes = [
+        r.kcal != null ? Math.round(r.kcal) + ' kcal/dia' : '',
+        r.proteinas != null ? 'P ' + Math.round(r.proteinas) + ' g' : '',
+        r.carboidratos != null ? 'C ' + Math.round(r.carboidratos) + ' g' : '',
+        r.gordurasTotais != null ? 'L ' + Math.round(r.gordurasTotais) + ' g' : '',
+        r.itens != null ? r.itens + (r.itens === 1 ? ' alimento' : ' alimentos') : ''
+      ].filter(Boolean).join(' · ');
+
+      const url = 'plano.html?paciente=' + encodeURIComponent(paciente.id) +
+                  '&plano=' + encodeURIComponent(p.id);
+
+      return `
+        <li class="plano-item">
+          <a class="plano-link" href="${url}">
+            <span class="plano-titulo">${esc(p.nome)}</span>
+            <span class="plano-detalhe">${esc(partes || 'Plano vazio')}</span>
+            <span class="plano-data">${esc(Shell.formatarData(p.data))} · atualizado em ${esc(Shell.formatarDataHora(p.atualizadoEm))}</span>
+          </a>
+          <button class="btn-remover-ficha" type="button" data-plano="${p.id}" aria-label="Remover ${esc(p.nome)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M5 5l14 14M19 5L5 19"/>
+            </svg>
+          </button>
+        </li>`;
+    }).join('');
+  }
+
+  $('#lista-planos').addEventListener('click', async (ev) => {
+    const botao = ev.target.closest('[data-plano]');
+    if (!botao) return;
+    ev.preventDefault();
+
+    if (botao.dataset.armado === 'sim') {
+      await PlanosStore.removerPlano(botao.dataset.plano);
+      await recarregarPlanos();
+      desenharLinhaTempo();
+      Shell.toast('Plano removido.');
+      return;
+    }
+    botao.dataset.armado = 'sim';
+    botao.classList.add('confirmando');
+    setTimeout(() => {
+      if (!botao.isConnected) return;
+      botao.dataset.armado = '';
+      botao.classList.remove('confirmando');
+    }, 4000);
+  });
+
   /* ───────────── Fichas técnicas ───────────── */
 
   async function recarregarFichas() {
@@ -457,6 +517,17 @@
       });
     });
 
+    planos.forEach((p) => {
+      const r = p.resumo || {};
+      eventos.push({
+        quando: p.atualizadoEm,
+        tipo: 'plano',
+        titulo: 'Plano alimentar: ' + p.nome,
+        detalhe: r.kcal != null ? Math.round(r.kcal) + ' kcal por dia' : '',
+        link: 'plano.html?paciente=' + encodeURIComponent(paciente.id) + '&plano=' + encodeURIComponent(p.id)
+      });
+    });
+
     fichas.forEach((f) => {
       const r = f.resumo || {};
       eventos.push({
@@ -473,7 +544,7 @@
     $('#sem-eventos').hidden = eventos.length > 0;
 
     const ICONES = {
-      cadastro: '👤', anamnese: '📋', avaliacao: '⚖️', ficha: '🍽️'
+      cadastro: '👤', anamnese: '📋', avaliacao: '⚖️', ficha: '🍽️', plano: '🥗'
     };
 
     $('#linha-tempo').innerHTML = eventos.map((e) => `
@@ -556,6 +627,7 @@
     clearTimeout(armadoRemover);
     await FichasStore.removerFichasDoPaciente(paciente.id);
     await ProntuarioStore.removerDoPaciente(paciente.id);
+    await PlanosStore.removerDoPaciente(paciente.id);
     await PacientesStore.removerPaciente(paciente.id);
     location.replace('pacientes.html');
   });
@@ -565,6 +637,7 @@
   desenharPaciente();
   await carregarAnamnese();
   await recarregarAvaliacoes();
+  await recarregarPlanos();
   await recarregarFichas();
   desenharLinhaTempo();
 })();

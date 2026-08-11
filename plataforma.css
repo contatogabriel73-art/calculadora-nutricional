@@ -969,3 +969,219 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
 .evento-corpo p { margin: 3px 0 0; font-size: .84rem; color: var(--tinta-2); line-height: 1.5; }
 
 .dialogo-largo { width: min(760px, calc(100vw - 32px)); }
+
+/* ═══════════════════════════════════════════
+   PLANO ALIMENTAR (Fase 2)
+   ═══════════════════════════════════════════ */
+
+.card-refeicao { padding: 13px 14px; }
+
+.refeicao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.refeicao-identidade { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+
+.input-refeicao-nome {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--tinta);
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: transparent;
+  min-width: 0;
+  flex: 1;
+  max-width: 260px;
+}
+.input-refeicao-nome:hover { border-color: var(--linha); }
+.input-refeicao-nome:focus {
+  outline: none;
+  border-color: var(--verde);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(22, 105, 74, .13);
+}
+
+.input-refeicao-hora {
+  font-family: inherit;
+  font-size: .84rem;
+  color: var(--tinta-2);
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  padding: 5px 6px;
+  background: transparent;
+  flex: none;
+}
+.input-refeicao-hora:hover { border-color: var(--linha); }
+.input-refeicao-hora:focus {
+  outline: none;
+  border-color: var(--verde);
+  background: #fff;
+}
+
+.refeicao-resumo { display: flex; align-items: center; gap: 8px; flex: none; }
+
+.lista-alimentos { list-style: none; margin: 0; padding: 0; }
+
+.item-alimento {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--linha);
+}
+.item-alimento:last-child { border-bottom: 0; }
+
+.item-info { flex: 1; min-width: 0; }
+.item-nome { display: block; font-size: .92rem; font-weight: 560; line-height: 1.3; overflow-wrap: anywhere; }
+.item-detalhe {
+  display: block;
+  font-size: .76rem;
+  color: var(--tinta-3);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.item-acoes { display: flex; gap: 6px; flex: none; }
+.item-acoes .btn-editar,
+.item-acoes .btn-remover-ficha { width: 32px; height: 32px; }
+
+.empty-refeicao { padding: 12px 8px; font-size: .84rem; }
+
+.refeicao-macros {
+  margin: 9px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--linha);
+  font-size: .8rem;
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.input-obs-refeicao {
+  margin: 10px 0;
+  font-size: .86rem;
+  padding: 8px 10px;
+}
+
+/* ── Barras de meta ── */
+
+.grade-barras {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 13px;
+  margin: 12px 0;
+}
+@media (min-width: 700px) { .grade-barras { grid-template-columns: repeat(2, 1fr); } }
+
+.barra-meta { display: flex; flex-direction: column; gap: 5px; }
+
+.barra-meta-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.barra-meta-valor {
+  font-size: .86rem;
+  color: var(--tinta-3);
+  font-variant-numeric: tabular-nums;
+}
+.barra-meta-valor strong { font-size: 1.05rem; color: var(--tinta); }
+
+.barra-trilho {
+  height: 8px;
+  background: #e8edeb;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.barra-preenchida {
+  display: block;
+  height: 100%;
+  background: var(--verde);
+  border-radius: 20px;
+  transition: width .2s;
+}
+.barra-preenchida.passou { background: #c9762b; }
+
+.lista-extra { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--linha); }
+
+.aviso-inline {
+  margin: 0 0 10px;
+  font-size: .8rem;
+  line-height: 1.5;
+  color: #7a5713;
+  background: #fdf6e5;
+  border: 1px solid #f0dca8;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.valor-invalido { color: var(--perigo) !important; font-weight: 700; }
+
+/* ── Escolha do fator de atividade ── */
+
+.lista-opcoes { display: grid; gap: 8px; margin: 12px 0; }
+
+.opcao-fator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: .9rem;
+  padding: 11px 13px;
+  border: 1.5px solid var(--linha);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.opcao-fator:hover { border-color: var(--verde); background: var(--verde-claro); }
+.opcao-fator strong { flex: none; color: var(--verde-escuro); font-variant-numeric: tabular-nums; }
+
+/* ── Lista de planos no prontuário ── */
+
+.lista-planos { list-style: none; margin: 0; padding: 0; }
+
+.plano-item {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  border-bottom: 1px solid var(--linha);
+}
+.plano-item:last-child { border-bottom: 0; }
+
+.plano-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 6px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 9px;
+  min-width: 0;
+}
+.plano-link:hover { background: var(--verde-claro); }
+.plano-titulo { font-weight: 620; font-size: .95rem; overflow-wrap: anywhere; }
+.plano-detalhe { font-size: .8rem; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.plano-data { font-size: .74rem; color: var(--tinta-3); }
+
+/* ── Impressão do plano ── */
+
+@media print {
+  .card-refeicao { border: 1px solid #999; box-shadow: none; page-break-inside: avoid; }
+  .input-refeicao-nome, .input-refeicao-hora {
+    border: 0 !important;
+    background: none !important;
+    padding: 0 !important;
+    color: #000 !important;
+  }
+  .barra-trilho { border: 1px solid #999; }
+}

@@ -152,6 +152,36 @@ const Antropometria = (() => {
     };
   }
 
+  /* ───────────── Gasto energético ─────────────
+     Mifflin-St Jeor (1990), que é a equação preditiva com melhor
+     desempenho para adultos sem obesidade grave segundo a Academy of
+     Nutrition and Dietetics. É estimativa: serve para escolher um ponto
+     de partida, não para substituir calorimetria. */
+
+  const FATORES_ATIVIDADE = [
+    { valor: 1.2,   rotulo: 'Sedentário — pouco ou nenhum exercício' },
+    { valor: 1.375, rotulo: 'Leve — exercício 1 a 3 dias/semana' },
+    { valor: 1.55,  rotulo: 'Moderado — exercício 3 a 5 dias/semana' },
+    { valor: 1.725, rotulo: 'Intenso — exercício 6 a 7 dias/semana' },
+    { valor: 1.9,   rotulo: 'Muito intenso — trabalho físico ou 2 treinos/dia' }
+  ];
+
+  /** Taxa metabólica basal em kcal/dia. Precisa de peso, altura, idade e sexo. */
+  function tmb(pesoKg, alturaCm, idade, sexo) {
+    const p = num(pesoKg);
+    const a = num(alturaCm);
+    if (!p || !a || idade == null || !sexo) return null;
+    const base = 10 * p + 6.25 * a - 5 * idade;
+    return sexo === 'M' ? base + 5 : base - 161;
+  }
+
+  /** Gasto energético total = TMB × fator de atividade. */
+  function get(pesoKg, alturaCm, idade, sexo, fator) {
+    const b = tmb(pesoKg, alturaCm, idade, sexo);
+    if (b == null) return null;
+    return b * (num(fator) || 1.2);
+  }
+
   /** Idade do paciente na data da avaliação (não a idade de hoje). */
   function idadeNaData(nascimento, dataAvaliacao) {
     if (!nascimento) return null;
@@ -167,7 +197,7 @@ const Antropometria = (() => {
   return {
     num, imc, classificarImc, pesoIdeal, gorduraFaulkner, somaDobras,
     composicao, rcq, riscoCintura, analisar, idadeNaData,
-    DOBRAS_FAULKNER
+    tmb, get, DOBRAS_FAULKNER, FATORES_ATIVIDADE
   };
 })();
 

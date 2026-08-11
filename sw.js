@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v2.3';
+const CACHE = 'nutri-taco-v2.4';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 
@@ -42,6 +42,8 @@ const SHELL = [
   './ficha.html',
   './plano.html',
   './agenda.html',
+  './financeiro.html',
+  './recibo.html',
   './styles.css',
   './plataforma.css',
   './app.js',
@@ -58,6 +60,11 @@ const SHELL = [
   './js/plano.js',
   './js/agenda-storage.js',
   './js/agenda.js',
+  './js/financeiro-storage.js',
+  './js/financeiro.js',
+  './js/perfil-storage.js',
+  './js/extenso.js',
+  './js/recibo.js',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',

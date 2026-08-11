@@ -1428,3 +1428,191 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
   flex: none;
 }
 .proxima-consulta .detalhe { font-size: .84rem; color: var(--tinta-2); flex: 1; min-width: 0; }
+
+/* ═══════════════════════════════════════════
+   FINANCEIRO (Fase 4)
+   ═══════════════════════════════════════════ */
+
+.cartoes-financeiro { margin: 14px 0 0; }
+.cartoes-financeiro .metrica-valor em {
+  font-style: normal;
+  font-size: .8rem;
+  color: var(--tinta-3);
+  font-weight: 500;
+}
+.metrica-verde { border-color: #bfdccf; background: var(--verde-claro); }
+.metrica-verde .metrica-valor { color: var(--verde-escuro); }
+.metrica-alerta { border-color: #f0dca8; background: #fdf6e5; }
+.metrica-alerta .metrica-valor { color: #7a5713; }
+
+.por-forma {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.por-forma:empty { display: none; }
+.por-forma-titulo { font-size: .78rem; color: var(--tinta-3); font-weight: 650; }
+
+.valor-destaque {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #7a5713;
+  font-variant-numeric: tabular-nums;
+}
+
+.lista-pagamentos { list-style: none; margin: 12px 0 0; padding: 0; }
+
+.pagamento-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  margin-bottom: 7px;
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--tinta-3);
+  border-radius: 0 10px 10px 0;
+  background: #fff;
+  flex-wrap: wrap;
+}
+.pagamento-item:last-child { margin-bottom: 0; }
+.pagamento-item.status-borda-ok { border-left-color: var(--verde); }
+.pagamento-item.status-borda-atencao { border-left-color: #c9a227; }
+
+.pagamento-info { flex: 1; min-width: 180px; }
+
+.pagamento-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pagamento-nome { font-size: .95rem; font-weight: 620; overflow-wrap: anywhere; }
+.pagamento-valor {
+  font-size: 1.02rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pagamento-detalhe { font-size: .79rem; color: var(--tinta-3); margin-top: 2px; }
+.pagamento-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+
+.pagamento-acoes { display: flex; align-items: center; gap: 7px; flex: none; }
+
+/* ═══════════════════════════════════════════
+   RECIBO
+   ═══════════════════════════════════════════ */
+
+.recibo {
+  background: #fff;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+  box-shadow: var(--sombra);
+  padding: 28px;
+  max-width: 760px;
+  margin: 0 auto;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.recibo-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #000;
+  flex-wrap: wrap;
+}
+
+.recibo-emitente h1 { margin: 0 0 4px; font-size: 1.1rem; line-height: 1.3; }
+.recibo-emitente p { margin: 0 0 3px; font-size: .82rem; color: #333; line-height: 1.4; }
+
+.recibo-valor-caixa {
+  border: 2px solid #000;
+  border-radius: 5px;
+  padding: 8px 16px;
+  text-align: center;
+  flex: none;
+}
+.recibo-valor-rotulo {
+  display: block;
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #555;
+}
+.recibo-valor-caixa strong {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recibo-titulo {
+  margin: 22px 0 16px;
+  text-align: center;
+  font-size: 1.3rem;
+  letter-spacing: .22em;
+  font-weight: 700;
+}
+
+.recibo-corpo {
+  margin: 0 0 22px;
+  font-size: 1rem;
+  line-height: 1.85;
+  text-align: justify;
+}
+
+.recibo-detalhes {
+  margin: 0 0 26px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  padding: 14px 0;
+}
+@media (min-width: 560px) { .recibo-detalhes { grid-template-columns: 1fr 1fr; } }
+
+.recibo-detalhes dt {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #666;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.recibo-detalhes dd { margin: 0; font-size: .9rem; }
+
+.recibo-local { margin: 0 0 40px; text-align: right; font-size: .92rem; }
+
+.recibo-assinatura { text-align: center; }
+.linha-assinatura {
+  display: block;
+  width: min(320px, 100%);
+  border-top: 1px solid #000;
+  margin: 0 auto 7px;
+}
+.recibo-assinatura p { margin: 0; font-size: .88rem; }
+.recibo-assinatura p:last-child { font-size: .78rem; color: #555; margin-top: 2px; }
+
+@media print {
+  .recibo {
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+  }
+  .conteudo { padding: 0; gap: 0; }
+  @page { size: A4 portrait; margin: 18mm; }
+}
+
+/* No celular, título + alternador não cabem lado a lado: o alternador
+   ficava passando da borda direita do cartão. */
+@media (max-width: 560px) {
+  .card-head { flex-wrap: wrap; }
+  .card-head .alternador { width: 100%; }
+  .card-head .alternador-opcao { flex: 1; padding-left: 6px; padding-right: 6px; }
+  .agenda-controles .alternador { flex: 1; }
+}

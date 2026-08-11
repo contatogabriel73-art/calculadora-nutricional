@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Financeiro — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <!-- ═══════ Período e resumo ═══════ -->
+  <div class="card">
+    <div class="agenda-controles">
+      <div class="agenda-navegacao">
+        <button id="btn-anterior" class="btn-nav" type="button" aria-label="Mês anterior">‹</button>
+        <button id="btn-hoje" class="btn btn-ghost btn-sm" type="button">Mês atual</button>
+        <button id="btn-proximo" class="btn-nav" type="button" aria-label="Próximo mês">›</button>
+        <h2 id="titulo-mes" class="titulo-periodo"></h2>
+      </div>
+      <div class="agenda-acoes">
+        <button id="btn-novo" class="btn btn-primary btn-sm" type="button">Novo lançamento</button>
+      </div>
+    </div>
+
+    <div id="cartoes-resumo" class="grade-metricas cartoes-financeiro"></div>
+    <div id="por-forma" class="por-forma"></div>
+  </div>
+
+  <!-- ═══════ Pendências de todos os períodos ═══════ -->
+  <div id="bloco-pendencias" class="card" hidden>
+    <div class="card-head">
+      <h2 class="card-title">Pendências em aberto <span id="badge-pendentes" class="badge">0</span></h2>
+      <span id="total-pendente-geral" class="valor-destaque"></span>
+    </div>
+    <p class="dica">Inclui meses anteriores — não só o período selecionado acima.</p>
+    <ul id="lista-pendencias" class="lista-pagamentos"></ul>
+  </div>
+
+  <!-- ═══════ Lançamentos do mês ═══════ -->
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Lançamentos do mês <span id="badge-mes" class="badge">0</span></h2>
+      <div class="alternador" role="tablist" aria-label="Filtro">
+        <button class="alternador-opcao" role="tab" aria-selected="true" data-filtro="todos">Todos</button>
+        <button class="alternador-opcao" role="tab" aria-selected="false" data-filtro="pago">Pagos</button>
+        <button class="alternador-opcao" role="tab" aria-selected="false" data-filtro="pendente">Pendentes</button>
+      </div>
+    </div>
+
+    <ul id="lista-pagamentos" class="lista-pagamentos"></ul>
+    <p id="sem-pagamentos" class="empty" hidden>Nenhum lançamento neste período.</p>
+  </div>
+
+  <!-- ═══════ Dados do emitente ═══════ -->
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Dados para o recibo</h2>
+      <span id="perfil-estado" class="dica"></span>
+    </div>
+    <p class="dica">Aparecem no recibo emitido. Preencha uma vez.</p>
+
+    <form id="form-perfil">
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="pf-nome">Nome do profissional *</label>
+          <input id="pf-nome" class="input" type="text" data-perfil="nome" maxlength="120">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-crn">CRN</label>
+          <input id="pf-crn" class="input" type="text" data-perfil="crn" maxlength="40" placeholder="Ex.: CRN-3 12345">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-documento">CPF ou CNPJ</label>
+          <input id="pf-documento" class="input" type="text" data-perfil="documento" maxlength="30">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-telefone">Telefone</label>
+          <input id="pf-telefone" class="input" type="tel" data-perfil="telefone" maxlength="30">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-email">E-mail</label>
+          <input id="pf-email" class="input" type="email" data-perfil="email" maxlength="120"
+                 autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-cidade">Cidade</label>
+          <input id="pf-cidade" class="input" type="text" data-perfil="cidade" maxlength="80"
+                 placeholder="Aparece em “Cidade, data”">
+        </div>
+        <div class="campo campo-largo">
+          <label class="field-label" for="pf-endereco">Endereço do consultório</label>
+          <input id="pf-endereco" class="input" type="text" data-perfil="endereco" maxlength="200">
+        </div>
+      </div>
+      <div class="acoes-form">
+        <button type="submit" class="btn btn-primary">Salvar dados</button>
+      </div>
+    </form>
+  </div>
+
+  <p class="dica dica-rodape">
+    Não há integração com meio de pagamento: os lançamentos são registro manual.
+    Cobrança automática depende de servidor e entra numa fase futura.
+  </p>
+
+</main>
+
+<!-- ═══════ Diálogo de lançamento ═══════ -->
+<dialog id="dialogo" class="dialogo">
+  <form id="form-pagamento" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2 id="dialogo-titulo">Novo lançamento</h2>
+      <button type="button" class="btn-icon" id="fechar-dialogo" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="dialogo-corpo">
+      <input type="hidden" id="pg-id">
+
+      <div class="campo">
+        <label class="field-label" for="pg-paciente">Paciente *</label>
+        <select id="pg-paciente" class="input" required></select>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="pg-consulta">Vincular a uma consulta</label>
+        <select id="pg-consulta" class="input"></select>
+        <p class="dica">Opcional. Nem todo recebimento corresponde a um atendimento avulso.</p>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="pg-valor">Valor (R$) *</label>
+          <input id="pg-valor" class="input" type="text" inputmode="decimal" placeholder="150,00">
+          <p class="dica" id="pg-extenso"></p>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pg-data">Data *</label>
+          <input id="pg-data" class="input" type="date" required>
+        </div>
+      </div>
+
+      <div class="campo">
+        <span class="field-label">Situação</span>
+        <div class="radios" id="pg-status"></div>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="pg-forma">Forma de pagamento</label>
+          <select id="pg-forma" class="input"></select>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pg-descricao">Descrição</label>
+          <input id="pg-descricao" class="input" type="text" maxlength="120"
+                 placeholder="Consulta de nutrição">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="pg-observacoes">Observações</label>
+        <textarea id="pg-observacoes" class="input" rows="2" maxlength="500"></textarea>
+      </div>
+
+      <p id="erro-pagamento" class="erro-form" role="alert" hidden></p>
+    </div>
+
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost btn-danger" id="btn-excluir" hidden>Excluir</button>
+      <span class="espacador"></span>
+      <button type="button" class="btn btn-ghost" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/agenda-storage.js"></script>
+<script src="js/financeiro-storage.js"></script>
+<script src="js/perfil-storage.js"></script>
+<script src="js/extenso.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/financeiro.js"></script>
+</body>
+</html>

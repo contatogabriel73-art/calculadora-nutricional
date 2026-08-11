@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recibo — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <p class="migalhas naoimprimir"><a href="financeiro.html">← Voltar ao financeiro</a></p>
+
+  <div id="erro" class="card" hidden>
+    <p class="empty" id="erro-texto"></p>
+  </div>
+
+  <div id="aviso-perfil" class="card naoimprimir" hidden>
+    <p class="aviso-inline" style="margin:0">
+      Faltam os dados do profissional. Sem eles o recibo sai sem emitente —
+      <a href="financeiro.html">preencha em Financeiro</a>.
+    </p>
+  </div>
+
+  <div class="acoes-topo naoimprimir" id="acoes" hidden>
+    <button id="btn-imprimir" class="btn btn-primary" type="button">Imprimir / Salvar PDF</button>
+    <button id="btn-copiar" class="btn btn-ghost" type="button">Copiar como texto</button>
+  </div>
+
+  <!-- ═══════ O documento ═══════ -->
+  <article id="recibo" class="recibo" hidden>
+    <div class="recibo-cabecalho">
+      <div class="recibo-emitente">
+        <h1 id="r-profissional"></h1>
+        <p id="r-credenciais"></p>
+        <p id="r-contato"></p>
+      </div>
+      <div class="recibo-valor-caixa">
+        <span class="recibo-valor-rotulo">Valor</span>
+        <strong id="r-valor"></strong>
+      </div>
+    </div>
+
+    <h2 class="recibo-titulo">RECIBO</h2>
+
+    <p class="recibo-corpo" id="r-corpo"></p>
+
+    <dl class="recibo-detalhes">
+      <div><dt>Referente a</dt><dd id="r-descricao"></dd></div>
+      <div><dt>Forma de pagamento</dt><dd id="r-forma"></dd></div>
+      <div><dt>Data do pagamento</dt><dd id="r-data-pagamento"></dd></div>
+      <div><dt>Nº do documento</dt><dd id="r-numero"></dd></div>
+    </dl>
+
+    <p class="recibo-local" id="r-local"></p>
+
+    <div class="recibo-assinatura">
+      <span class="linha-assinatura"></span>
+      <p id="r-assinatura-nome"></p>
+      <p id="r-assinatura-doc"></p>
+    </div>
+  </article>
+
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/financeiro-storage.js"></script>
+<script src="js/perfil-storage.js"></script>
+<script src="js/extenso.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/recibo.js"></script>
+</body>
+</html>

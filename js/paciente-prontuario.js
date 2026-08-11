@@ -677,6 +677,7 @@
     await ProntuarioStore.removerDoPaciente(paciente.id);
     await PlanosStore.removerDoPaciente(paciente.id);
     await AgendaStore.removerDoPaciente(paciente.id);
+    await FinanceiroStore.removerDoPaciente(paciente.id);
     await PacientesStore.removerPaciente(paciente.id);
     location.replace('pacientes.html');
   });

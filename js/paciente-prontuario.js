@@ -33,6 +33,7 @@
   let anamnese = null;
   let avaliacoes = [];
   let fichas = [];
+  let consultas = [];
 
   /* ───────────── Abas ───────────── */
 
@@ -361,6 +362,43 @@
     }, 4000);
   });
 
+  /* ───────────── Consultas ───────────── */
+
+  async function recarregarConsultas() {
+    consultas = await AgendaStore.listarPorPaciente(paciente.id);
+  }
+
+  /** Cartão de próxima consulta, no topo do Resumo. */
+  function desenharProximaConsulta() {
+    // Data de hoje pelos componentes locais: toISOString() converte para UTC
+    // e, no Brasil, à noite isso já aponta para o dia seguinte.
+    const agora = new Date();
+    const hojeIso = agora.getFullYear() + '-' +
+      String(agora.getMonth() + 1).padStart(2, '0') + '-' +
+      String(agora.getDate()).padStart(2, '0');
+
+    const proxima = consultas.find((c) => c.data >= hojeIso && c.status !== 'cancelada');
+    const alvo = $('#proxima-consulta');
+    if (!alvo) return;
+
+    if (!proxima) {
+      alvo.innerHTML = `<p class="dica">Nenhuma consulta agendada.
+        <a href="agenda.html?paciente=${encodeURIComponent(paciente.id)}">Marcar uma</a>.</p>`;
+      return;
+    }
+
+    const nivel = AgendaStore.nivelStatus(proxima.status);
+    alvo.innerHTML = `
+      <div class="proxima-consulta">
+        <span class="quando">${esc(Shell.formatarData(proxima.data))}<br>${esc(proxima.hora)}</span>
+        <span class="detalhe">
+          <strong>${esc(proxima.tipo)}</strong> · ${proxima.duracao} min<br>
+          <span class="tag tag-${nivel === 'feito' ? 'ok' : nivel}">${esc(AgendaStore.rotuloStatus(proxima.status))}</span>
+        </span>
+        <a class="btn btn-ghost btn-sm" href="agenda.html">Ver agenda</a>
+      </div>`;
+  }
+
   /* ───────────── Planos alimentares ───────────── */
 
   let planos = [];
@@ -517,6 +555,16 @@
       });
     });
 
+    consultas.forEach((c) => {
+      eventos.push({
+        quando: c.data + 'T' + (c.hora || '12:00') + ':00',
+        tipo: 'consulta',
+        titulo: 'Consulta: ' + c.tipo,
+        detalhe: AgendaStore.rotuloStatus(c.status) + (c.observacoes ? ' · ' + c.observacoes : ''),
+        link: 'agenda.html'
+      });
+    });
+
     planos.forEach((p) => {
       const r = p.resumo || {};
       eventos.push({
@@ -544,7 +592,7 @@
     $('#sem-eventos').hidden = eventos.length > 0;
 
     const ICONES = {
-      cadastro: '👤', anamnese: '📋', avaliacao: '⚖️', ficha: '🍽️', plano: '🥗'
+      cadastro: '👤', anamnese: '📋', avaliacao: '⚖️', ficha: '🍽️', plano: '🥗', consulta: '📅'
     };
 
     $('#linha-tempo').innerHTML = eventos.map((e) => `
@@ -628,6 +676,7 @@
     await FichasStore.removerFichasDoPaciente(paciente.id);
     await ProntuarioStore.removerDoPaciente(paciente.id);
     await PlanosStore.removerDoPaciente(paciente.id);
+    await AgendaStore.removerDoPaciente(paciente.id);
     await PacientesStore.removerPaciente(paciente.id);
     location.replace('pacientes.html');
   });
@@ -636,6 +685,8 @@
 
   desenharPaciente();
   await carregarAnamnese();
+  await recarregarConsultas();
+  desenharProximaConsulta();
   await recarregarAvaliacoes();
   await recarregarPlanos();
   await recarregarFichas();

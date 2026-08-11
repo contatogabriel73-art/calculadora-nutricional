@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agenda — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <div class="card">
+    <div class="agenda-controles">
+      <div class="agenda-navegacao">
+        <button id="btn-anterior" class="btn-nav" type="button" aria-label="Período anterior">‹</button>
+        <button id="btn-hoje" class="btn btn-ghost btn-sm" type="button">Hoje</button>
+        <button id="btn-proximo" class="btn-nav" type="button" aria-label="Próximo período">›</button>
+        <h2 id="titulo-periodo" class="titulo-periodo"></h2>
+      </div>
+
+      <div class="agenda-acoes">
+        <div class="alternador" role="tablist" aria-label="Visualização">
+          <button class="alternador-opcao" role="tab" aria-selected="true" data-visao="mes">Mês</button>
+          <button class="alternador-opcao" role="tab" aria-selected="false" data-visao="semana">Semana</button>
+        </div>
+        <button id="btn-nova" class="btn btn-primary btn-sm" type="button">Nova consulta</button>
+      </div>
+    </div>
+
+    <div id="resumo-periodo" class="resumo-periodo"></div>
+  </div>
+
+  <!-- ─────── Visão de mês ─────── -->
+  <div id="visao-mes" class="card">
+    <div class="calendario-cabecalho" aria-hidden="true">
+      <span>dom</span><span>seg</span><span>ter</span><span>qua</span>
+      <span>qui</span><span>sex</span><span>sáb</span>
+    </div>
+    <div id="grade-mes" class="grade-mes"></div>
+  </div>
+
+  <!-- ─────── Visão de semana ─────── -->
+  <div id="visao-semana" hidden></div>
+
+  <p class="dica dica-rodape">
+    A agenda fica só neste navegador. A integração com o Google Agenda
+    depende de servidor e entra numa fase futura.
+  </p>
+
+</main>
+
+<!-- ═══════ Diálogo de consulta ═══════ -->
+<dialog id="dialogo" class="dialogo">
+  <form id="form-consulta" method="dialog" novalidate>
+    <div class="dialogo-topo">
+      <h2 id="dialogo-titulo">Nova consulta</h2>
+      <button type="button" class="btn-icon" id="fechar-dialogo" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="dialogo-corpo">
+      <input type="hidden" id="c-id">
+
+      <div class="campo">
+        <label class="field-label" for="c-paciente">Paciente *</label>
+        <select id="c-paciente" class="input" required></select>
+        <p class="dica" id="dica-paciente"></p>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="c-data">Data *</label>
+          <input id="c-data" class="input" type="date" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="c-hora">Horário *</label>
+          <input id="c-hora" class="input" type="time" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="c-duracao">Duração (min)</label>
+          <input id="c-duracao" class="input" type="text" inputmode="numeric" value="60">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="c-tipo">Tipo</label>
+          <select id="c-tipo" class="input"></select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <span class="field-label">Situação</span>
+        <div class="radios radios-status" id="c-status"></div>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="c-observacoes">Observações</label>
+        <textarea id="c-observacoes" class="input" rows="3" maxlength="1000"
+          placeholder="Combinações, o que levar, lembretes"></textarea>
+      </div>
+
+      <div id="aviso-conflito" class="aviso-inline" hidden></div>
+      <p id="erro-consulta" class="erro-form" role="alert" hidden></p>
+    </div>
+
+    <div class="dialogo-acoes">
+      <button type="button" class="btn btn-ghost btn-danger" id="btn-excluir" hidden>Excluir</button>
+      <span class="espacador"></span>
+      <button type="button" class="btn btn-ghost" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/agenda-storage.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/agenda.js"></script>
+</body>
+</html>

@@ -1185,3 +1185,246 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
   }
   .barra-trilho { border: 1px solid #999; }
 }
+
+/* ═══════════════════════════════════════════
+   AGENDA (Fase 3)
+   ═══════════════════════════════════════════ */
+
+.agenda-controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agenda-navegacao { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.agenda-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.btn-nav {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--linha);
+  background: #fff;
+  border-radius: 9px;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--tinta-2);
+  cursor: pointer;
+  font-family: inherit;
+  touch-action: manipulation;
+}
+.btn-nav:hover { border-color: var(--verde); color: var(--verde); }
+
+.titulo-periodo {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.alternador {
+  display: flex;
+  border: 1.5px solid var(--linha);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.alternador-opcao {
+  font-family: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 0;
+  background: #fff;
+  color: var(--tinta-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  min-height: 38px;
+}
+.alternador-opcao + .alternador-opcao { border-left: 1.5px solid var(--linha); }
+.alternador-opcao[aria-selected="true"] { background: var(--verde); color: #fff; }
+
+.resumo-periodo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--linha);
+}
+.resumo-numero { font-size: 1.5rem; font-weight: 700; color: var(--verde); line-height: 1; }
+.resumo-texto { font-size: .88rem; color: var(--tinta-2); }
+.resumo-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+
+/* ── Grade do mês ── */
+
+.calendario-cabecalho {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.calendario-cabecalho span {
+  text-align: center;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--tinta-3);
+  padding: 4px 0;
+}
+
+.grade-mes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.celula-dia {
+  min-height: 78px;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #fff;
+  overflow: hidden;
+}
+.celula-dia.fora-do-mes { background: #fafbfb; }
+.celula-dia.fora-do-mes .numero-dia { color: var(--tinta-3); opacity: .6; }
+.celula-dia.celula-hoje { border-color: var(--verde); border-width: 2px; padding: 2px; }
+
+@media (min-width: 700px) { .celula-dia { min-height: 104px; } }
+
+.numero-dia {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 650;
+  color: var(--tinta-2);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 5px;
+  cursor: pointer;
+  min-width: 24px;
+  touch-action: manipulation;
+}
+.numero-dia:hover { background: var(--verde-claro); color: var(--verde-escuro); }
+.celula-hoje .numero-dia { background: var(--verde); color: #fff; }
+
+.celula-consultas { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+
+.consulta-pilula {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: .66rem;
+  padding: 2px 4px;
+  border: 0;
+  border-left: 3px solid var(--tinta-3);
+  border-radius: 4px;
+  background: #eef2f0;
+  color: var(--tinta);
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+.consulta-pilula:hover { background: var(--verde-claro); }
+.pilula-hora { font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
+.pilula-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.consulta-pilula.status-baixo { border-left-color: #4a7ab5; }
+.consulta-pilula.status-ok    { border-left-color: var(--verde); }
+.consulta-pilula.status-feito { border-left-color: #8a9a93; opacity: .72; }
+.consulta-pilula.status-alto  { border-left-color: var(--perigo); opacity: .6; }
+.consulta-pilula.status-alto .pilula-nome { text-decoration: line-through; }
+
+/* ── Visão de semana ── */
+
+#visao-semana { display: flex; flex-direction: column; gap: 12px; }
+
+.dia-semana { padding: 13px 14px; }
+.dia-semana.dia-hoje { border-color: var(--verde); border-width: 2px; }
+
+.dia-semana-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.dia-semana-topo h3 { margin: 0; font-size: 1rem; text-transform: capitalize; }
+.dia-semana-topo .dica { margin: 2px 0 0; }
+
+.lista-consultas { list-style: none; margin: 0; padding: 0; }
+
+.consulta-linha {
+  border-left: 4px solid var(--tinta-3);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 6px;
+  background: #fcfdfd;
+}
+.consulta-linha:last-child { margin-bottom: 0; }
+.consulta-linha.status-borda-baixo { border-left-color: #4a7ab5; }
+.consulta-linha.status-borda-ok    { border-left-color: var(--verde); }
+.consulta-linha.status-borda-feito { border-left-color: #8a9a93; }
+.consulta-linha.status-borda-alto  { border-left-color: var(--perigo); }
+
+.consulta-abrir {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+}
+.consulta-abrir:hover { background: var(--verde-claro); }
+
+.consulta-hora {
+  flex: none;
+  font-size: .95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta);
+  min-width: 46px;
+}
+.consulta-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.consulta-nome { font-size: .93rem; font-weight: 600; overflow-wrap: anywhere; }
+.consulta-detalhe { font-size: .77rem; color: var(--tinta-3); }
+.consulta-obs { font-size: .77rem; color: var(--tinta-2); margin-top: 2px; }
+
+.radios-status { gap: 12px; }
+.espacador { flex: 1; }
+.dica-rodape { text-align: center; }
+
+/* ── Próxima consulta no prontuário ── */
+
+.proxima-consulta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--verde-claro);
+  border: 1px solid #bfdccf;
+  border-radius: 11px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.proxima-consulta .quando {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--verde-escuro);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.proxima-consulta .detalhe { font-size: .84rem; color: var(--tinta-2); flex: 1; min-width: 0; }

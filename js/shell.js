@@ -111,6 +111,7 @@ const Shell = (() => {
       </div>
       <nav class="abas wrap" aria-label="Seções do sistema">
         <a class="aba" href="pacientes.html" ${ativo === 'pacientes' ? 'aria-current="page"' : ''}>Pacientes</a>
+        <a class="aba" href="agenda.html" ${ativo === 'agenda' ? 'aria-current="page"' : ''}>Agenda</a>
         <a class="aba" href="ficha.html" ${ativo === 'ficha' ? 'aria-current="page"' : ''}>Ficha Técnica</a>
       </nav>`;
 

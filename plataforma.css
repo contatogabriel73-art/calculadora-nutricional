@@ -1686,3 +1686,77 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
 .atalho-texto span { font-size: .75rem; color: var(--tinta-3); line-height: 1.3; }
 
 .painel-saudacao + .grade-painel { margin-top: 2px; }
+
+/* ═══════════════════════════════════════════
+   GRÁFICOS
+   ═══════════════════════════════════════════ */
+
+.grade-graficos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 920px) { .grade-graficos { grid-template-columns: 1.35fr 1fr; } }
+
+/* Altura fixa: o Chart.js é responsivo em largura, mas sem altura definida
+   no contêiner ele cresce indefinidamente a cada redesenho. */
+.grafico-caixa {
+  position: relative;
+  height: 240px;
+  margin-top: 8px;
+}
+@media (min-width: 700px) { .grafico-caixa { height: 270px; } }
+
+.grafico-caixa canvas { max-width: 100%; }
+
+.grafico-indisponivel,
+.grafico-vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: .84rem;
+  line-height: 1.55;
+  color: var(--tinta-3);
+  background: var(--fundo);
+  border: 1px dashed var(--linha);
+  border-radius: 10px;
+}
+
+.input-compacto {
+  width: auto;
+  padding: 7px 10px;
+  font-size: .84rem;
+}
+
+/* Estimativa precisa parecer estimativa, não caixa fechado. */
+.metrica-estimativa {
+  border-style: dashed;
+  background: #fbfcfc;
+}
+.marca-estimativa {
+  display: inline-block;
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: #e8edeb;
+  color: var(--tinta-2);
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-right: 4px;
+}
+
+.nota-estimativa {
+  margin: 12px 0 0;
+  font-size: .79rem;
+  line-height: 1.5;
+  color: var(--tinta-2);
+  background: var(--fundo);
+  border-left: 3px solid var(--tinta-3);
+  border-radius: 0 8px 8px 0;
+  padding: 9px 12px;
+}

@@ -59,13 +59,41 @@
 
   /* ───────────── Resumo ───────────── */
 
-  function cartao(rotulo, valor, extra, destaque) {
+  /**
+   * @param {string} unidade prefixo antes do número; '' para valores que
+   *   não são dinheiro (a inadimplência é percentual, não reais).
+   */
+  function cartao(rotulo, valor, extra, destaque, unidade) {
+    const prefixo = unidade === undefined ? 'R$' : unidade;
     return `
       <div class="metrica ${destaque || ''}">
         <span class="metrica-rotulo">${rotulo}</span>
-        <span class="metrica-valor"><em>R$</em> ${valor}</span>
+        <span class="metrica-valor">${prefixo ? '<em>' + prefixo + '</em> ' : ''}${valor}</span>
         ${extra ? `<span class="metrica-extra">${extra}</span>` : ''}
       </div>`;
+  }
+
+  /**
+   * Receita projetada: consultas do mês ainda sem lançamento, valorizadas
+   * pelo ticket médio. É estimativa — a interface precisa dizer isso, senão
+   * vira "dinheiro que eu já tenho" na cabeça de quem lê.
+   */
+  async function projetar(doMes, ticket) {
+    if (!ticket) return null;
+
+    const ultimoDia = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 0).getDate();
+    const inicio = anoMes() + '-01';
+    const fim = anoMes() + '-' + doisDigitos(ultimoDia);
+
+    const consultas = await AgendaStore.listarPorPeriodo(inicio, fim);
+    const comLancamento = new Set(doMes.map((p) => p.consultaId).filter(Boolean));
+
+    // Canceladas não geram receita; as já lançadas não podem contar duas vezes.
+    const semLancamento = consultas.filter((c) =>
+      c.status !== 'cancelada' && !comLancamento.has(c.id));
+
+    if (!semLancamento.length) return null;
+    return { consultas: semLancamento.length, centavos: semLancamento.length * ticket };
   }
 
   async function desenharResumo() {
@@ -75,17 +103,43 @@
     const m = MESES[referencia.getMonth()];
     $('#titulo-mes').textContent = m.charAt(0).toUpperCase() + m.slice(1) + ' de ' + referencia.getFullYear();
 
-    const media = r.quantidadePagos
-      ? 'ticket médio R$ ' + F.formatarCentavos(Math.round(r.recebido / r.quantidadePagos))
-      : '';
+    const ticket = F.ticketMedio(r);
+    const inadimplencia = F.taxaInadimplencia(r);
+    const projecao = await projetar(doMes, ticket);
 
-    $('#cartoes-resumo').innerHTML =
+    const cartoes = [
       cartao('Recebido no mês', F.formatarCentavos(r.recebido),
-        `${r.quantidadePagos} ${r.quantidadePagos === 1 ? 'pagamento' : 'pagamentos'}`, 'metrica-verde') +
+        `${r.quantidadePagos} ${r.quantidadePagos === 1 ? 'pagamento' : 'pagamentos'}`, 'metrica-verde'),
       cartao('A receber no mês', F.formatarCentavos(r.pendente),
         `${r.quantidadePendentes} ${r.quantidadePendentes === 1 ? 'pendência' : 'pendências'}`,
-        r.pendente > 0 ? 'metrica-alerta' : '') +
-      cartao('Previsto no mês', F.formatarCentavos(r.total), media);
+        r.pendente > 0 ? 'metrica-alerta' : ''),
+      cartao('Ticket médio', ticket ? F.formatarCentavos(ticket) : '—',
+        ticket ? 'por consulta paga' : 'sem pagamento no mês'),
+      cartao('Inadimplência',
+        inadimplencia == null ? '—' : formatarPct(inadimplencia),
+        inadimplencia == null ? 'sem lançamentos' : 'do previsto no mês',
+        inadimplencia != null && inadimplencia >= 25 ? 'metrica-alerta' : '',
+        '')   // percentual, não reais
+    ];
+
+    if (projecao) {
+      cartoes.push(cartao('Projeção', F.formatarCentavos(projecao.centavos),
+        `<span class="marca-estimativa">estimativa</span> ${projecao.consultas} ` +
+        `${projecao.consultas === 1 ? 'consulta sem lançamento' : 'consultas sem lançamento'}`,
+        'metrica-estimativa'));
+    }
+
+    $('#cartoes-resumo').innerHTML = cartoes.join('');
+
+    if (projecao) {
+      $('#nota-projecao').innerHTML =
+        `A projeção multiplica as ${projecao.consultas} consultas do mês que ainda não têm ` +
+        `lançamento pelo ticket médio de R$ ${F.formatarCentavos(ticket)}. ` +
+        `É uma referência de quanto o mês pode fechar, <strong>não</strong> valor confirmado.`;
+      $('#nota-projecao').hidden = false;
+    } else {
+      $('#nota-projecao').hidden = true;
+    }
 
     // Quebra por forma de pagamento, só do que foi efetivamente recebido.
     const formas = Object.entries(r.porForma).sort((a, b) => b[1] - a[1]);
@@ -94,6 +148,117 @@
           `<span class="chip">${esc(chave === 'sem-forma' ? 'Não informada' : F.rotuloForma(chave))}
            · R$ ${F.formatarCentavos(centavos)}</span>`).join('')
       : '';
+  }
+
+  const formatarPct = (v) =>
+    v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+
+  /* ───────────── Gráficos ───────────── */
+
+  const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+                        'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  function desenharGraficos() {
+    if (!Graficos.disponivel()) {
+      $('#caixa-mensal').innerHTML = Graficos.avisoIndisponivel();
+      $('#caixa-semanal').innerHTML = '';
+      $('#legenda-semanas').textContent = '';
+      return;
+    }
+
+    const janela = Number($('#janela-meses').value) || 12;
+    const serie = F.serieMensal(janela, referencia);
+
+    Graficos.desenhar('grafico-mensal', {
+      type: 'bar',
+      data: {
+        labels: serie.map((m) => MESES_CURTOS[m.mes] + (m.mes === 0 ? '/' + String(m.ano).slice(2) : '')),
+        datasets: [
+          {
+            label: 'Recebido',
+            data: serie.map((m) => F.emReais(m.recebido)),
+            backgroundColor: Graficos.CORES.verde,
+            borderRadius: 5,
+            maxBarThickness: 38
+          },
+          {
+            label: 'Pendente',
+            data: serie.map((m) => F.emReais(m.pendente)),
+            backgroundColor: Graficos.CORES.ambarClaro,
+            borderColor: Graficos.CORES.ambar,
+            borderWidth: 1,
+            borderRadius: 5,
+            maxBarThickness: 38
+          }
+        ]
+      },
+      options: {
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': R$ ' + F.formatarCentavos(c.parsed.y * 100) } }
+        },
+        scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: (v) => 'R$ ' + v } } }
+      }
+    });
+
+    // ── Semanas do mês ──
+    const semanas = F.porSemanaDoMes(anoMes());
+    const temReceita = semanas.some((s) => s.recebido > 0);
+
+    if (!temReceita) {
+      Graficos.destruir('grafico-semanal');
+      $('#caixa-semanal').innerHTML =
+        Graficos.estadoVazio('Nenhuma receita recebida neste mês ainda.');
+      $('#legenda-semanas').textContent = '';
+      return;
+    }
+
+    // Recria o canvas: um estado vazio anterior pode tê-lo removido.
+    if (!document.getElementById('grafico-semanal')) {
+      $('#caixa-semanal').innerHTML =
+        '<canvas id="grafico-semanal" aria-label="Receita por semana dentro do mês"></canvas>';
+    }
+
+    const melhor = semanas.find((s) => s.melhor);
+    const pior = semanas.find((s) => s.pior);
+    $('#legenda-semanas').innerHTML = melhor
+      ? `Melhor semana: <strong>${esc(melhor.rotulo)}</strong> (R$ ${F.formatarCentavos(melhor.recebido)})` +
+        (pior ? ` · menor: <strong>${esc(pior.rotulo)}</strong> (R$ ${F.formatarCentavos(pior.recebido)})` : '')
+      : 'Dias do mês agrupados em faixas de sete.';
+
+    Graficos.desenhar('grafico-semanal', {
+      type: 'bar',
+      data: {
+        labels: semanas.map((s) => s.rotulo),
+        datasets: [{
+          label: 'Recebido',
+          data: semanas.map((s) => F.emReais(s.recebido)),
+          // Destaque visual da melhor e da pior semana.
+          backgroundColor: semanas.map((s) =>
+            s.melhor ? Graficos.CORES.verde
+            : s.pior ? Graficos.CORES.ambar
+            : Graficos.CORES.verdeMedio),
+          borderRadius: 5,
+          maxBarThickness: 54
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (c) => 'R$ ' + F.formatarCentavos(c.parsed.y * 100),
+              afterLabel: (c) => {
+                const s = semanas[c.dataIndex];
+                return s.melhor ? 'maior receita do mês'
+                     : s.pior ? 'menor receita do mês'
+                     : (s.quantidade + (s.quantidade === 1 ? ' lançamento' : ' lançamentos'));
+              }
+            }
+          }
+        },
+        scales: { y: { ticks: { callback: (v) => 'R$ ' + v } } }
+      }
+    });
   }
 
   /* ───────────── Listas ───────────── */
@@ -156,6 +321,7 @@
   async function redesenhar() {
     await desenharResumo();
     await desenharListas();
+    desenharGraficos();
   }
 
   /* ───────────── Navegação ───────────── */
@@ -172,6 +338,8 @@
     referencia = new Date(agora.getFullYear(), agora.getMonth(), 1);
     redesenhar();
   });
+
+  $('#janela-meses').addEventListener('change', desenharGraficos);
 
   $$('.alternador-opcao').forEach((b) => b.addEventListener('click', () => {
     filtro = b.dataset.filtro;

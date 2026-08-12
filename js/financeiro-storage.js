@@ -211,11 +211,99 @@ const FinanceiroStore = (() => {
     };
   }
 
+  /* ───────────── Análises ───────────── */
+
+  /**
+   * Série dos últimos N meses, do mais antigo para o mais recente.
+   * @param {number} meses quantidade de meses
+   * @param {Date} referencia último mês da série (padrão: hoje)
+   */
+  function serieMensal(meses, referencia) {
+    const base = referencia || new Date();
+    const todos = ler();
+    const saida = [];
+
+    for (let i = meses - 1; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const doMes = todos.filter((p) => String(p.data).slice(0, 7) === chave);
+      const r = resumir(doMes);
+      saida.push({
+        anoMes: chave,
+        ano: d.getFullYear(),
+        mes: d.getMonth(),
+        recebido: r.recebido,
+        pendente: r.pendente,
+        quantidade: r.quantidade
+      });
+    }
+    return saida;
+  }
+
+  /**
+   * Receita agrupada por semana dentro de um mês.
+   * Agrupa por faixa de dia (1–7, 8–14, …) em vez de semana do calendário:
+   * é determinístico, não depende do dia da semana em que o mês começa, e
+   * o profissional lê "primeira semana do mês" da mesma forma todo mês.
+   */
+  function porSemanaDoMes(anoMes, lista) {
+    const doMes = lista || ler().filter((p) => String(p.data).slice(0, 7) === anoMes);
+    const faixas = [
+      { rotulo: '1 a 7', de: 1, ate: 7 },
+      { rotulo: '8 a 14', de: 8, ate: 14 },
+      { rotulo: '15 a 21', de: 15, ate: 21 },
+      { rotulo: '22 a 28', de: 22, ate: 28 },
+      { rotulo: '29 ao fim', de: 29, ate: 31 }
+    ];
+
+    const semanas = faixas.map((f) => ({
+      rotulo: f.rotulo, recebido: 0, pendente: 0, quantidade: 0
+    }));
+
+    doMes.forEach((p) => {
+      const dia = Number(String(p.data).slice(8, 10));
+      const i = faixas.findIndex((f) => dia >= f.de && dia <= f.ate);
+      if (i < 0) return;
+      if (p.status === 'pago') semanas[i].recebido += p.centavos || 0;
+      else semanas[i].pendente += p.centavos || 0;
+      semanas[i].quantidade++;
+    });
+
+    // Marca a de maior e a de menor receita, ignorando semanas sem nada:
+    // destacar "R$ 0" como a pior semana não informa nada útil.
+    const comReceita = semanas.filter((s) => s.recebido > 0);
+    if (comReceita.length >= 2) {
+      const max = Math.max(...comReceita.map((s) => s.recebido));
+      const min = Math.min(...comReceita.map((s) => s.recebido));
+      semanas.forEach((s) => {
+        s.melhor = s.recebido === max && s.recebido > 0;
+        s.pior = s.recebido === min && s.recebido > 0 && max !== min;
+      });
+    }
+
+    return semanas;
+  }
+
+  /**
+   * Proporção do valor pendente sobre o total do período.
+   * @returns {number|null} 0 a 100; null quando não há nada no período
+   */
+  function taxaInadimplencia(resumo) {
+    if (!resumo || resumo.total <= 0) return null;
+    return (resumo.pendente / resumo.total) * 100;
+  }
+
+  function ticketMedio(resumo) {
+    if (!resumo || !resumo.quantidadePagos) return null;
+    return Math.round(resumo.recebido / resumo.quantidadePagos);
+  }
+
   return {
     FORMAS, STATUS, rotuloForma, rotuloStatus, nivelStatus,
     paraCentavos, formatarCentavos, emReais,
     listarTodos, listarPorMes, listarPorPaciente, listarPendentes,
     obterPagamento, daConsulta, salvarPagamento, marcarComoPago,
-    removerPagamento, removerDoPaciente, resumir
+    removerPagamento, removerDoPaciente, resumir,
+    serieMensal, porSemanaDoMes, taxaInadimplencia, ticketMedio
   };
 })();

@@ -32,7 +32,32 @@
     </div>
 
     <div id="cartoes-resumo" class="grade-metricas cartoes-financeiro"></div>
+    <p id="nota-projecao" class="nota-estimativa" hidden></p>
     <div id="por-forma" class="por-forma"></div>
+  </div>
+
+  <!-- ═══════ Gráficos ═══════ -->
+  <div class="grade-graficos">
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Receita por mês</h2>
+        <select id="janela-meses" class="input input-compacto" aria-label="Período do gráfico">
+          <option value="6">Últimos 6 meses</option>
+          <option value="12" selected>Últimos 12 meses</option>
+        </select>
+      </div>
+      <div class="grafico-caixa" id="caixa-mensal">
+        <canvas id="grafico-mensal" aria-label="Receita recebida e pendente por mês"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Receita por semana do mês</h2>
+      <p class="dica" id="legenda-semanas"></p>
+      <div class="grafico-caixa" id="caixa-semanal">
+        <canvas id="grafico-semanal" aria-label="Receita por semana dentro do mês"></canvas>
+      </div>
+    </div>
   </div>
 
   <!-- ═══════ Pendências de todos os períodos ═══════ -->
@@ -182,12 +207,16 @@
   </form>
 </dialog>
 
+<!-- Chart.js: única dependência externa. Carrega antes do script da tela,
+     mas a página funciona sem ela (ver js/graficos.js). -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/pacientes-storage.js"></script>
 <script src="js/agenda-storage.js"></script>
 <script src="js/financeiro-storage.js"></script>
 <script src="js/perfil-storage.js"></script>
 <script src="js/extenso.js"></script>
+<script src="js/graficos.js"></script>
 <script src="js/shell.js"></script>
 <script src="js/financeiro.js"></script>
 </body>

@@ -97,7 +97,7 @@ const Shell = (() => {
     alvo.className = 'app-header';
     alvo.innerHTML = `
       <div class="wrap header-inner">
-        <a class="brand brand-link" href="pacientes.html">
+        <a class="brand brand-link" href="painel.html">
           ${MARCA_SVG}
           <div>
             <h1>NutriFicha</h1>
@@ -110,6 +110,7 @@ const Shell = (() => {
         </div>
       </div>
       <nav class="abas wrap" aria-label="Seções do sistema">
+        <a class="aba" href="painel.html" ${ativo === 'painel' ? 'aria-current="page"' : ''}>Painel</a>
         <a class="aba" href="pacientes.html" ${ativo === 'pacientes' ? 'aria-current="page"' : ''}>Pacientes</a>
         <a class="aba" href="agenda.html" ${ativo === 'agenda' ? 'aria-current="page"' : ''}>Agenda</a>
         <a class="aba" href="financeiro.html" ${ativo === 'financeiro' ? 'aria-current="page"' : ''}>Financeiro</a>

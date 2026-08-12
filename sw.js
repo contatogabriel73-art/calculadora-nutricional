@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v2.4';
+const CACHE = 'nutri-taco-v2.5';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 
@@ -36,6 +36,7 @@ function buscarDaRede(url) {
 const SHELL = [
   './',
   './index.html',
+  './painel.html',
   './login.html',
   './pacientes.html',
   './paciente.html',
@@ -65,6 +66,7 @@ const SHELL = [
   './js/perfil-storage.js',
   './js/extenso.js',
   './js/recibo.js',
+  './js/painel.js',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',

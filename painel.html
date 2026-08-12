@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body>
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <div class="painel-saudacao">
+    <h1 id="saudacao"></h1>
+    <p id="data-hoje" class="dica"></p>
+  </div>
+
+  <!-- ═══════ Métricas ═══════ -->
+  <div class="grade-metricas grade-painel" id="metricas"></div>
+
+  <!-- ═══════ Atalhos ═══════ -->
+  <div class="atalhos" id="atalhos"></div>
+
+  <!-- ═══════ Consultas de hoje ═══════ -->
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Consultas de hoje <span id="badge-hoje" class="badge">0</span></h2>
+      <a class="btn btn-ghost btn-sm" href="agenda.html">Ver agenda</a>
+    </div>
+    <ul id="lista-hoje" class="lista-consultas"></ul>
+    <p id="sem-hoje" class="empty" hidden>
+      Nenhuma consulta marcada para hoje.
+    </p>
+  </div>
+
+  <!-- ═══════ Próximos dias ═══════ -->
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Próximos 7 dias <span id="badge-proximos" class="badge">0</span></h2>
+    </div>
+    <ul id="lista-proximos" class="lista-consultas"></ul>
+    <p id="sem-proximos" class="empty" hidden>Nada agendado para a próxima semana.</p>
+  </div>
+
+  <!-- ═══════ Pendências financeiras ═══════ -->
+  <div id="bloco-pendencias" class="card" hidden>
+    <div class="card-head">
+      <h2 class="card-title">Cobranças em aberto <span id="badge-pendencias" class="badge">0</span></h2>
+      <a class="btn btn-ghost btn-sm" href="financeiro.html">Ver financeiro</a>
+    </div>
+    <ul id="lista-pendencias" class="lista-pagamentos"></ul>
+  </div>
+
+  <div id="aviso"></div>
+
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/pacientes-storage.js"></script>
+<script src="js/agenda-storage.js"></script>
+<script src="js/financeiro-storage.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/painel.js"></script>
+</body>
+</html>

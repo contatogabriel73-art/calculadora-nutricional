@@ -1616,3 +1616,73 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
   .card-head .alternador-opcao { flex: 1; padding-left: 6px; padding-right: 6px; }
   .agenda-controles .alternador { flex: 1; }
 }
+
+/* ═══════════════════════════════════════════
+   PAINEL INICIAL
+   ═══════════════════════════════════════════ */
+
+.painel-saudacao { margin-bottom: 2px; }
+.painel-saudacao h1 {
+  margin: 0 0 2px;
+  font-size: 1.5rem;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.painel-saudacao .dica { margin: 0; }
+
+.grade-painel { gap: 12px; }
+
+.metrica-link {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .12s, transform .12s;
+}
+.metrica-link:hover { border-color: var(--verde); transform: translateY(-1px); }
+
+/* Nos cartões do painel o "R$" vem antes e menor que o número. */
+.grade-painel .metrica-valor em {
+  font-style: normal;
+  font-size: .78rem;
+  color: var(--tinta-3);
+  font-weight: 600;
+}
+
+.atalhos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 11px;
+}
+@media (min-width: 760px) { .atalhos { grid-template-columns: repeat(4, 1fr); } }
+
+.atalho {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  background: #fff;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .12s, transform .12s;
+  min-height: 46px;
+}
+.atalho:hover { border-color: var(--verde); transform: translateY(-1px); }
+
+.atalho-icone {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--verde-claro);
+  color: var(--verde);
+  display: grid;
+  place-items: center;
+}
+.atalho-icone svg { width: 19px; height: 19px; }
+
+.atalho-texto { display: flex; flex-direction: column; min-width: 0; }
+.atalho-texto strong { font-size: .9rem; font-weight: 620; line-height: 1.25; }
+.atalho-texto span { font-size: .75rem; color: var(--tinta-3); line-height: 1.3; }
+
+.painel-saudacao + .grade-painel { margin-top: 2px; }

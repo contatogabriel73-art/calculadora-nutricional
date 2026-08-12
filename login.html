@@ -87,9 +87,9 @@
   // Para onde ir depois de entrar. Só aceitamos caminhos internos:
   // um destino vindo da URL não pode virar redirecionamento para outro site.
   function destinoSeguro() {
-    const bruto = new URLSearchParams(location.search).get('destino') || 'pacientes.html';
+    const bruto = new URLSearchParams(location.search).get('destino') || 'painel.html';
     if (/^[a-z0-9._-]+\.html(\?[^#]*)?$/i.test(bruto)) return bruto;
-    return 'pacientes.html';
+    return 'painel.html';
   }
 
   form.addEventListener('submit', async (ev) => {

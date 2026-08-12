@@ -15,47 +15,48 @@
 
 <header id="app-shell"></header>
 
-<main class="wrap conteudo">
+<main class="wrap painel">
 
-  <div class="painel-saudacao">
+  <!-- ═══════ Cabeçalho ═══════ -->
+  <div class="painel-topo">
     <h1 id="saudacao"></h1>
-    <p id="data-hoje" class="dica"></p>
+    <p id="resumo-dia" class="painel-sub"></p>
   </div>
 
   <!-- ═══════ Métricas ═══════ -->
-  <div class="grade-metricas grade-painel" id="metricas"></div>
+  <section class="faixa-metricas" id="metricas" aria-label="Resumo"></section>
 
-  <!-- ═══════ Atalhos ═══════ -->
-  <div class="atalhos" id="atalhos"></div>
+  <!-- ═══════ Corpo em duas colunas ═══════ -->
+  <div class="painel-grade">
 
-  <!-- ═══════ Consultas de hoje ═══════ -->
-  <div class="card">
-    <div class="card-head">
-      <h2 class="card-title">Consultas de hoje <span id="badge-hoje" class="badge">0</span></h2>
-      <a class="btn btn-ghost btn-sm" href="agenda.html">Ver agenda</a>
-    </div>
-    <ul id="lista-hoje" class="lista-consultas"></ul>
-    <p id="sem-hoje" class="empty" hidden>
-      Nenhuma consulta marcada para hoje.
-    </p>
-  </div>
+    <section class="bloco" aria-labelledby="t-agenda">
+      <div class="bloco-topo">
+        <h2 id="t-agenda">Agenda</h2>
+        <a class="link-discreto" href="agenda.html">Ver tudo</a>
+      </div>
+      <div id="agenda-dias"></div>
+      <p id="sem-agenda" class="vazio-suave" hidden>
+        Nenhuma consulta nos próximos dias.
+      </p>
+    </section>
 
-  <!-- ═══════ Próximos dias ═══════ -->
-  <div class="card">
-    <div class="card-head">
-      <h2 class="card-title">Próximos 7 dias <span id="badge-proximos" class="badge">0</span></h2>
-    </div>
-    <ul id="lista-proximos" class="lista-consultas"></ul>
-    <p id="sem-proximos" class="empty" hidden>Nada agendado para a próxima semana.</p>
-  </div>
+    <aside class="painel-lado">
 
-  <!-- ═══════ Pendências financeiras ═══════ -->
-  <div id="bloco-pendencias" class="card" hidden>
-    <div class="card-head">
-      <h2 class="card-title">Cobranças em aberto <span id="badge-pendencias" class="badge">0</span></h2>
-      <a class="btn btn-ghost btn-sm" href="financeiro.html">Ver financeiro</a>
-    </div>
-    <ul id="lista-pendencias" class="lista-pagamentos"></ul>
+      <section class="bloco" aria-labelledby="t-acoes">
+        <div class="bloco-topo"><h2 id="t-acoes">Ações rápidas</h2></div>
+        <nav id="atalhos" class="atalhos"></nav>
+      </section>
+
+      <section class="bloco" id="bloco-pendencias" aria-labelledby="t-pend" hidden>
+        <div class="bloco-topo">
+          <h2 id="t-pend">Cobranças em aberto</h2>
+          <a class="link-discreto" href="financeiro.html">Ver tudo</a>
+        </div>
+        <p class="total-aberto" id="total-aberto"></p>
+        <ul id="lista-pendencias" class="lista-simples"></ul>
+      </section>
+
+    </aside>
   </div>
 
   <div id="aviso"></div>

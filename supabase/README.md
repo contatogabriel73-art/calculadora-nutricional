@@ -112,6 +112,33 @@ cadastro pela tela.
 
 ---
 
+## Cadastro de nutricionista: CPF, CRN e verificação
+
+O cadastro público (`cadastro.html`) só cria conta de nutricionista — não
+existe mais escolha de papel na tela. Além de nome/e-mail/senha, pede CPF
+(validado por dígito verificador, sem consultar nenhuma base externa — ver
+`js/cpf.js`), CRN e endereço (preenchido por CEP via ViaCEP, ver `js/cep.js`).
+
+Toda conta nova de nutricionista nasce com `status_verificacao = 'pendente'`.
+Isso ainda não bloqueia nada no site — o gate de login que vai checar esse
+campo é uma fase futura (verificação automática de CRN + aprovação manual).
+
+### Armadilha: minha própria trava bloqueou o SQL Editor
+
+`status_verificacao`, `papel`, `papel_admin` e `conta_teste` são protegidos
+por um trigger (`proteger_campos_privilegiados`) que reverte qualquer
+tentativa de mudança feita por quem não é admin — testado tentando se
+autopromover pela API e conferindo que o banco devolve o valor antigo, não
+o que foi mandado.
+
+A trava original checava `auth.uid()`, que só existe numa requisição vinda
+do PostgREST (a API). Rodar um `update` de manutenção pelo **SQL Editor**
+conecta como `postgres`, sem JWT nenhum — `auth.uid()` vem nulo, e a
+trava original teria revertido a própria correção administrativa. Corrigido
+liberando `session_user = 'postgres'` no trigger: é um contexto mais
+privilegiado que a trava tenta conter, não uma brecha — PostgREST nunca
+assume esse papel para pedido de cliente (usa `anon` ou `authenticated`).
+
 ## Como o acesso está desenhado
 
 Duas formas de entrar nos dados, e nenhuma outra:
@@ -182,10 +209,17 @@ Criadas para validar o schema, sem nenhum dado real:
 
 | e-mail | senha | papel |
 |---|---|---|
-| `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista |
-| `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista |
+| `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado |
+| `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado |
+| `joana.nutri3@nutrificha.test` | `senha-de-teste-123` | nutricionista, **pendente** — cadastro completo (CPF/CRN/CEP) feito pela tela de verdade |
 | `teste.paciente@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Maria Teste Editada" |
 | `teste.paciente2@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Paciente de Teste" |
+
+`teste.nutri` e `teste.nutri2` foram criadas antes da coluna
+`status_verificacao` existir; recebi um `update status_verificacao =
+'verificado'` manual (via SQL Editor) para não ficarem travadas quando o
+gate de login da Fase 3 entrar no ar. `joana.nutri3` fica pendente de
+propósito — é a conta para testar a tela de "cadastro em análise".
 
 As duas contas de paciente foram criadas numa janela em que **Confirm email**
 estava temporariamente desligado — precisou ser assim porque o domínio de

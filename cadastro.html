@@ -13,7 +13,7 @@
 </head>
 <body class="pagina-login">
 
-<main class="login-caixa">
+<main class="login-caixa login-caixa-larga">
   <a class="brand brand-login" href="index.html">
     <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
       <rect width="48" height="48" rx="12" fill="currentColor"/>
@@ -27,42 +27,42 @@
   </a>
 
   <div class="card card-login">
-    <h2 class="card-title">Criar conta</h2>
+    <h2 class="card-title">Criar conta de nutricionista</h2>
+    <p class="dica">
+      É paciente de um nutricionista que usa o NutriFicha? Você não precisa
+      criar conta aqui — peça para ele te enviar o link e o código de acesso.
+    </p>
 
     <form id="form-cadastro" novalidate>
 
-      <fieldset class="escolha-papel">
-        <legend>Você é nutricionista ou está sendo avaliado por um nutricionista?</legend>
-
-        <label class="opcao-papel">
-          <input type="radio" name="papel" value="nutricionista" required>
-          <span>
-            <strong>Sou nutricionista</strong>
-            <span>Quero organizar meus pacientes, consultas, fichas técnicas e o
-                  financeiro do consultório.</span>
-          </span>
-        </label>
-
-        <label class="opcao-papel">
-          <input type="radio" name="papel" value="paciente" required>
-          <span>
-            <strong>Sou paciente</strong>
-            <span>Quero acompanhar minha evolução e minhas próximas consultas.
-                  Você vai precisar de um código do seu nutricionista para ver
-                  seus dados.</span>
-          </span>
-        </label>
-      </fieldset>
-
       <div class="campo">
-        <label class="field-label" for="nome">Seu nome</label>
+        <label class="field-label" for="nome">Nome completo</label>
         <input id="nome" class="input" type="text" autocomplete="name" required>
       </div>
 
-      <div class="campo">
-        <label class="field-label" for="email">E-mail</label>
-        <input id="email" class="input" type="email" autocomplete="username"
-               inputmode="email" autocapitalize="none" spellcheck="false" required>
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="cpf">CPF</label>
+          <input id="cpf" class="input" type="text" inputmode="numeric" autocomplete="off"
+                 maxlength="14" placeholder="000.000.000-00" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="crn">Número do CRN</label>
+          <input id="crn" class="input" type="text" autocomplete="off"
+                 placeholder="Ex.: CRN-3 12345" required>
+        </div>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="email">E-mail</label>
+          <input id="email" class="input" type="email" autocomplete="username"
+                 inputmode="email" autocapitalize="none" spellcheck="false" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="telefone">Telefone</label>
+          <input id="telefone" class="input" type="tel" inputmode="tel" autocomplete="tel">
+        </div>
       </div>
 
       <div class="campo">
@@ -71,6 +71,83 @@
                minlength="6" required>
         <p class="dica">Pelo menos 6 caracteres.</p>
       </div>
+
+      <h3 class="subtitulo-form">Endereço</h3>
+
+      <div class="campo">
+        <label class="field-label" for="cep">CEP</label>
+        <input id="cep" class="input" type="text" inputmode="numeric" autocomplete="postal-code"
+               maxlength="9" placeholder="00000-000" required>
+        <p id="cep-status" class="dica" hidden></p>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo campo-largo">
+          <label class="field-label" for="rua">Rua</label>
+          <input id="rua" class="input" type="text" autocomplete="address-line1" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="numero">Número</label>
+          <input id="numero" class="input" type="text" inputmode="numeric" autocomplete="off" required>
+        </div>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="complemento">Complemento</label>
+          <input id="complemento" class="input" type="text" autocomplete="address-line2" placeholder="Opcional">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="bairro">Bairro</label>
+          <input id="bairro" class="input" type="text" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="cidade">Cidade</label>
+          <input id="cidade" class="input" type="text" autocomplete="address-level2" required>
+        </div>
+        <div class="campo">
+          <label class="field-label" for="estado">Estado</label>
+          <select id="estado" class="input" autocomplete="address-level1" required>
+            <option value="">Selecione</option>
+            <option value="AC">Acre</option>
+            <option value="AL">Alagoas</option>
+            <option value="AP">Amapá</option>
+            <option value="AM">Amazonas</option>
+            <option value="BA">Bahia</option>
+            <option value="CE">Ceará</option>
+            <option value="DF">Distrito Federal</option>
+            <option value="ES">Espírito Santo</option>
+            <option value="GO">Goiás</option>
+            <option value="MA">Maranhão</option>
+            <option value="MT">Mato Grosso</option>
+            <option value="MS">Mato Grosso do Sul</option>
+            <option value="MG">Minas Gerais</option>
+            <option value="PA">Pará</option>
+            <option value="PB">Paraíba</option>
+            <option value="PR">Paraná</option>
+            <option value="PE">Pernambuco</option>
+            <option value="PI">Piauí</option>
+            <option value="RJ">Rio de Janeiro</option>
+            <option value="RN">Rio Grande do Norte</option>
+            <option value="RS">Rio Grande do Sul</option>
+            <option value="RO">Rondônia</option>
+            <option value="RR">Roraima</option>
+            <option value="SC">Santa Catarina</option>
+            <option value="SP">São Paulo</option>
+            <option value="SE">Sergipe</option>
+            <option value="TO">Tocantins</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="dica">
+        O CRN não é conferido na hora — sua conta entra em análise e o acesso
+        completo libera assim que confirmarmos o registro. Isso pode ser
+        automático ou levar até alguns dias.
+      </p>
 
       <p id="erro-cadastro" class="erro-form" role="alert" hidden></p>
 
@@ -100,43 +177,103 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/cpf.js"></script>
+<script src="js/cep.js"></script>
 <script>
 (() => {
   'use strict';
 
-  const form = document.querySelector('#form-cadastro');
-  const erro = document.querySelector('#erro-cadastro');
-  const botao = document.querySelector('#btn-criar');
-  const confirmacao = document.querySelector('#confirmacao');
+  const $ = (s) => document.querySelector(s);
+  const form = $('#form-cadastro');
+  const erro = $('#erro-cadastro');
+  const botao = $('#btn-criar');
+  const confirmacao = $('#confirmacao');
 
   function mostrarErro(msg) {
     erro.textContent = msg;
     erro.hidden = false;
   }
 
-  /* A landing manda ?papel=nutricionista ou ?papel=paciente pelos botões
-     "Sou nutricionista" / "Sou paciente". Chegar com a opção já marcada
-     poupa um passo de quem clicou sabendo o que queria. */
-  const pedido = new URLSearchParams(location.search).get('papel');
-  if (Auth.PAPEIS.includes(pedido)) {
-    const alvo = form.querySelector('input[name="papel"][value="' + pedido + '"]');
-    if (alvo) alvo.checked = true;
+  /* ───────────── CPF: máscara enquanto digita ───────────── */
+
+  const campoCpf = $('#cpf');
+  campoCpf.addEventListener('input', () => {
+    campoCpf.value = CPF.mascarar(campoCpf.value);
+  });
+
+  /* ───────────── CEP: preenche o resto do endereço ───────────── */
+
+  const campoCep = $('#cep');
+  const statusCep = $('#cep-status');
+
+  function mostrarStatusCep(texto) {
+    statusCep.textContent = texto;
+    statusCep.hidden = !texto;
   }
+
+  // Consulta assim que o oitavo dígito é digitado — sem esperar sair do
+  // campo. Guarda o último CEP já consultado para não repetir a chamada
+  // a cada tecla depois disso (backspace e voltar a digitar o mesmo
+  // número, por exemplo).
+  let ultimoCepConsultado = '';
+
+  async function consultarCep() {
+    const digitos = Cep.apenasDigitos(campoCep.value);
+    if (digitos.length !== 8 || digitos === ultimoCepConsultado) return;
+    ultimoCepConsultado = digitos;
+
+    mostrarStatusCep('Consultando o CEP…');
+    const r = await Cep.consultar(digitos);
+
+    if (!r.ok) {
+      // Falhou ou não achou: os campos ficam abertos para preencher à
+      // mão, e o cadastro segue normalmente — o CEP nunca trava a tela.
+      mostrarStatusCep(r.erro);
+      return;
+    }
+
+    $('#rua').value = r.rua;
+    $('#bairro').value = r.bairro;
+    $('#cidade').value = r.cidade;
+    $('#estado').value = r.estado;
+    mostrarStatusCep('Endereço preenchido — confira e corrija se precisar.');
+  }
+
+  campoCep.addEventListener('input', () => {
+    campoCep.value = Cep.mascarar(campoCep.value);
+    if (Cep.apenasDigitos(campoCep.value).length < 8) ultimoCepConsultado = '';
+    consultarCep();
+  });
+
+  /* ───────────── Envio ───────────── */
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     erro.hidden = true;
 
-    const escolhido = form.querySelector('input[name="papel"]:checked');
+    if (!CPF.valido(campoCpf.value)) {
+      mostrarErro('CPF inválido. Confira os números digitados.');
+      campoCpf.focus();
+      return;
+    }
 
     botao.disabled = true;
     botao.textContent = 'Criando…';
 
     const resultado = await Auth.cadastrar({
-      papel: escolhido ? escolhido.value : '',
-      nome: document.querySelector('#nome').value,
-      email: document.querySelector('#email').value,
-      senha: document.querySelector('#senha').value
+      papel: 'nutricionista',
+      nome: $('#nome').value,
+      email: $('#email').value,
+      senha: $('#senha').value,
+      cpf: campoCpf.value,
+      crn: $('#crn').value,
+      cep: campoCep.value,
+      rua: $('#rua').value,
+      numero: $('#numero').value,
+      complemento: $('#complemento').value,
+      bairro: $('#bairro').value,
+      cidade: $('#cidade').value,
+      estado: $('#estado').value
     });
 
     botao.disabled = false;
@@ -152,7 +289,7 @@
     // no login sem entender por quê.
     if (resultado.precisaConfirmar) {
       form.hidden = true;
-      document.querySelector('#email-enviado').textContent = resultado.email;
+      $('#email-enviado').textContent = resultado.email;
       confirmacao.hidden = false;
       return;
     }

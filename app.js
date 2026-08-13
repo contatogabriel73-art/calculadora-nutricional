@@ -14,7 +14,7 @@
    recebeu a atualização — sem isso não dá para distinguir "o bug voltou" de
    "o celular ainda está com a versão antiga em cache".
    Ao mudar, atualize também CACHE em sw.js. */
-const VERSAO_APP = '2.9';
+const VERSAO_APP = '3.0';
 
 const CHAVE_ANTIGA = 'calc-nutri:receita:v1';
 const MAX_SUGESTOES = 10;

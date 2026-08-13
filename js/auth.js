@@ -175,13 +175,21 @@ const Auth = (() => {
     return { ok: true, usuario, destino: paginaInicial(usuario.papel) };
   }
 
+  /* Campos de endereço/documento que só o cadastro de nutricionista
+     preenche. A página de código de convite (papel paciente) não manda
+     nada disso — o gatilho no banco trata a ausência com coalesce(''). */
+  const CAMPOS_NUTRICIONISTA = ['cpf', 'crn', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado'];
+
   /**
    * Cria a conta e o perfil. O papel vai no metadata do cadastro, e um
    * gatilho no banco cria a linha em `perfis` a partir dele — assim o
    * perfil nasce junto com a conta, e não numa segunda chamada que pode
    * falhar depois da conta já existir.
    *
-   * @param {object} dados { nome, email, senha, papel }
+   * Só o cadastro de nutricionista usa cpf/crn/endereço; a página de
+   * código de convite cadastra um paciente passando só nome/email/senha.
+   *
+   * @param {object} dados { nome, email, senha, papel, cpf?, crn?, cep?, rua?, numero?, complemento?, bairro?, cidade?, estado? }
    * @returns {Promise<{ok: boolean, erro?: string, destino?: string, precisaConfirmar?: boolean}>}
    */
   async function cadastrar(dados) {
@@ -190,18 +198,37 @@ const Auth = (() => {
     const senha = String(dados.senha || '');
     const papel = PAPEIS.includes(dados.papel) ? dados.papel : '';
 
-    if (!papel) return { ok: false, erro: 'Escolha se você é nutricionista ou paciente.' };
+    if (!papel) return { ok: false, erro: 'Não foi possível identificar o tipo de cadastro.' };
     if (!nome) return { ok: false, erro: 'Informe seu nome.' };
     if (!email) return { ok: false, erro: 'Informe seu e-mail.' };
     if (senha.length < 6) return { ok: false, erro: 'A senha precisa ter pelo menos 6 caracteres.' };
 
+    if (papel === 'nutricionista') {
+      const cpfLimpo = CPF.apenasDigitos(dados.cpf);
+      if (!CPF.valido(cpfLimpo)) return { ok: false, erro: 'CPF inválido. Confira os números digitados.' };
+      if (!String(dados.crn || '').trim()) return { ok: false, erro: 'Informe seu número de CRN.' };
+      if (!String(dados.cep || '').trim()) return { ok: false, erro: 'Informe o CEP do seu endereço.' };
+      if (!String(dados.rua || '').trim()) return { ok: false, erro: 'Informe a rua do seu endereço.' };
+      if (!String(dados.numero || '').trim()) return { ok: false, erro: 'Informe o número do seu endereço.' };
+      if (!String(dados.cidade || '').trim()) return { ok: false, erro: 'Informe a cidade do seu endereço.' };
+      if (!String(dados.estado || '').trim()) return { ok: false, erro: 'Informe o estado do seu endereço.' };
+    }
+
     const c = Banco.cx();
     if (!c) return { ok: false, erro: Banco.motivo() };
+
+    const metadata = { nome, papel };
+    if (papel === 'nutricionista') {
+      metadata.cpf = CPF.mascarar(dados.cpf);
+      CAMPOS_NUTRICIONISTA.filter((k) => k !== 'cpf').forEach((k) => {
+        metadata[k] = String(dados[k] || '').trim();
+      });
+    }
 
     const { data, error } = await c.auth.signUp({
       email,
       password: senha,
-      options: { data: { nome, papel } }
+      options: { data: metadata }
     });
     if (error) return { ok: false, erro: Banco.traduzirErro(error) };
 

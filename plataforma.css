@@ -470,6 +470,7 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
 }
 
 .login-caixa { width: 100%; max-width: 420px; }
+.login-caixa-larga { max-width: 560px; }
 
 .brand-login {
   color: rgba(255, 255, 255, .2);
@@ -523,60 +524,6 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
    telas funciona sem JS de qualquer forma. */
 body.protegida { visibility: hidden; }
 body.protegida.liberada { visibility: visible; }
-
-/* ── Escolha do tipo de conta (cadastro) ──
-   Cartões clicáveis em vez de um <select>: a diferença entre as duas
-   contas muda tudo o que a pessoa vê depois, então vale ocupar espaço
-   explicando cada uma em vez de esconder atrás de uma lista. */
-
-.escolha-papel {
-  border: 0;
-  padding: 0;
-  margin: 0 0 18px;
-  display: grid;
-  gap: 10px;
-}
-
-.escolha-papel legend {
-  padding: 0;
-  margin-bottom: 10px;
-  font-size: .92rem;
-  font-weight: 600;
-  color: var(--tinta);
-  line-height: 1.45;
-}
-
-.opcao-papel {
-  display: flex;
-  gap: 11px;
-  align-items: flex-start;
-  padding: 13px 14px;
-  border: 1.5px solid var(--linha);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color .15s, background-color .15s;
-}
-.opcao-papel:hover { border-color: #bfdccf; }
-
-.opcao-papel input { margin: 2px 0 0; flex: none; accent-color: var(--verde); }
-
-.opcao-papel > span { display: block; }
-.opcao-papel strong { display: block; font-size: .92rem; color: var(--tinta); }
-.opcao-papel strong + span {
-  display: block;
-  margin-top: 3px;
-  font-size: .82rem;
-  line-height: 1.5;
-  color: var(--tinta-2);
-}
-
-/* :has() para pintar o cartão inteiro, e não só o bolinha do rádio.
-   Onde não houver suporte, a marcação do rádio ainda mostra a escolha. */
-.opcao-papel:has(input:checked) {
-  border-color: var(--verde);
-  background: var(--verde-claro);
-}
-.opcao-papel:has(input:focus-visible) { outline: 2px solid var(--verde); outline-offset: 2px; }
 
 /* ═══════════════════════════════════════════
    PACIENTES

@@ -13,18 +13,24 @@ HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 > ## ⚠️ Estado atual: protótipo, banco de dados real por baixo
 >
 > **Login, dados clínicos e vínculo já são de verdade.** Contas com e-mail e
-> senha no Supabase Auth (nutricionista ou paciente), dados em Postgres com Row
-> Level Security, e um código de convite liga a conta do paciente à ficha que o
-> nutricionista mantém dele.
+> senha no Supabase Auth, dados em Postgres com Row Level Security, e um
+> código de convite liga a conta do paciente à ficha que o nutricionista
+> mantém dele.
 >
 > Testado com contas reais, nos dois sentidos: um nutricionista não vê o
 > paciente de outro, e um paciente não vê a ficha, a evolução, nem as fichas
 > técnicas de outro paciente — mesmo tentando pelo id direto.
 >
-> **O que falta:** a landing ainda não explica os dois tipos de conta para
-> quem chega de fora (Fase 6). Até lá, use dados fictícios ao testar — é
-> prudência de quem está no meio de uma migração, não sinal de vulnerabilidade
-> conhecida.
+> **Só existe cadastro de nutricionista.** Pede CPF, CRN e endereço (CEP
+> preenche o resto sozinho). Toda conta nova nasce `status_verificacao =
+> 'pendente'` — a verificação automática de CRN e a aprovação manual ainda
+> não travam nada no login; isso é a próxima fase. Paciente não se cadastra
+> pela landing: recebe um código do próprio nutricionista.
+>
+> **O que falta:** verificação de CRN, tela de admin, gate de login por
+> status, e a landing explicando os dois públicos. Até lá, use dados
+> fictícios ao testar — é prudência de quem está no meio de uma migração,
+> não sinal de vulnerabilidade conhecida.
 >
 > Como montar o banco: [`supabase/README.md`](supabase/README.md).
 
@@ -44,16 +50,19 @@ Depois de instalado funciona **offline**.
 |---|---|
 | `index.html` | Landing pública que apresenta o produto. |
 | `login.html` | Entrada, com conta de verdade. |
-| `cadastro.html` | Criação de conta, escolhendo nutricionista ou paciente. |
+| `cadastro.html` | Criação de conta de nutricionista — nome, CPF, CRN, endereço com CEP automático. |
 | `area-paciente.html` | Área do paciente — código de vínculo, próxima consulta, gráficos de evolução, fichas/planos liberados. |
 | `pacientes.html` | Lista, busca, cadastro e edição de pacientes. |
 | `paciente.html?id=…` | Ficha do paciente e histórico de fichas técnicas. |
 | `ficha.html` | A ferramenta de cálculo. |
 
 Cada papel tem a sua área: o nutricionista cai no painel do consultório, o
-paciente na área de acompanhamento. Quem abre a área do outro é devolvido para
-a sua — `cadastro.html?papel=nutricionista` (ou `paciente`) já chega com a
-opção marcada.
+paciente na área de acompanhamento. Quem abre a área do outro é devolvido
+para a sua.
+
+`cadastro.html` só cadastra nutricionista. Paciente não cria conta pela
+landing — o nutricionista gera um código na ficha dele (aba Resumo →
+"Gerar código de convite") e passa por fora do sistema.
 
 ### Modos da ferramenta de ficha
 
@@ -198,6 +207,8 @@ calculadora/
 │   ├── supabase-config.js  URL e chave pública do projeto
 │   ├── supabase-client.js  Conexão única com o banco
 │   ├── auth.js             Contas, papéis e guarda de rota
+│   ├── cpf.js              Máscara e dígito verificador (sem consulta externa)
+│   ├── cep.js               Preenchimento de endereço pela ViaCEP
 │   ├── pacientes-storage.js ← trocar por tabela `pacientes`
 │   ├── fichas-storage.js   ← trocar por tabela `fichas_tecnicas`
 │   ├── shell.js            Cabeçalho comum e utilidades

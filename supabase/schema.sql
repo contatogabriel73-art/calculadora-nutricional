@@ -65,6 +65,36 @@ create table if not exists public.perfis (
   atualizado_em  timestamptz not null default now()
 );
 
+-- Colunas adicionadas depois da criação da tabela — `alter ... add column
+-- if not exists` em vez de colocar tudo dentro do `create table`, para o
+-- schema.sql continuar seguro de rodar de novo num banco que já tem dados.
+--
+-- Endereço estruturado (preenchido por CEP na tela de cadastro) é separado
+-- do `endereco` de texto livre acima: aquele é o que aparece no recibo,
+-- digitado à mão; este é o que a verificação de CRN usa para restringir a
+-- busca por UF na Consulta Nacional de Nutricionistas.
+alter table public.perfis add column if not exists cpf              text not null default '';
+alter table public.perfis add column if not exists cep              text not null default '';
+alter table public.perfis add column if not exists rua              text not null default '';
+alter table public.perfis add column if not exists numero           text not null default '';
+alter table public.perfis add column if not exists complemento      text not null default '';
+alter table public.perfis add column if not exists bairro           text not null default '';
+alter table public.perfis add column if not exists estado           text not null default '';
+
+-- Só tem sentido para nutricionista — ver criar_perfil_no_cadastro(). Um
+-- paciente não passa por verificação de CRN nenhuma, então a coluna fica
+-- nula para ele, e a checagem na aplicação só olha isto quando papel =
+-- 'nutricionista'.
+alter table public.perfis add column if not exists status_verificacao
+  text check (status_verificacao in ('pendente', 'verificado', 'recusado'));
+
+-- Conta criada por script de seed, fora do cadastro normal — pula a
+-- verificação de CRN de propósito. Existe para o Gabriel testar e para
+-- administrar os cadastros pendentes (papel_admin). Nunca marcada por
+-- conta própria: nenhuma tela de cadastro grava estas duas colunas.
+alter table public.perfis add column if not exists conta_teste  boolean not null default false;
+alter table public.perfis add column if not exists papel_admin boolean not null default false;
+
 drop trigger if exists trg_perfis_atualizado_em on public.perfis;
 create trigger trg_perfis_atualizado_em
   before update on public.perfis
@@ -362,6 +392,17 @@ create trigger trg_metas_atualizado_em
 -- Sem papel informado assume nutricionista: é o caminho que o site usa
 -- por padrão, e errar para esse lado só mostra um painel vazio; errar
 -- para 'paciente' trancaria a pessoa numa área sem nada e sem saída.
+--
+-- `status_verificacao` só existe de verdade para nutricionista: todo
+-- cadastro novo pelo formulário público nasce 'pendente', e só sai disso
+-- pela Fase 2 (verificação automática de CRN) ou por um admin aprovando
+-- na mão. Paciente não passa por nada disso — a coluna fica nula, e a
+-- aplicação só confere esse campo quando o papel é nutricionista.
+--
+-- cpf/crn/cep/rua/numero/complemento/bairro/estado só vêm preenchidos
+-- quando quem cadastrou foi o formulário do nutricionista; a página de
+-- código de convite (papel = paciente) não manda nenhum desses campos,
+-- e `coalesce(..., '')` cobre a ausência sem quebrar o insert.
 
 create or replace function public.criar_perfil_no_cadastro()
 returns trigger
@@ -369,16 +410,32 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  o_papel text := case
+    when coalesce(new.raw_user_meta_data ->> 'papel', '') = 'paciente' then 'paciente'
+    else 'nutricionista'
+  end;
 begin
-  insert into public.perfis (id, papel, nome, email)
+  insert into public.perfis (
+    id, papel, nome, email, cpf, crn,
+    cep, rua, numero, complemento, bairro, cidade, estado,
+    status_verificacao
+  )
   values (
     new.id,
-    case
-      when coalesce(new.raw_user_meta_data ->> 'papel', '') = 'paciente' then 'paciente'
-      else 'nutricionista'
-    end,
+    o_papel,
     coalesce(new.raw_user_meta_data ->> 'nome', ''),
-    coalesce(new.email, '')
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'cpf', ''),
+    coalesce(new.raw_user_meta_data ->> 'crn', ''),
+    coalesce(new.raw_user_meta_data ->> 'cep', ''),
+    coalesce(new.raw_user_meta_data ->> 'rua', ''),
+    coalesce(new.raw_user_meta_data ->> 'numero', ''),
+    coalesce(new.raw_user_meta_data ->> 'complemento', ''),
+    coalesce(new.raw_user_meta_data ->> 'bairro', ''),
+    coalesce(new.raw_user_meta_data ->> 'cidade', ''),
+    coalesce(new.raw_user_meta_data ->> 'estado', ''),
+    case when o_papel = 'nutricionista' then 'pendente' else null end
   )
   on conflict (id) do nothing;
   return new;
@@ -389,6 +446,60 @@ drop trigger if exists trg_criar_perfil on auth.users;
 create trigger trg_criar_perfil
   after insert on auth.users
   for each row execute function public.criar_perfil_no_cadastro();
+
+
+-- ============================================================
+--  Proteção dos campos privilegiados de `perfis`
+-- ============================================================
+-- A política de RLS abaixo (perfis_atualizar_proprio) deixa qualquer
+-- usuário atualizar a PRÓPRIA linha — é assim que o nutricionista edita
+-- nome/telefone/endereço. Mas RLS não filtra coluna, só linha: sem esta
+-- trava, nada impediria alguém de mandar um update incluindo
+-- `status_verificacao: 'verificado'` direto pelo console do navegador e
+-- se autoaprovar, pulando a verificação de CRN inteira.
+--
+-- Só quem já é admin (`papel_admin`) pode mudar estes quatro campos —
+-- é a tela de aprovação da Fase 2 que faz isso, sempre autenticada como
+-- admin. Ninguém mais, nem o próprio dono da linha.
+
+create or replace function public.proteger_campos_privilegiados()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  eh_admin boolean;
+begin
+  -- Conexão direta ao banco (SQL Editor, migração, script de manutenção)
+  -- roda como `postgres` e não tem JWT nenhum — auth.uid() vem nulo
+  -- nesse caso, não porque ninguém está autenticado, mas porque não é
+  -- uma requisição da API. PostgREST nunca assume esse papel para
+  -- pedido de cliente (usa `anon` ou `authenticated`), então checar
+  -- `session_user` aqui não abre brecha para o navegador — só libera
+  -- quem já tem acesso direto ao banco, que é mais privilégio do que
+  -- esta trava tenta conter.
+  if session_user = 'postgres' then
+    return new;
+  end if;
+
+  select papel_admin into eh_admin from public.perfis where id = auth.uid();
+
+  if not coalesce(eh_admin, false) then
+    new.status_verificacao := old.status_verificacao;
+    new.papel               := old.papel;
+    new.papel_admin         := old.papel_admin;
+    new.conta_teste         := old.conta_teste;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_protege_privilegiados on public.perfis;
+create trigger trg_protege_privilegiados
+  before update on public.perfis
+  for each row execute function public.proteger_campos_privilegiados();
 
 
 -- ============================================================

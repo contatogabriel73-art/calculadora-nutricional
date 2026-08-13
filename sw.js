@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v3.0';
+const CACHE = 'nutri-taco-v3.1';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 
@@ -79,6 +79,8 @@ const SHELL = [
   './js/area-paciente.js',
   './js/cpf.js',
   './js/cep.js',
+  './admin.html',
+  './js/admin-storage.js',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',

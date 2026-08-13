@@ -134,6 +134,37 @@ const Auth = (() => {
     return s ? s.user.id : '';
   }
 
+  /**
+   * Chama a Edge Function que tenta confirmar o CRN contra a Consulta
+   * Nacional de Nutricionistas do CFN (ver supabase/functions/verificar-crn).
+   * Melhor esforço, nunca lança: qualquer falha (rede, CFN fora do ar,
+   * nome não bate) devolve status 'pendente' em vez de erro — quem
+   * chama não precisa tratar exceção, só olhar o status devolvido.
+   *
+   * @returns {Promise<{ok: boolean, status?: string, motivo?: string, erro?: string}>}
+   */
+  async function tentarVerificarCrn() {
+    const c = Banco.cx();
+    if (!c) return { ok: false, erro: Banco.motivo() };
+
+    const s = await sessao();
+    if (!s) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    try {
+      const { data, error } = await c.functions.invoke('verificar-crn', { method: 'POST' });
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+
+      // O status pode ter mudado (pendente → verificado) — o cabeçalho
+      // e qualquer tela que já tenha lido o perfil precisam do valor novo.
+      limparCache();
+      return data;
+    } catch (e) {
+      // Falha de rede chegando até aqui (não da Edge Function em si,
+      // que já trata isso) — mesmo assim não trava: só não confirma agora.
+      return { ok: true, status: 'pendente', motivo: 'Não foi possível verificar agora.' };
+    }
+  }
+
   /* ───────────── Entrar, cadastrar, sair ───────────── */
 
   /**
@@ -310,6 +341,6 @@ const Auth = (() => {
     PAPEIS, paginaInicial,
     login, cadastrar, logout,
     estaLogado, usuarioAtual, perfilAtual, papelAtual, idAtual,
-    atualizarPerfilEmCache, exigirLogin
+    atualizarPerfilEmCache, tentarVerificarCrn, exigirLogin
   };
 })();

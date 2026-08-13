@@ -1887,6 +1887,21 @@ body.protegida.liberada { visibility: visible; }
 }
 .lista-simples li:last-child { border-bottom: 0; }
 
+/* ── Aprovação de cadastro (admin) ── */
+
+.item-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item-admin-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item-admin-info strong { font-size: .94rem; color: var(--tinta); }
+
+.item-admin-acoes { display: flex; gap: 8px; flex: none; }
+
 /* ── Área do paciente ── */
 
 .dica-nutricionista { margin: -6px 0 18px; font-size: .88rem; }

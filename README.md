@@ -22,15 +22,21 @@ HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 > técnicas de outro paciente — mesmo tentando pelo id direto.
 >
 > **Só existe cadastro de nutricionista.** Pede CPF, CRN e endereço (CEP
-> preenche o resto sozinho). Toda conta nova nasce `status_verificacao =
-> 'pendente'` — a verificação automática de CRN e a aprovação manual ainda
-> não travam nada no login; isso é a próxima fase. Paciente não se cadastra
-> pela landing: recebe um código do próprio nutricionista.
+> preenche o resto sozinho). Paciente não se cadastra pela landing: recebe
+> um código do próprio nutricionista.
 >
-> **O que falta:** verificação de CRN, tela de admin, gate de login por
-> status, e a landing explicando os dois públicos. Até lá, use dados
-> fictícios ao testar — é prudência de quem está no meio de uma migração,
-> não sinal de vulnerabilidade conhecida.
+> **A verificação de CRN já roda de verdade.** Uma Edge Function consulta a
+> Consulta Nacional de Nutricionistas do CFN e confirma sozinha quando o
+> registro existe, está ativo e o nome bate. Quando não consegue confirmar
+> — CRN não encontrado, nome diferente, registro inativo, ou o CFN fora do
+> ar — o cadastro fica `pendente` para um admin aprovar ou recusar na tela
+> [`admin.html`](admin.html).
+>
+> **O que falta:** ligar essa verificação e esse gate ao momento do login
+> (hoje quem chama a função é só o próprio código, ainda não o fluxo de
+> entrar no site), e a landing explicando os dois públicos. Até lá, use
+> dados fictícios ao testar — é prudência de quem está no meio de uma
+> migração, não sinal de vulnerabilidade conhecida.
 >
 > Como montar o banco: [`supabase/README.md`](supabase/README.md).
 
@@ -195,7 +201,8 @@ npx serve .
 calculadora/
 ├── index.html              Landing pública
 ├── login.html              Entrada (conta de verdade)
-├── cadastro.html           Criar conta, escolhendo o papel
+├── cadastro.html           Criar conta de nutricionista (CPF, CRN, CEP)
+├── admin.html              Aprovar/recusar cadastro (só para papel_admin)
 ├── area-paciente.html      Área do paciente (só leitura)
 ├── pacientes.html          Lista e cadastro de pacientes
 ├── paciente.html           Detalhe do paciente + histórico de fichas
@@ -208,13 +215,16 @@ calculadora/
 │   ├── supabase-client.js  Conexão única com o banco
 │   ├── auth.js             Contas, papéis e guarda de rota
 │   ├── cpf.js              Máscara e dígito verificador (sem consulta externa)
-│   ├── cep.js               Preenchimento de endereço pela ViaCEP
+│   ├── cep.js              Preenchimento de endereço pela ViaCEP
+│   ├── admin-storage.js    Listar/aprovar/recusar cadastro pendente
 │   ├── pacientes-storage.js ← trocar por tabela `pacientes`
 │   ├── fichas-storage.js   ← trocar por tabela `fichas_tecnicas`
 │   ├── shell.js            Cabeçalho comum e utilidades
 │   └── ficha-paciente.js   Vínculo ficha ↔ paciente
 ├── supabase/
 │   ├── schema.sql          Tabelas, gatilhos e Row Level Security
+│   ├── functions/
+│   │   └── verificar-crn/index.ts   Edge Function — confirma CRN no CFN
 │   └── README.md           Como montar o banco
 ├── manifest.json           Manifesto do PWA
 ├── sw.js                   Service worker (offline)

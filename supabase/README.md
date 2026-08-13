@@ -2,9 +2,11 @@
 
 > **Status:** já feito no projeto `CALCULADORA1`
 > (`wxezmcabuuiwixsvkwum`) — as 9 tabelas estão criadas, a RLS está barrando
-> acesso anônimo, e a função de vínculo por código de convite (`resgatar_convite`)
-> está no ar e testada. Este guia fica para quem for montar outro ambiente, ou
-> para repetir se algo se perder.
+> acesso anônimo, a função de vínculo por código de convite (`resgatar_convite`)
+> está no ar e testada, e a Edge Function de verificação de CRN
+> (`verificar-crn`) está publicada e testada nos quatro caminhos possíveis.
+> Este guia fica para quem for montar outro ambiente, ou para repetir se
+> algo se perder.
 
 Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez só.
 
@@ -110,6 +112,33 @@ esperado, não bug: com confirmação ligada, use um e-mail que exista de
 verdade (ou um alias `+algumacoisa@` do seu próprio e-mail) para testar
 cadastro pela tela.
 
+## 6. Publicar a Edge Function de verificação de CRN
+
+O código fica em [`functions/verificar-crn/index.ts`](functions/verificar-crn/index.ts).
+Não precisa da Supabase CLI: o painel tem um editor que publica direto do
+navegador.
+
+1. No painel: **Edge Functions → Deploy a new function → Via Editor**.
+2. Cole o conteúdo de `functions/verificar-crn/index.ts`.
+3. Nome da função: `verificar-crn` (o código depende desse nome — é o que
+   `js/auth.js` chama em `Auth.tentarVerificarCrn()`).
+4. **Deploy**. A URL fica em
+   `https://<projeto>.supabase.co/functions/v1/verificar-crn`.
+5. Deixe **"Verify JWT"** ligado (padrão) — a função exige um token de
+   sessão válido; sem isso, qualquer um poderia chamar em nome de qualquer
+   conta.
+
+Nenhum segredo extra para configurar: a função lê `SUPABASE_URL` e
+`SUPABASE_SERVICE_ROLE_KEY` do ambiente, que o Supabase já injeta sozinho em
+toda Edge Function do projeto.
+
+⚠️ **Cuidado com a tradução automática do Chrome neste editor também** —
+mesmo problema do SQL Editor (ver seção 2). Depois de colar o código,
+confira o conteúdo real do editor antes de publicar: a tela pode mostrar
+texto traduzido (`deixe` no lugar de `let`, `tentar` no lugar de `try`), mas
+isso é só exibição — o que é salvo é o conteúdo real, não o que apareceu
+traduzido na tela. Ainda assim, desligar a tradução evita a confusão.
+
 ---
 
 ## Cadastro de nutricionista: CPF, CRN e verificação
@@ -192,6 +221,70 @@ Testado com duas contas de paciente reais: cada uma só vê a evolução, as
 consultas e as fichas/planos liberados da própria ficha — inclusive tentando
 acessar pelo id da ficha do outro paciente diretamente, não só pela tela.
 
+### Verificação de CRN (Edge Function `verificar-crn`)
+
+Consulta a **Consulta Nacional de Nutricionistas** do CFN
+(`https://cnn.cfn.org.br/application/index/consulta-nacional`) — não é uma
+API documentada, é uma tela pública que devolve JSON. Descoberta investigando
+o tráfego de rede da própria página: o endpoint real é
+
+```
+POST https://cnn.cfn.org.br/application/front-resource/get
+{ "comando": "get-nutricionista", "options": { "crn": "3", "registro": "62048", "geral": true } }
+```
+
+`crn` é a região do conselho (1 a 11 — o Brasil é dividido em 11 CRNs
+regionais, não um por estado), `registro` é o número de inscrição (às vezes
+com letra ou barra junto, tipo `"3788D"` ou `"0598/P"`). CORS está aberto
+(`Access-Control-Allow-Origin: *`), então a chamada funciona de servidor —
+testado direto por `curl`, sem navegador, sem cookie, sem passar por nenhum
+desafio do Cloudflare que protege o resto do site.
+
+**Por que é uma Edge Function, e não uma chamada direta do navegador:**
+mesmo com CORS aberto, a decisão de marcar `verificado` precisa ser tomada
+num lugar que o cliente não controla — senão bastaria pular a checagem e
+mandar o `update` direto. A função usa a chave de serviço para gravar (é o
+que o bypass `auth.role() = 'service_role'` no trigger
+`proteger_campos_privilegiados` libera), e só verifica o CRN e o nome que já
+estão no perfil de quem chamou — nunca o que vier no corpo da requisição.
+
+**Critério de aprovação automática**, todos precisam bater:
+
+1. Região + número de registro batem com um registro real.
+2. `situacao` do registro é exatamente `"ATIVO"` — transferido, cancelado,
+   baixa temporária ou provisório vencido caem para revisão manual mesmo
+   com nome idêntico. Um registro que existiu não significa que ainda vale.
+3. O nome do registro bate com o nome do cadastro, tolerando acento, caixa,
+   espaço e nome do meio faltando/fora de ordem (mas não nomes diferentes).
+
+Qualquer coisa fora disso — não achou, CFN fora do ar, resposta em formato
+inesperado, CRN digitado de um jeito que não dá para interpretar — cai para
+`'pendente'` sem lançar erro. Testado nos quatro caminhos, contra o CFN de
+verdade: não encontrado, encontrado com nome divergente, encontrado com
+situação inativa (nome batendo), e o caminho de sucesso completo (achou,
+ativo, nome bate, gravou `verificado` no banco).
+
+Chame pelo `Auth.tentarVerificarCrn()` do `js/auth.js` — hoje nada no site
+chama isso automaticamente ainda; é o gate de login da Fase 3 que vai
+disparar a tentativa assim que detectar `status_verificacao = 'pendente'`.
+
+### Aprovação manual (`admin.html`)
+
+Só visível — e só funcional — para quem tem `papel_admin = true` na própria
+linha de `perfis`. Duas políticas de RLS fazem o trabalho de verdade
+(`perfis_admin_le_tudo`, `perfis_admin_atualiza`); a página também confere
+antes de desenhar qualquer coisa, mas isso é cortesia de UX, não a proteção.
+
+⚠️ **Armadilha própria, corrigida:** a primeira versão dessas políticas usava
+`exists (select 1 from public.perfis ...)` direto dentro da política de
+`perfis` — e caiu em **"infinite recursion detected in policy for relation
+perfis"**, porque avaliar a política reabre as políticas de SELECT de
+`perfis`, incluindo ela mesma, de novo. Ficou consertado com uma função
+`security definer` (`public.eh_admin()`), que confere `papel_admin` por fora
+da RLS em vez de reabrir a política. Se um dia for escrever outra política
+que precisa checar um campo da própria tabela, é esse o padrão — nunca um
+`exists` direto na mesma tabela da política.
+
 ### Armadilha: update bloqueado responde como sucesso
 
 Testado no banco: um nutricionista tentando alterar o paciente de outro recebe
@@ -210,16 +303,22 @@ Criadas para validar o schema, sem nenhum dado real:
 | e-mail | senha | papel |
 |---|---|---|
 | `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado |
-| `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado |
+| `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado, **admin de teste** (`papel_admin = true`) |
+| `joana.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado (aprovado pela tela admin.html, testando o botão de verdade) |
 | `joana.nutri3@nutrificha.test` | `senha-de-teste-123` | nutricionista, **pendente** — cadastro completo (CPF/CRN/CEP) feito pela tela de verdade |
 | `teste.paciente@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Maria Teste Editada" |
 | `teste.paciente2@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Paciente de Teste" |
 
 `teste.nutri` e `teste.nutri2` foram criadas antes da coluna
-`status_verificacao` existir; recebi um `update status_verificacao =
+`status_verificacao` existir; receberam um `update status_verificacao =
 'verificado'` manual (via SQL Editor) para não ficarem travadas quando o
 gate de login da Fase 3 entrar no ar. `joana.nutri3` fica pendente de
-propósito — é a conta para testar a tela de "cadastro em análise".
+propósito — é a conta para testar a tela de "cadastro em análise" (Fase 3) e
+o card de pendente em `admin.html`.
+
+`teste.nutri2` foi marcada `papel_admin = true` só para testar a tela
+`admin.html` nesta fase. **A conta de admin de verdade, com o e-mail real do
+Gabriel, é a Fase 4** — não confundir as duas.
 
 As duas contas de paciente foram criadas numa janela em que **Confirm email**
 estava temporariamente desligado — precisou ser assim porque o domínio de

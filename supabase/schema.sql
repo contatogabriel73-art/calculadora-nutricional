@@ -483,6 +483,18 @@ begin
     return new;
   end if;
 
+  -- A Edge Function de verificação de CRN (Fase 2) conecta com a chave
+  -- service_role — é o único jeito de ela gravar 'verificado' depois de
+  -- confirmar o registro no CFN. `auth.role()` lê o papel de dentro do
+  -- JWT que a própria Supabase valida antes de deixar a requisição
+  -- chegar aqui; só quem tem a chave secreta (guardada só no servidor
+  -- da função, nunca no navegador) consegue montar um JWT com esse
+  -- papel. Não é a mesma coisa que um usuário comum marcar a si mesmo
+  -- como service_role — isso é impossível sem a chave.
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+
   select papel_admin into eh_admin from public.perfis where id = auth.uid();
 
   if not coalesce(eh_admin, false) then
@@ -644,6 +656,45 @@ create policy perfis_paciente_ve_nutricionista on public.perfis
         and p.usuario_id = auth.uid()
     )
   );
+
+-- Admin vê e aprova/recusa cadastro de qualquer um — é a tela da Fase 2
+-- (lista de pendentes) precisando enxergar linha que não é a própria.
+--
+-- ⚠️ Isto NÃO pode ser um `exists (select 1 from public.perfis ...)`
+-- direto dentro da própria política de `perfis`: já tentei e caiu em
+-- "infinite recursion detected in policy for relation perfis" — para
+-- avaliar a política, o Postgres reavalia as políticas de SELECT de
+-- `perfis` de novo dentro da subconsulta, incluindo esta mesma política,
+-- ad infinitum. A saída padrão é checar por uma função `security
+-- definer`, que roda com privilégio do dono (bypassa RLS só nessa
+-- consulta pontual) em vez de reabrir a política.
+create or replace function public.eh_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce(
+    (select papel_admin from public.perfis where id = auth.uid()),
+    false
+  );
+$$;
+
+drop policy if exists perfis_admin_le_tudo on public.perfis;
+create policy perfis_admin_le_tudo on public.perfis
+  for select using (public.eh_admin());
+
+-- A trava de coluna (proteger_campos_privilegiados) já libera admin
+-- para mudar status_verificacao — mas ela só entra em ação depois que a
+-- linha, como um todo, passar pela política de UPDATE. Sem esta, um
+-- admin não passava nem da porta: a política antiga só deixava cada um
+-- editar a própria linha.
+drop policy if exists perfis_admin_atualiza on public.perfis;
+create policy perfis_admin_atualiza on public.perfis
+  for update
+  using (public.eh_admin())
+  with check (public.eh_admin());
 
 
 -- ───────────── pacientes ─────────────

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aprovações — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="protegida">
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo">
+
+  <div id="sem-acesso" class="card" hidden>
+    <p class="empty">Esta área é restrita a administradores.</p>
+  </div>
+
+  <div id="conteudo-admin" hidden>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Cadastros pendentes <span id="contador-pendentes" class="badge">0</span></h2>
+      </div>
+      <p class="dica">
+        A verificação automática de CRN roda no login do próprio nutricionista.
+        O que chega aqui é o que ela não conseguiu confirmar sozinha — CRN não
+        encontrado, nome que não bateu, ou registro que não está ativo.
+      </p>
+
+      <ul id="lista-pendentes" class="lista-simples lista-admin"></ul>
+      <p id="sem-pendentes" class="empty" hidden>Nenhum cadastro esperando revisão no momento.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Revisados recentemente</h2>
+      </div>
+      <ul id="lista-revisados" class="lista-simples lista-admin"></ul>
+      <p id="sem-revisados" class="empty" hidden>Nenhum cadastro revisado ainda.</p>
+    </div>
+
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/admin-storage.js"></script>
+<script src="js/shell.js"></script>
+<script>
+(async () => {
+  'use strict';
+
+  if (!(await Auth.exigirLogin('nutricionista'))) return;
+
+  const usuario = await Auth.usuarioAtual();
+  if (!usuario.perfil || !usuario.perfil.papel_admin) {
+    await Shell.montarCabecalho('');
+    document.querySelector('#sem-acesso').hidden = false;
+    return;
+  }
+
+  await Shell.montarCabecalho('admin');
+  document.querySelector('#conteudo-admin').hidden = false;
+
+  const $ = (s) => document.querySelector(s);
+  const esc = Shell.escapar;
+
+  const ROTULO_STATUS = { verificado: 'Aprovado', recusado: 'Recusado' };
+  const TAG_STATUS = { verificado: 'tag-ok', recusado: 'tag-alto' };
+
+  function linhaPendente(p) {
+    return `
+      <li class="item-admin" data-id="${p.id}">
+        <div class="item-admin-info">
+          <strong>${esc(p.nome) || '(sem nome)'}</strong>
+          <span class="dica">${esc(p.email)}</span>
+          <span class="dica">
+            CRN: ${esc(p.crn) || '—'} · ${esc(p.cidade)}${p.cidade && p.estado ? '/' : ''}${esc(p.estado)}
+            · cadastrado em ${esc(Shell.formatarDataHora(p.criadoEm))}
+          </span>
+        </div>
+        <div class="item-admin-acoes">
+          <button class="btn btn-ghost btn-sm" type="button" data-recusar="${p.id}">Recusar</button>
+          <button class="btn btn-primary btn-sm" type="button" data-aprovar="${p.id}">Aprovar</button>
+        </div>
+      </li>`;
+  }
+
+  function linhaRevisada(p) {
+    const tag = TAG_STATUS[p.statusVerificacao] || 'tag-baixo';
+    const rotulo = ROTULO_STATUS[p.statusVerificacao] || p.statusVerificacao;
+    return `
+      <li class="item-admin">
+        <div class="item-admin-info">
+          <strong>${esc(p.nome) || '(sem nome)'}</strong>
+          <span class="dica">${esc(p.email)} · CRN: ${esc(p.crn) || '—'}</span>
+        </div>
+        <span class="tag ${tag}">${esc(rotulo)}</span>
+      </li>`;
+  }
+
+  async function desenharPendentes() {
+    const pendentes = await AdminStore.listarPendentes();
+    $('#contador-pendentes').textContent = pendentes.length;
+    $('#sem-pendentes').hidden = pendentes.length > 0;
+    $('#lista-pendentes').innerHTML = pendentes.map(linhaPendente).join('');
+  }
+
+  async function desenharRevisados() {
+    const revisados = await AdminStore.listarRevisados();
+    $('#sem-revisados').hidden = revisados.length > 0;
+    $('#lista-revisados').innerHTML = revisados.map(linhaRevisada).join('');
+  }
+
+  $('#lista-pendentes').addEventListener('click', async (ev) => {
+    const btnAprovar = ev.target.closest('[data-aprovar]');
+    const btnRecusar = ev.target.closest('[data-recusar]');
+    if (!btnAprovar && !btnRecusar) return;
+
+    const botao = btnAprovar || btnRecusar;
+    const id = botao.dataset.aprovar || botao.dataset.recusar;
+    botao.closest('.item-admin-acoes').querySelectorAll('button').forEach((b) => { b.disabled = true; });
+
+    const resultado = btnAprovar ? await AdminStore.aprovar(id) : await AdminStore.recusar(id);
+
+    if (!resultado.ok) {
+      Shell.toast(resultado.erro);
+      botao.closest('.item-admin-acoes').querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      return;
+    }
+
+    Shell.toast(btnAprovar ? 'Cadastro aprovado.' : 'Cadastro recusado.');
+    await desenharPendentes();
+    await desenharRevisados();
+  });
+
+  await desenharPendentes();
+  await desenharRevisados();
+})();
+</script>
+</body>
+</html>

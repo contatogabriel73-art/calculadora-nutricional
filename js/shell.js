@@ -123,11 +123,18 @@ const Shell = (() => {
     const usuario = await Auth.usuarioAtual();
     const nav = NAVEGACAO[usuario && usuario.papel] || NAVEGACAO.nutricionista;
 
+    // Só quem tem papel_admin vê a aba — a página em si também se
+    // protege sozinha (ver admin.html), esta linha é só não oferecer um
+    // link que a maioria das contas não pode usar.
+    const abasComAdmin = (usuario && usuario.perfil && usuario.perfil.papel_admin)
+      ? [...nav.abas, { id: 'admin', href: 'admin.html', rotulo: 'Aprovações' }]
+      : nav.abas;
+
     /* Uma aba só não é navegação, é enfeite: o paciente ganha o cabeçalho
        sem a barra de abas até a área dele ter mais de uma seção. */
-    const abas = nav.abas.length > 1 ? `
+    const abas = abasComAdmin.length > 1 ? `
       <nav class="abas wrap" aria-label="Seções do sistema">
-        ${nav.abas.map((a) => `
+        ${abasComAdmin.map((a) => `
           <a class="aba" href="${a.href}" ${ativo === a.id ? 'aria-current="page"' : ''}>${a.rotulo}</a>
         `).join('')}
       </nav>` : '';

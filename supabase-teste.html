@@ -104,18 +104,25 @@
     const temChave = !!String(cfg.anonKey || '').trim();
     const temLib = !!(window.supabase && window.supabase.createClient);
 
-    // A service_role começa igual à anon mas tem "service_role" no
-    // corpo do token. Se ela estiver aqui, o site inteiro ignora RLS.
-    const chaveSuspeita = temChave && /service_role/.test(
-      (() => { try { return atob(String(cfg.anonKey).split('.')[1] || ''); } catch (e) { return ''; } })()
-    );
+    /* Chave secreta no lugar da pública faz o site inteiro ignorar RLS.
+       Dois formatos para pegar: o novo (`sb_secret_...`, reconhecível
+       pelo prefixo) e o antigo (JWT, que traz "service_role" no corpo
+       codificado em base64). */
+    const chave = String(cfg.anonKey || '').trim();
+    const corpoJwt = (() => {
+      try { return atob(chave.split('.')[1] || ''); } catch (e) { return ''; }
+    })();
+    const chaveSuspeita = temChave &&
+      (/^sb_secret_/.test(chave) || /service_role/.test(corpoJwt));
 
     elConf.innerHTML =
       linha('URL do projeto', temUrl, temUrl ? 'preenchida' : 'faltando') +
-      linha('Chave anônima', temChave && !chaveSuspeita,
+      linha('Chave pública', temChave && !chaveSuspeita,
         !temChave ? 'faltando'
-          : chaveSuspeita ? '⚠️ isto é a service_role — troque pela anon AGORA'
-          : 'preenchida') +
+          : chaveSuspeita ? '⚠️ isto é a chave SECRETA — troque pela publishable AGORA'
+          : /^sb_publishable_/.test(chave) ? 'publishable (formato novo)'
+          : /^eyJ/.test(chave) ? 'anon (formato antigo)'
+          : 'preenchida, mas o formato não é conhecido') +
       linha('Biblioteca do CDN', temLib, temLib ? 'carregada' : 'não carregou');
 
     if (!temUrl || !temChave) {

@@ -1,5 +1,10 @@
 # Banco de dados (Supabase)
 
+> **Status:** já feito no projeto `CALCULADORA1`
+> (`wxezmcabuuiwixsvkwum`) — as 9 tabelas estão criadas e a RLS está barrando
+> acesso anônimo. Este guia fica para quem for montar outro ambiente, ou para
+> repetir se algo se perder.
+
 Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez só.
 
 ## 1. Criar o projeto
@@ -34,6 +39,18 @@ Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez s
 
 O arquivo pode ser rodado de novo quantas vezes precisar: ele não duplica tabela
 nem apaga dado.
+
+Duas coisas que atrapalham nessa tela:
+
+- **Desligue a tradução automática do Chrome** antes de usar o SQL Editor. Com a
+  página traduzida, o painel quebra com um erro de tela branca
+  (`Failed to execute 'removeChild' on 'Node'`) — o próprio Supabase avisa
+  disso. A consulta chega a rodar, mas você não vê o resultado. Clique com o
+  botão direito na página → **Mostrar sempre em inglês**.
+- O painel avisa **"esta consulta inclui operações destrutivas"**. É por causa
+  dos `drop trigger if exists` e `drop policy if exists`, que existem para o
+  arquivo poder rodar de novo. Eles só removem objetos que o próprio arquivo
+  recria em seguida — nenhuma tabela e nenhum dado.
 
 ## 3. Ligar o site ao projeto
 

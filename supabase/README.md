@@ -77,15 +77,19 @@ Depois acesse `http://localhost:8080/supabase-teste.html`. Os três blocos preci
 passar: configuração preenchida, as 9 tabelas respondendo, e — sem estar logado —
 nenhuma tabela devolvendo dados.
 
-## 5. E-mail de confirmação (na Fase 2)
+## 5. E-mail de confirmação
 
 Por padrão o Supabase exige confirmação de e-mail no cadastro, e o serviço de
 e-mail embutido tem limite baixo (poucas mensagens por hora), o que atrapalha
 enquanto se testa.
 
-Em **Authentication → Providers → Email**, durante o desenvolvimento, dá para
-desligar **Confirm email**. Antes de usar com paciente de verdade, **ligue de
-novo**: sem confirmação, qualquer pessoa cria conta com o e-mail de outra.
+**No projeto `CALCULADORA1` isto já está desligado**, em
+**Authentication → Sign In / Providers → Confirm email**.
+
+🔴 **Religar antes de qualquer paciente real usar o sistema.** Sem confirmação,
+qualquer pessoa cria conta com o e-mail de outra — e aqui a conta dá acesso a
+prontuário. É a última coisa a fazer antes de sair do protótipo, junto com o
+aviso da landing.
 
 ---
 
@@ -113,3 +117,27 @@ política filtra pelo `usuario_id` da ficha, não pelo nutricionista.
 A ficha do paciente existe sem conta nenhuma (`usuario_id` nulo). Isso é
 proposital — nem todo paciente vai querer login, e o nutricionista precisa
 continuar trabalhando normalmente com esses.
+
+### Armadilha: update bloqueado responde como sucesso
+
+Testado no banco: um nutricionista tentando alterar o paciente de outro recebe
+**HTTP 204**, e nada muda. A RLS não rejeita o `update` — ela filtra a linha
+antes, então a operação "dá certo" tendo alterado zero linhas.
+
+Isso importa na camada de storage: `salvarPaciente()` não pode considerar
+sucesso só porque não veio erro. Use `.select()` no fim do `update`/`upsert` e
+confira que voltou linha — sem isso, a tela mostra "salvo" para uma alteração
+que o banco descartou.
+
+### Contas de teste que existem no projeto
+
+Criadas para validar o schema, sem nenhum dado real:
+
+| e-mail | senha | papel |
+|---|---|---|
+| `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista |
+| `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista |
+
+A primeira tem um paciente chamado "Paciente de Teste". Para apagar:
+**Authentication → Users**. Apagar a conta leva junto os pacientes dela, por
+causa do `on delete cascade`.

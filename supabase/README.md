@@ -264,9 +264,34 @@ verdade: não encontrado, encontrado com nome divergente, encontrado com
 situação inativa (nome batendo), e o caminho de sucesso completo (achou,
 ativo, nome bate, gravou `verificado` no banco).
 
-Chame pelo `Auth.tentarVerificarCrn()` do `js/auth.js` — hoje nada no site
-chama isso automaticamente ainda; é o gate de login da Fase 3 que vai
-disparar a tentativa assim que detectar `status_verificacao = 'pendente'`.
+Chamada pelo `Auth.tentarVerificarCrn()` do `js/auth.js`.
+
+⚠️ **Isso não pode esperar uma fase separada** — na primeira versão, a
+função ficou pronta e testada, mas nada no site a chamava: uma conta com
+CRN válido continuava presa em "pendente" para sempre, e pior, nada
+impedia ela de entrar no painel completo mesmo assim, porque o gate de
+acesso também não existia ainda. Corrigido no mesmo dia: `Auth.login()` e
+`Auth.cadastrar()` agora chamam `tentarVerificarCrn()` automaticamente
+sempre que a conta é de nutricionista e está `'pendente'` — quem digitou um
+CRN que bate nunca chega a ver tela de espera nenhuma, a verificação roda
+por trás antes do redirecionamento.
+
+### O gate de acesso (`cadastro-em-analise.html`)
+
+`Auth.exigirLogin()` (usado por toda tela interna) barra qualquer
+nutricionista com `status_verificacao` diferente de `'verificado'`,
+mandando para `cadastro-em-analise.html` em vez da tela pedida — não
+importa se a pessoa chegou ali pelo login ou por link direto. A própria
+tela de análise pede `exigirLogin('nutricionista', { pularGateStatus: true
+})`, a única exceção, para não redirecionar para si mesma.
+
+Testado nos cinco casos: pendente com CRN que não bate (mostra a tela de
+espera, com botão "Verificar novamente"), acesso direto a `painel.html`
+enquanto pendente (barrado, volta para a análise), pendente com CRN real e
+ativo (login já cai direto no painel, sem passar pela análise), recusado
+(mostra aviso diferente, sem botão de tentar de novo, com o e-mail de
+contato) e paciente (não afetado — o gate só olha para papel
+`'nutricionista'`).
 
 ### Aprovação manual (`admin.html`)
 
@@ -304,17 +329,17 @@ Criadas para validar o schema, sem nenhum dado real:
 |---|---|---|
 | `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado |
 | `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado, **admin de teste** (`papel_admin = true`) |
-| `joana.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, verificado (aprovado pela tela admin.html, testando o botão de verdade) |
-| `joana.nutri3@nutrificha.test` | `senha-de-teste-123` | nutricionista, **pendente** — cadastro completo (CPF/CRN/CEP) feito pela tela de verdade |
+| `joana.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista, **recusado** — testando a tela de recusa |
+| `joana.nutri3@nutrificha.test` | `senha-de-teste-123` | nutricionista, **verificado automaticamente** — CRN real (CRN-3 62048, situação ATIVO) confirmado sozinho no login |
 | `teste.paciente@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Maria Teste Editada" |
 | `teste.paciente2@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Paciente de Teste" |
 
 `teste.nutri` e `teste.nutri2` foram criadas antes da coluna
 `status_verificacao` existir; receberam um `update status_verificacao =
-'verificado'` manual (via SQL Editor) para não ficarem travadas quando o
-gate de login da Fase 3 entrar no ar. `joana.nutri3` fica pendente de
-propósito — é a conta para testar a tela de "cadastro em análise" (Fase 3) e
-o card de pendente em `admin.html`.
+'verificado'` manual (via SQL Editor) para não ficarem travadas pelo gate
+de login. `joana.nutri2` e `joana.nutri3` foram usadas para testar os
+cinco caminhos do gate — os status acima são o resultado desses testes,
+não o estado "de fábrica" de nenhuma delas.
 
 `teste.nutri2` foi marcada `papel_admin = true` só para testar a tela
 `admin.html` nesta fase. **A conta de admin de verdade, com o e-mail real do

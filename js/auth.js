@@ -34,6 +34,11 @@ const Auth = (() => {
     paciente: 'area-paciente.html'
   };
 
+  /* Nutricionista sem status_verificacao = 'verificado' não entra no
+     painel — vai para cá, verificado ou não pela Fase 2 (CRN batendo
+     sozinho) ou por um admin aprovando na mão. */
+  const PAGINA_ANALISE = 'cadastro-em-analise.html';
+
   /* O perfil é lido do banco uma vez por carregamento de página. Sem
      isto, `montarCabecalho` e o guarda de rota fariam a mesma consulta
      duas vezes, um atrás do outro, antes de qualquer pixel aparecer. */
@@ -58,6 +63,20 @@ const Auth = (() => {
 
   function paginaInicial(papel) {
     return INICIO[papel] || INICIO.nutricionista;
+  }
+
+  /**
+   * Para onde mandar alguém logo depois de entrar (ou de cadastrar),
+   * considerando não só o papel mas — para nutricionista — se a conta já
+   * está liberada. Sem isto, `paginaInicial()` sozinha mandaria todo
+   * nutricionista pendente direto para o painel completo.
+   */
+  function destinoParaPerfil(perfil) {
+    if (!perfil) return 'login.html';
+    if (perfil.papel === 'nutricionista' && perfil.status_verificacao !== 'verificado') {
+      return PAGINA_ANALISE;
+    }
+    return paginaInicial(perfil.papel);
   }
 
   /* ───────────── Sessão ───────────── */
@@ -188,7 +207,7 @@ const Auth = (() => {
     if (error) return { ok: false, erro: Banco.traduzirErro(error) };
 
     limparCache();
-    const usuario = await usuarioAtual();
+    let usuario = await usuarioAtual();
 
     /* Conta sem perfil não deveria existir: o gatilho do banco cria a
        linha na mesma transação do cadastro. Se acontecer, é melhor
@@ -203,7 +222,16 @@ const Auth = (() => {
       };
     }
 
-    return { ok: true, usuario, destino: paginaInicial(usuario.papel) };
+    /* Nutricionista pendente tenta se confirmar sozinho a cada login —
+       assim quem tem CRN válido nunca chega a ver a tela de análise: a
+       verificação já rodou por trás antes do redirecionamento. */
+    if (usuario.papel === 'nutricionista' && usuario.perfil &&
+        usuario.perfil.status_verificacao === 'pendente') {
+      await tentarVerificarCrn();
+      usuario = await usuarioAtual();
+    }
+
+    return { ok: true, usuario, destino: destinoParaPerfil(usuario.perfil) };
   }
 
   /* Campos de endereço/documento que só o cadastro de nutricionista
@@ -273,7 +301,14 @@ const Auth = (() => {
       return { ok: true, precisaConfirmar: true, email };
     }
 
-    return { ok: true, destino: paginaInicial(papel) };
+    // Sem "Confirm email" no projeto, o cadastro já devolve sessão —
+    // mesma tentativa de autoverificação do login, para quem digitou um
+    // CRN válido não precisar sair e entrar de novo para ver o painel.
+    if (papel === 'nutricionista') {
+      await tentarVerificarCrn();
+    }
+
+    return { ok: true, destino: destinoParaPerfil(await perfilAtual()) };
   }
 
   async function logout() {
@@ -294,9 +329,12 @@ const Auth = (() => {
    * explicitamente.
    *
    * @param {string} papelExigido 'nutricionista' | 'paciente' | '' (qualquer)
+   * @param {object} [opcoes] { pularGateStatus?: boolean } — só a própria
+   *   tela de análise usa isto, para não cair num loop se redirecionando
+   *   para si mesma.
    * @returns {Promise<boolean>} false quando redirecionou
    */
-  async function exigirLogin(papelExigido = 'nutricionista') {
+  async function exigirLogin(papelExigido = 'nutricionista', opcoes = {}) {
     /* As telas internas nascem invisíveis (body.protegida no CSS) para
        não piscarem antes desta decisão. Revelar é responsabilidade de
        quem libera — todo caminho que devolve `true`, e a tela de erro
@@ -321,14 +359,25 @@ const Auth = (() => {
     }
 
     if (papelExigido) {
-      const papel = await papelAtual();
-      if (papel && papel !== papelExigido) {
-        location.replace(paginaInicial(papel));
-        return false;
-      }
+      const perfil = await perfilAtual();
+      const papel = perfil ? perfil.papel : '';
+
       if (!papel) {
         await logout();
         location.replace('login.html');
+        return false;
+      }
+      if (papel !== papelExigido) {
+        location.replace(destinoParaPerfil(perfil));
+        return false;
+      }
+
+      /* Nutricionista pendente ou recusado não abre as telas internas do
+         consultório — a única exceção é a própria tela de análise, que
+         chama com pularGateStatus para não redirecionar para si mesma. */
+      if (!opcoes.pularGateStatus && papel === 'nutricionista' &&
+          perfil.status_verificacao !== 'verificado') {
+        location.replace(PAGINA_ANALISE);
         return false;
       }
     }
@@ -338,7 +387,7 @@ const Auth = (() => {
   }
 
   return {
-    PAPEIS, paginaInicial,
+    PAPEIS, paginaInicial, destinoParaPerfil,
     login, cadastrar, logout,
     estaLogado, usuarioAtual, perfilAtual, papelAtual, idAtual,
     atualizarPerfilEmCache, tentarVerificarCrn, exigirLogin

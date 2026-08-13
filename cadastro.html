@@ -305,7 +305,7 @@
     }
     // Já entrou? Não faz sentido oferecer cadastro.
     if (await Auth.estaLogado()) {
-      location.replace(Auth.paginaInicial(await Auth.papelAtual()));
+      location.replace(Auth.destinoParaPerfil(await Auth.perfilAtual()));
     }
   })();
 })();

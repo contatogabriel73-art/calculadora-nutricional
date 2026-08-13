@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cadastro em análise — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="pagina-login protegida">
+
+<main class="login-caixa">
+  <a class="brand brand-login" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <rect width="48" height="48" rx="12" fill="currentColor"/>
+      <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>NutriFicha</h1>
+      <p class="brand-sub">Plataforma para nutricionistas</p>
+    </div>
+  </a>
+
+  <div class="card card-login">
+
+    <div id="bloco-pendente" hidden>
+      <h2 class="card-title">Seu cadastro está em análise</h2>
+      <p class="dica">
+        Confirmamos automaticamente a maioria dos CRNs na hora. O seu ainda
+        não bateu sozinho — pode ser o CRN digitado, o nome ou uma
+        instabilidade momentânea na consulta ao Conselho Federal de Nutrição.
+        Isso não significa que algo está errado; só que precisa de mais uma
+        checagem antes de liberar o acesso completo.
+      </p>
+      <button id="btn-verificar" class="btn btn-primary btn-bloco" type="button">
+        Verificar novamente
+      </button>
+      <p id="msg-verificar" class="dica" hidden></p>
+    </div>
+
+    <div id="bloco-recusado" hidden>
+      <h2 class="card-title">Não conseguimos confirmar seu cadastro</h2>
+      <p class="dica">
+        Um administrador revisou e não liberou o acesso automático desta
+        conta. Se você acredita que isso é um engano, escreva para
+        <a href="mailto:contatogabriel73@gmail.com">contatogabriel73@gmail.com</a>
+        explicando seu CRN e conselho regional.
+      </p>
+    </div>
+
+    <p class="login-alternativa">
+      <button id="btn-sair" class="btn btn-ghost btn-bloco" type="button">Sair</button>
+    </p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(async () => {
+  'use strict';
+
+  // pularGateStatus: esta É a página que o gate normal manda quem está
+  // pendente/recusado — sem a exceção, ela redirecionaria para si mesma.
+  if (!(await Auth.exigirLogin('nutricionista', { pularGateStatus: true }))) return;
+
+  const $ = (s) => document.querySelector(s);
+
+  async function desenhar() {
+    const perfil = await Auth.perfilAtual();
+
+    // Aprovado enquanto essa aba estava aberta (ou voltou aqui depois de
+    // já ter sido liberado) — manda para o painel de verdade.
+    if (perfil && perfil.status_verificacao === 'verificado') {
+      location.replace('painel.html');
+      return;
+    }
+
+    $('#bloco-pendente').hidden = !(perfil && perfil.status_verificacao === 'pendente');
+    $('#bloco-recusado').hidden = !(perfil && perfil.status_verificacao === 'recusado');
+  }
+
+  $('#btn-verificar').addEventListener('click', async () => {
+    const botao = $('#btn-verificar');
+    const msg = $('#msg-verificar');
+
+    botao.disabled = true;
+    botao.textContent = 'Verificando…';
+    msg.hidden = true;
+
+    const resultado = await Auth.tentarVerificarCrn();
+
+    botao.disabled = false;
+    botao.textContent = 'Verificar novamente';
+
+    if (resultado.status === 'verificado') {
+      location.replace('painel.html');
+      return;
+    }
+
+    msg.textContent = resultado.motivo || resultado.erro ||
+      'Ainda não foi possível confirmar automaticamente. Um administrador vai revisar.';
+    msg.hidden = false;
+    await desenhar();
+  });
+
+  $('#btn-sair').addEventListener('click', async () => {
+    await Auth.logout();
+    location.href = 'index.html';
+  });
+
+  await desenhar();
+})();
+</script>
+</body>
+</html>

@@ -112,8 +112,8 @@
       return;
     }
     if (await Auth.estaLogado()) {
-      const papel = await Auth.papelAtual();
-      location.replace(destinoSeguro(Auth.paginaInicial(papel)));
+      const perfil = await Auth.perfilAtual();
+      location.replace(destinoSeguro(Auth.destinoParaPerfil(perfil)));
     }
   })();
 })();

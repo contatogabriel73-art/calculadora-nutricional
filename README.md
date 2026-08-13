@@ -25,18 +25,20 @@ HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 > preenche o resto sozinho). Paciente não se cadastra pela landing: recebe
 > um código do próprio nutricionista.
 >
-> **A verificação de CRN já roda de verdade.** Uma Edge Function consulta a
-> Consulta Nacional de Nutricionistas do CFN e confirma sozinha quando o
-> registro existe, está ativo e o nome bate. Quando não consegue confirmar
-> — CRN não encontrado, nome diferente, registro inativo, ou o CFN fora do
-> ar — o cadastro fica `pendente` para um admin aprovar ou recusar na tela
-> [`admin.html`](admin.html).
+> **A verificação de CRN já roda de verdade, no login.** Uma Edge Function
+> consulta a Consulta Nacional de Nutricionistas do CFN e confirma sozinha
+> quando o registro existe, está ativo e o nome bate — a pessoa cadastra,
+> entra, e já cai direto no painel, sem ver tela nenhuma de espera. Quando
+> não consegue confirmar — CRN não encontrado, nome diferente, registro
+> inativo, ou o CFN fora do ar — o cadastro fica `pendente` e a conta vê
+> [`cadastro-em-analise.html`](cadastro-em-analise.html) em vez do painel,
+> até um admin aprovar ou recusar na tela [`admin.html`](admin.html).
 >
-> **O que falta:** ligar essa verificação e esse gate ao momento do login
-> (hoje quem chama a função é só o próprio código, ainda não o fluxo de
-> entrar no site), e a landing explicando os dois públicos. Até lá, use
-> dados fictícios ao testar — é prudência de quem está no meio de uma
-> migração, não sinal de vulnerabilidade conhecida.
+> **O que falta:** a landing explicando os dois públicos (Fase 5) e a conta
+> de admin com o e-mail de verdade do Gabriel (Fase 4 — hoje só existe uma
+> conta de admin de teste). Até lá, use dados fictícios ao testar — é
+> prudência de quem está no meio de uma migração, não sinal de
+> vulnerabilidade conhecida.
 >
 > Como montar o banco: [`supabase/README.md`](supabase/README.md).
 
@@ -202,6 +204,7 @@ calculadora/
 ├── index.html              Landing pública
 ├── login.html              Entrada (conta de verdade)
 ├── cadastro.html           Criar conta de nutricionista (CPF, CRN, CEP)
+├── cadastro-em-analise.html  Tela de espera para quem está pendente/recusado
 ├── admin.html              Aprovar/recusar cadastro (só para papel_admin)
 ├── area-paciente.html      Área do paciente (só leitura)
 ├── pacientes.html          Lista e cadastro de pacientes

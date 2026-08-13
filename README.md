@@ -10,20 +10,21 @@ e guarda as fichas no prontuário de cada paciente.
 
 HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 
-> ## ⚠️ Estado atual: protótipo, no meio da migração para banco de dados
+> ## ⚠️ Estado atual: protótipo, banco de dados real por baixo
 >
-> **O login já é de verdade** — contas com e-mail e senha no Supabase Auth, e
-> dois papéis: nutricionista e paciente.
+> **Login, dados clínicos e vínculo já são de verdade.** Contas com e-mail e
+> senha no Supabase Auth (nutricionista ou paciente), dados em Postgres com Row
+> Level Security, e um código de convite liga a conta do paciente à ficha que o
+> nutricionista mantém dele.
 >
-> **Os dados clínicos ainda não.** Pacientes, agenda, financeiro e fichas
-> continuam no `localStorage` do navegador enquanto os módulos de persistência
-> são migrados um a um — sem servidor, sem backup e sem sincronizar entre
-> aparelhos.
+> Testado com contas reais, nos dois sentidos: um nutricionista não vê o
+> paciente de outro, e um paciente não vê a ficha, a evolução, nem as fichas
+> técnicas de outro paciente — mesmo tentando pelo id direto.
 >
-> **Não cadastre dados reais de paciente.** Nome, contato e observações de saúde
-> são dados pessoais sensíveis; guardá-los no `localStorage` não é adequado do
-> ponto de vista da LGPD. Use dados fictícios até a migração terminar **e ser
-> testada** — inclusive testando que um paciente não vê dados de outro.
+> **O que falta:** a landing ainda não explica os dois tipos de conta para
+> quem chega de fora (Fase 6). Até lá, use dados fictícios ao testar — é
+> prudência de quem está no meio de uma migração, não sinal de vulnerabilidade
+> conhecida.
 >
 > Como montar o banco: [`supabase/README.md`](supabase/README.md).
 
@@ -44,7 +45,7 @@ Depois de instalado funciona **offline**.
 | `index.html` | Landing pública que apresenta o produto. |
 | `login.html` | Entrada, com conta de verdade. |
 | `cadastro.html` | Criação de conta, escolhendo nutricionista ou paciente. |
-| `area-paciente.html` | Área do paciente — só leitura da própria evolução. |
+| `area-paciente.html` | Área do paciente — código de vínculo, próxima consulta, gráficos de evolução, fichas/planos liberados. |
 | `pacientes.html` | Lista, busca, cadastro e edição de pacientes. |
 | `paciente.html?id=…` | Ficha do paciente e histórico de fichas técnicas. |
 | `ficha.html` | A ferramenta de cálculo. |

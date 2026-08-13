@@ -22,41 +22,83 @@
     <p class="painel-sub">Aqui você acompanha sua evolução e suas próximas consultas.</p>
   </div>
 
-  <section class="bloco">
-    <div class="bloco-topo"><h2>Ainda falta conectar você ao seu nutricionista</h2></div>
+  <!-- ═══════ Sem vínculo ainda ═══════ -->
+  <section id="bloco-sem-vinculo" class="bloco" hidden>
+    <div class="bloco-topo"><h2>Falta ligar você ao seu nutricionista</h2></div>
     <p class="vazio-suave">
-      Sua conta está criada, mas ainda não está ligada a nenhum profissional.
-      Peça ao seu nutricionista o código de convite dele — é com esse código
-      que suas consultas e sua evolução aparecem aqui.
+      Peça o código de convite ao seu nutricionista — é com ele que suas
+      consultas e sua evolução passam a aparecer aqui.
     </p>
+
+    <form id="form-codigo" class="form-codigo" novalidate>
+      <div class="campo">
+        <label class="field-label" for="codigo">Código de convite</label>
+        <input id="codigo" class="input input-codigo" type="text"
+               autocapitalize="characters" autocomplete="off" spellcheck="false"
+               maxlength="6" placeholder="Ex.: A3F7K2">
+      </div>
+      <p id="erro-codigo" class="erro-form" role="alert" hidden></p>
+      <button class="btn btn-primary" type="submit">Vincular</button>
+    </form>
+
     <p class="dica">
-      Enquanto isso não acontece, não há nada para mostrar. Nenhum dado seu
-      fica visível para outro paciente.
+      Enquanto isso não acontece, não há nada para mostrar aqui. Nenhum dado
+      seu fica visível para outro paciente.
     </p>
   </section>
 
+  <!-- ═══════ Vinculado ═══════ -->
+  <div id="area-vinculada" hidden>
+
+    <p class="dica dica-nutricionista">
+      Acompanhado por <strong id="nome-nutricionista"></strong>
+    </p>
+
+    <section class="bloco">
+      <div class="bloco-topo"><h2>Próxima consulta</h2></div>
+      <div id="proxima-consulta"></div>
+    </section>
+
+    <section class="bloco">
+      <div class="bloco-topo"><h2>Sua evolução</h2></div>
+      <div id="resumo-evolucao"></div>
+      <div id="graficos-evolucao" class="graficos-evolucao" hidden>
+        <div class="grafico-caixa"><canvas id="grafico-peso" height="220"></canvas></div>
+        <div class="grafico-caixa"><canvas id="grafico-imc" height="220"></canvas></div>
+        <div class="grafico-caixa" id="caixa-cintura" hidden><canvas id="grafico-cintura" height="220"></canvas></div>
+      </div>
+      <p id="sem-avaliacoes" class="vazio-suave" hidden>
+        Seu nutricionista ainda não registrou nenhuma avaliação.
+      </p>
+    </section>
+
+    <section class="bloco" id="bloco-fichas" hidden>
+      <div class="bloco-topo"><h2>Fichas técnicas</h2></div>
+      <ul id="lista-fichas" class="lista-simples"></ul>
+    </section>
+
+    <section class="bloco" id="bloco-planos" hidden>
+      <div class="bloco-topo"><h2>Plano alimentar</h2></div>
+      <ul id="lista-planos" class="lista-simples"></ul>
+    </section>
+
+  </div>
+
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/vinculo-storage.js"></script>
+<script src="js/prontuario-storage.js"></script>
+<script src="js/agenda-storage.js"></script>
+<script src="js/fichas-storage.js"></script>
+<script src="js/planos-storage.js"></script>
+<script src="js/antropometria.js"></script>
+<script src="js/graficos.js"></script>
 <script src="js/shell.js"></script>
-<script>
-(() => {
-  'use strict';
-
-  (async () => {
-    // Área do paciente: um nutricionista que caia aqui é devolvido ao painel dele.
-    if (!(await Auth.exigirLogin('paciente'))) return;
-    await Shell.montarCabecalho('inicio');
-
-    const usuario = await Auth.usuarioAtual();
-    const primeiro = String(usuario.nome || '').trim().split(/\s+/)[0] || '';
-    document.querySelector('#saudacao').textContent =
-      primeiro ? `Olá, ${primeiro}` : 'Olá';
-  })();
-})();
-</script>
+<script src="js/area-paciente.js"></script>
 </body>
 </html>

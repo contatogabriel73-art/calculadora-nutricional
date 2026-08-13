@@ -80,6 +80,73 @@
     $('#btn-novo-plano').href = 'plano.html?paciente=' + encodeURIComponent(paciente.id);
   }
 
+  /* ───────────── Vínculo com a conta do paciente ───────────── */
+
+  function desenharVinculo() {
+    const alvo = $('#vinculo-conteudo');
+
+    if (paciente.usuarioId) {
+      alvo.innerHTML = `
+        <p class="vinculo-status vinculo-ativo">
+          ✓ Este paciente já tem conta própria e acompanha a evolução dele
+          nesta plataforma.
+        </p>`;
+      return;
+    }
+
+    // Sem conta e sem código gerado ainda: mostra a explicação e o botão.
+    // Um código já gerado (mas ainda não usado) fica visível de novo —
+    // reabrir a tela não deveria trocar o código que a pessoa já anotou.
+    const codigo = esc(paciente.codigoConvite || '');
+    alvo.innerHTML = `
+      <p class="dica">
+        Gere um código e passe para o paciente. Com ele, o paciente cria a
+        própria conta e passa a ver as consultas e a evolução dele — sem
+        acesso a nada de outro paciente seu.
+      </p>
+      ${codigo ? `
+        <div class="codigo-convite">
+          <span class="codigo-convite-valor">${codigo}</span>
+          <button id="btn-copiar-codigo" class="btn btn-ghost btn-sm" type="button">Copiar</button>
+        </div>
+        <p class="dica">Ainda não usado. Gerar de novo não é necessário.</p>
+      ` : `
+        <button id="btn-gerar-codigo" class="btn btn-primary btn-sm" type="button">Gerar código de convite</button>
+      `}
+      <p id="vinculo-erro" class="erro-form" role="alert" hidden></p>`;
+
+    const btnGerar = $('#btn-gerar-codigo');
+    if (btnGerar) {
+      btnGerar.addEventListener('click', async () => {
+        btnGerar.disabled = true;
+        btnGerar.textContent = 'Gerando…';
+        const r = await VinculoStore.gerarCodigoConvite(paciente.id);
+        if (!r.ok) {
+          const erro = $('#vinculo-erro');
+          erro.textContent = r.erro;
+          erro.hidden = false;
+          btnGerar.disabled = false;
+          btnGerar.textContent = 'Gerar código de convite';
+          return;
+        }
+        paciente.codigoConvite = r.codigo;
+        desenharVinculo();
+      });
+    }
+
+    const btnCopiar = $('#btn-copiar-codigo');
+    if (btnCopiar) {
+      btnCopiar.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(codigo);
+          Shell.toast('Código copiado.');
+        } catch (e) {
+          Shell.toast('Não foi possível copiar. Selecione o código manualmente.');
+        }
+      });
+    }
+  }
+
   /* ───────────── Resumo ───────────── */
 
   function desenharResumo() {
@@ -685,6 +752,7 @@
   /* ───────────── Início ───────────── */
 
   desenharPaciente();
+  desenharVinculo();
   await carregarAnamnese();
   await recarregarConsultas();
   desenharProximaConsulta();

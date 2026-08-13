@@ -392,6 +392,88 @@ create trigger trg_criar_perfil
 
 
 -- ============================================================
+--  Vínculo do paciente com o nutricionista (código de convite)
+-- ============================================================
+-- O nutricionista gera um código na ficha do paciente e passa para ele.
+-- O paciente digita esse código na área dele e a ficha passa a ser
+-- também dele.
+--
+-- Por que isto precisa ser uma função no banco, e não um update do
+-- navegador: um paciente ainda sem vínculo não enxerga NENHUMA linha de
+-- `pacientes` — é o que a Row Level Security garante. Logo ele não
+-- consegue procurar a ficha pelo código, nem gravar `usuario_id` nela.
+-- A função roda como dona da tabela (`security definer`), então ela
+-- enxerga o que precisa; e faz só isto, sem devolver dado nenhum além
+-- do necessário.
+--
+-- `search_path` fixo é obrigatório numa função `security definer`: sem
+-- ele, quem chama poderia criar um schema próprio na frente do caminho
+-- e sequestrar os nomes de tabela usados aqui dentro.
+
+create or replace function public.resgatar_convite(codigo text)
+returns table (paciente_id uuid, nutricionista_nome text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  alvo   public.pacientes;
+  papel  text;
+  vnome  text;
+begin
+  select p.papel into papel from public.perfis p where p.id = auth.uid();
+
+  if papel is null then
+    raise exception 'Entre na sua conta para usar um código.';
+  end if;
+
+  -- Um nutricionista não vira paciente de outro digitando um código:
+  -- as duas contas veem coisas diferentes e a troca bagunçaria os dois.
+  if papel <> 'paciente' then
+    raise exception 'Só uma conta de paciente pode usar um código de convite.';
+  end if;
+
+  -- Uma conta de paciente liga a UMA ficha. Sem este check, nada no
+  -- banco impediria a mesma conta resgatar um segundo código e passar a
+  -- apontar para duas fichas — e a área do paciente, que assume um
+  -- vínculo só, quebraria ao tentar decidir qual delas mostrar.
+  if exists (select 1 from public.pacientes where usuario_id = auth.uid()) then
+    raise exception 'Esta conta já está vinculada a um nutricionista.';
+  end if;
+
+  select * into alvo
+    from public.pacientes
+   where codigo_convite = upper(btrim(codigo))
+     and usuario_id is null
+   limit 1;
+
+  if not found then
+    -- Mesma mensagem para código errado e código já usado, de propósito:
+    -- distinguir os dois ajudaria quem estivesse testando códigos no chute.
+    raise exception 'Código inválido ou já utilizado.';
+  end if;
+
+  update public.pacientes
+     set usuario_id = auth.uid(),
+         -- Uso único: o código morre ao ser resgatado, então quem
+         -- receber a mensagem encaminhada depois não entra na ficha.
+         codigo_convite = null
+   where id = alvo.id;
+
+  select coalesce(p.nome, '') into vnome
+    from public.perfis p where p.id = alvo.nutricionista_id;
+
+  return query select alvo.id, coalesce(vnome, '');
+end;
+$$;
+
+-- Só quem está autenticado chama. Visitante anônimo não fica tentando
+-- códigos no escuro.
+revoke all on function public.resgatar_convite(text) from public, anon;
+grant execute on function public.resgatar_convite(text) to authenticated;
+
+
+-- ============================================================
 --  ROW LEVEL SECURITY
 -- ============================================================
 -- Ligada em TODAS as tabelas. Sem política que permita, nada passa —
@@ -436,6 +518,21 @@ create policy perfis_ler_proprio on public.perfis
 drop policy if exists perfis_atualizar_proprio on public.perfis;
 create policy perfis_atualizar_proprio on public.perfis
   for update using (id = auth.uid()) with check (id = auth.uid());
+
+-- O paciente lê o perfil do profissional que o acompanha — nome e CRN
+-- de quem responde pelo prontuário dele não é informação a esconder.
+-- Vale só para quem está vinculado: a condição percorre `pacientes`
+-- procurando uma ficha em que este perfil é o nutricionista e a conta
+-- que consulta é o paciente.
+drop policy if exists perfis_paciente_ve_nutricionista on public.perfis;
+create policy perfis_paciente_ve_nutricionista on public.perfis
+  for select using (
+    exists (
+      select 1 from public.pacientes p
+      where p.nutricionista_id = perfis.id
+        and p.usuario_id = auth.uid()
+    )
+  );
 
 
 -- ───────────── pacientes ─────────────

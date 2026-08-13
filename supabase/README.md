@@ -1,9 +1,10 @@
 # Banco de dados (Supabase)
 
 > **Status:** já feito no projeto `CALCULADORA1`
-> (`wxezmcabuuiwixsvkwum`) — as 9 tabelas estão criadas e a RLS está barrando
-> acesso anônimo. Este guia fica para quem for montar outro ambiente, ou para
-> repetir se algo se perder.
+> (`wxezmcabuuiwixsvkwum`) — as 9 tabelas estão criadas, a RLS está barrando
+> acesso anônimo, e a função de vínculo por código de convite (`resgatar_convite`)
+> está no ar e testada. Este guia fica para quem for montar outro ambiente, ou
+> para repetir se algo se perder.
 
 Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez só.
 
@@ -101,6 +102,14 @@ Se precisar testar em série, as saídas são:
 - ou configurar um SMTP próprio em **Project Settings → Authentication → SMTP**,
   que é o caminho definitivo para uso real.
 
+Reparo feito testando: com **Confirm email ligado**, cadastrar um e-mail em
+domínio que não existe de verdade (como `@nutrificha.test`) devolve
+`email_address_invalid` — o Supabase passa a validar se dá para entregar a
+mensagem, coisa que não faz quando a confirmação está desligada. Isso é
+esperado, não bug: com confirmação ligada, use um e-mail que exista de
+verdade (ou um alias `+algumacoisa@` do seu próprio e-mail) para testar
+cadastro pela tela.
+
 ---
 
 ## Como o acesso está desenhado
@@ -128,6 +137,34 @@ A ficha do paciente existe sem conta nenhuma (`usuario_id` nulo). Isso é
 proposital — nem todo paciente vai querer login, e o nutricionista precisa
 continuar trabalhando normalmente com esses.
 
+### O vínculo (código de convite)
+
+O nutricionista gera um código na ficha do paciente (botão "Gerar código de
+convite", na aba Resumo) e passa por fora do sistema. O paciente digita esse
+código na área dele.
+
+Por baixo, isso é a função `resgatar_convite` em `schema.sql` — não dá para
+fazer isso com um `update` comum do navegador, porque um paciente sem vínculo
+não enxerga NENHUMA linha de `pacientes`: não teria como encontrar a ficha
+pelo código para gravar o próprio `usuario_id` nela. A função roda com
+privilégio elevado (`security definer`) só para essa operação específica, com
+`search_path` fixo (obrigatório nesse tipo de função, senão dá para sequestrar
+os nomes de tabela) e liberada só para `authenticated` — anônimo nem tenta.
+
+Duas proteções que valem saber:
+
+- **Código de uso único.** Ao ser resgatado, `codigo_convite` volta a `null`
+  na mesma operação. Quem receber o código encaminhado depois de usado não
+  entra em nada.
+- **Uma conta de paciente vincula a UMA ficha só.** Sem esse check, nada
+  impediria a mesma conta resgatar um segundo código e apontar para duas
+  fichas ao mesmo tempo — e a área do paciente, que assume um vínculo só,
+  não saberia qual mostrar.
+
+Testado com duas contas de paciente reais: cada uma só vê a evolução, as
+consultas e as fichas/planos liberados da própria ficha — inclusive tentando
+acessar pelo id da ficha do outro paciente diretamente, não só pela tela.
+
 ### Armadilha: update bloqueado responde como sucesso
 
 Testado no banco: um nutricionista tentando alterar o paciente de outro recebe
@@ -147,7 +184,14 @@ Criadas para validar o schema, sem nenhum dado real:
 |---|---|---|
 | `teste.nutri@nutrificha.test` | `senha-de-teste-123` | nutricionista |
 | `teste.nutri2@nutrificha.test` | `senha-de-teste-123` | nutricionista |
+| `teste.paciente@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Maria Teste Editada" |
+| `teste.paciente2@nutrificha.test` | `senha-de-teste-123` | paciente, vinculado a "Paciente de Teste" |
 
-A primeira tem um paciente chamado "Paciente de Teste". Para apagar:
-**Authentication → Users**. Apagar a conta leva junto os pacientes dela, por
-causa do `on delete cascade`.
+As duas contas de paciente foram criadas numa janela em que **Confirm email**
+estava temporariamente desligado — precisou ser assim porque o domínio de
+teste (`@nutrificha.test`) não existe de verdade e o Supabase rejeita esse
+domínio quando a confirmação está ligada (ver seção 5 acima). A confirmação
+foi religada logo em seguida; as contas continuam funcionando normalmente.
+
+Para apagar qualquer uma: **Authentication → Users**. Apagar a conta leva
+junto os pacientes dela, por causa do `on delete cascade`.

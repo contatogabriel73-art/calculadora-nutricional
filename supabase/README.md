@@ -83,13 +83,23 @@ Por padrão o Supabase exige confirmação de e-mail no cadastro, e o serviço d
 e-mail embutido tem limite baixo (poucas mensagens por hora), o que atrapalha
 enquanto se testa.
 
-**No projeto `CALCULADORA1` isto já está desligado**, em
-**Authentication → Sign In / Providers → Confirm email**.
+**No projeto `CALCULADORA1` está LIGADO**, em
+**Authentication → Sign In / Providers → Confirm email**. Foi ligado quando o
+site foi publicado: sem confirmação, qualquer pessoa cria conta com o e-mail de
+outra — e aqui a conta dá acesso a prontuário.
 
-🔴 **Religar antes de qualquer paciente real usar o sistema.** Sem confirmação,
-qualquer pessoa cria conta com o e-mail de outra — e aqui a conta dá acesso a
-prontuário. É a última coisa a fazer antes de sair do protótipo, junto com o
-aviso da landing.
+Consequência prática: **cada conta nova precisa clicar no link do e-mail antes
+de conseguir entrar**, e o remetente embutido do Supabase tem cota baixa. Ao
+criar várias contas seguidas você vai esbarrar em
+`over_email_send_rate_limit` — não é erro do site, é a cota.
+
+Se precisar testar em série, as saídas são:
+
+- desligar **Confirm email** temporariamente, e **ligar de volta ao terminar**;
+- ou confirmar a conta na mão em **Authentication → Users**, no menu de três
+  pontos da linha;
+- ou configurar um SMTP próprio em **Project Settings → Authentication → SMTP**,
+  que é o caminho definitivo para uso real.
 
 ---
 

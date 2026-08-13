@@ -1,0 +1,598 @@
+-- ============================================================
+--  NutriFicha — estrutura do banco (Supabase / Postgres)
+--
+--  Como usar: abra o painel do Supabase → SQL Editor → New query,
+--  cole este arquivo inteiro e rode. Ele é idempotente: pode ser
+--  rodado de novo sem duplicar nada.
+--
+--  ⚠️ Dado de paciente é dado de saúde — a categoria mais sensível
+--  da LGPD. Toda tabela aqui nasce com Row Level Security LIGADA e
+--  com política explícita. Sem RLS, a chave anônima (que fica
+--  visível no código do site) daria acesso ao banco inteiro.
+--
+--  Regra que vale para o arquivo todo:
+--    • nutricionista_id → é um auth.users.id (a conta do profissional)
+--    • paciente_id      → é um pacientes.id (a FICHA do paciente, que
+--                         existe mesmo que ele nunca crie conta)
+--    • pacientes.usuario_id → auth.users.id da conta do paciente,
+--                         preenchido só quando ele se vincula (Fase 4)
+-- ============================================================
+
+-- gen_random_uuid(). Já vem habilitado em projetos novos do Supabase;
+-- a linha existe para o arquivo funcionar num Postgres limpo também.
+create extension if not exists pgcrypto;
+
+
+-- ============================================================
+--  Funções auxiliares
+-- ============================================================
+
+-- Mantém `atualizado_em` sempre correto sem depender do cliente.
+-- Se o navegador mandar um valor errado, o banco corrige.
+create or replace function public.tocar_atualizado_em()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.atualizado_em := now();
+  return new;
+end;
+$$;
+
+
+-- ============================================================
+--  perfis — uma linha por conta, com o papel
+-- ============================================================
+-- O papel decide para onde a pessoa vai depois do login e o que ela
+-- pode ver. Fica no banco (e não só no metadata do auth) porque as
+-- políticas de RLS precisam consultá-lo.
+--
+-- Os campos crn/documento/endereco/cidade são do emitente do recibo
+-- (o que hoje vive em perfil-storage.js) e só interessam ao
+-- nutricionista; num perfil de paciente ficam vazios.
+
+create table if not exists public.perfis (
+  id             uuid primary key references auth.users (id) on delete cascade,
+  papel          text        not null check (papel in ('nutricionista', 'paciente')),
+  nome           text        not null default '',
+  email          text        not null default '',
+  crn            text        not null default '',
+  documento      text        not null default '',
+  telefone       text        not null default '',
+  endereco       text        not null default '',
+  cidade         text        not null default '',
+  criado_em      timestamptz not null default now(),
+  atualizado_em  timestamptz not null default now()
+);
+
+drop trigger if exists trg_perfis_atualizado_em on public.perfis;
+create trigger trg_perfis_atualizado_em
+  before update on public.perfis
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  pacientes — a ficha do paciente, criada pelo nutricionista
+-- ============================================================
+-- `usuario_id` é NULO na maioria dos casos e isso é proposital: nem
+-- todo paciente vai querer criar conta, e o nutricionista precisa
+-- continuar trabalhando normalmente com esses. O vínculo é um extra,
+-- não um requisito.
+--
+-- `codigo_convite` é o que o paciente digita no cadastro dele para
+-- assumir a própria ficha. A geração fica para a Fase 4; a coluna
+-- nasce aqui para não precisar mexer na tabela depois.
+
+create table if not exists public.pacientes (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  usuario_id       uuid                 references auth.users (id) on delete set null,
+  codigo_convite   text        unique,
+  nome             text        not null check (length(trim(nome)) > 0),
+  nascimento       date,
+  sexo             text        not null default '' check (sexo in ('', 'F', 'M')),
+  telefone         text        not null default '',
+  email            text        not null default '',
+  observacoes      text        not null default '',
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  -- Alvo da chave estrangeira composta usada por todas as tabelas
+  -- filhas. É o que impede uma consulta de apontar para um paciente
+  -- de outro nutricionista.
+  unique (id, nutricionista_id)
+);
+
+create index if not exists idx_pacientes_nutricionista
+  on public.pacientes (nutricionista_id);
+create index if not exists idx_pacientes_usuario
+  on public.pacientes (usuario_id) where usuario_id is not null;
+
+drop trigger if exists trg_pacientes_atualizado_em on public.pacientes;
+create trigger trg_pacientes_atualizado_em
+  before update on public.pacientes
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  consultas — agenda
+-- ============================================================
+
+create table if not exists public.consultas (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null,
+  data             date        not null,
+  hora             time        not null,
+  duracao          integer     not null default 60 check (duracao > 0),
+  tipo             text        not null default 'Consulta',
+  status           text        not null default 'agendada'
+                     check (status in ('agendada', 'confirmada', 'realizada', 'cancelada')),
+  observacoes      text        not null default '',
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+create index if not exists idx_consultas_nutri_data
+  on public.consultas (nutricionista_id, data);
+create index if not exists idx_consultas_paciente
+  on public.consultas (paciente_id, data);
+
+drop trigger if exists trg_consultas_atualizado_em on public.consultas;
+create trigger trg_consultas_atualizado_em
+  before update on public.consultas
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  pagamentos — financeiro
+-- ============================================================
+-- Valores em CENTAVOS (inteiro), como já era no financeiro-storage.js:
+-- somar reais em ponto flutuante acumula erro e some centavo no relatório.
+--
+-- `consulta_id` é opcional de propósito — pacote, plano mensal e retorno
+-- cortesia não correspondem a um atendimento avulso.
+
+create table if not exists public.pagamentos (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null,
+  consulta_id      uuid                 references public.consultas (id) on delete set null,
+  data             date        not null,
+  data_pagamento   date,
+  centavos         integer     not null check (centavos > 0),
+  forma            text        not null default '',
+  status           text        not null default 'pendente' check (status in ('pago', 'pendente')),
+  descricao        text        not null default 'Consulta de nutrição',
+  observacoes      text        not null default '',
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+create index if not exists idx_pagamentos_nutri_data
+  on public.pagamentos (nutricionista_id, data);
+create index if not exists idx_pagamentos_paciente
+  on public.pagamentos (paciente_id);
+
+drop trigger if exists trg_pagamentos_atualizado_em on public.pagamentos;
+create trigger trg_pagamentos_atualizado_em
+  before update on public.pagamentos
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  anamneses — dado FIXO, uma por paciente
+-- ============================================================
+-- Retrato do histórico de saúde. Atualiza em vez de acumular versões:
+-- alergia e cirurgia antiga não mudam a cada consulta.
+-- O `unique (paciente_id)` é o que garante "uma por paciente".
+
+create table if not exists public.anamneses (
+  id                       uuid primary key default gen_random_uuid(),
+  nutricionista_id         uuid        not null references auth.users (id) on delete cascade,
+  paciente_id              uuid        not null unique,
+  historico_saude          text        not null default '',
+  medicamentos             text        not null default '',
+  queixas                  text        not null default '',
+  habitos                  text        not null default '',
+  restricoes               text        not null default '',
+  alergias                 text        not null default '',
+  atividade_fisica         text        not null default '',
+  sono                     text        not null default '',
+  hidratacao               text        not null default '',
+  funcionamento_intestinal text        not null default '',
+  observacoes              text        not null default '',
+  criado_em                timestamptz not null default now(),
+  atualizado_em            timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+drop trigger if exists trg_anamneses_atualizado_em on public.anamneses;
+create trigger trg_anamneses_atualizado_em
+  before update on public.anamneses
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  avaliacoes — dado EVOLUTIVO, várias por paciente
+-- ============================================================
+-- Cada consulta cria um registro NOVO, datado. Nunca sobrescreve.
+-- É esta tabela — e só ela — que vira gráfico de evolução.
+--
+-- peso/altura são numeric (e não texto) porque o gráfico precisa
+-- ordenar e interpolar. circunferencias e dobras vão em jsonb porque
+-- o conjunto de pontos medidos varia de protocolo para protocolo.
+
+create table if not exists public.avaliacoes (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null,
+  data             date        not null,
+  peso             numeric(6, 2) check (peso is null or peso > 0),
+  altura           numeric(5, 2) check (altura is null or altura > 0),
+  circunferencias  jsonb       not null default '{}'::jsonb,
+  dobras           jsonb       not null default '{}'::jsonb,
+  observacoes      text        not null default '',
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+create index if not exists idx_avaliacoes_paciente_data
+  on public.avaliacoes (paciente_id, data desc);
+
+drop trigger if exists trg_avaliacoes_atualizado_em on public.avaliacoes;
+create trigger trg_avaliacoes_atualizado_em
+  before update on public.avaliacoes
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  fichas_tecnicas — ficha de preparo + rótulo, salva por paciente
+-- ============================================================
+-- `conteudo` guarda o estado completo da ferramenta (campos +
+-- ingredientes) e `resumo` os números já calculados, para a listagem
+-- não precisar recarregar a base TACO e refazer as contas.
+--
+-- `visivel_paciente` existe desde já para a Fase 5: o paciente só vê
+-- o que o nutricionista liberou explicitamente.
+
+create table if not exists public.fichas_tecnicas (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null,
+  titulo           text        not null default 'Preparação sem nome',
+  conteudo         jsonb       not null default '{}'::jsonb,
+  resumo           jsonb       not null default '{}'::jsonb,
+  visivel_paciente boolean     not null default false,
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+create index if not exists idx_fichas_paciente
+  on public.fichas_tecnicas (paciente_id, atualizado_em desc);
+
+drop trigger if exists trg_fichas_atualizado_em on public.fichas_tecnicas;
+create trigger trg_fichas_atualizado_em
+  before update on public.fichas_tecnicas
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  planos — plano alimentar (vários por paciente)
+-- ============================================================
+
+create table if not exists public.planos (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null,
+  nome             text        not null default 'Plano alimentar',
+  data             date        not null default current_date,
+  observacoes      text        not null default '',
+  refeicoes        jsonb       not null default '[]'::jsonb,
+  resumo           jsonb       not null default '{}'::jsonb,
+  visivel_paciente boolean     not null default false,
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+create index if not exists idx_planos_paciente
+  on public.planos (paciente_id, atualizado_em desc);
+
+drop trigger if exists trg_planos_atualizado_em on public.planos;
+create trigger trg_planos_atualizado_em
+  before update on public.planos
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  metas — uma por paciente, referência para todos os planos dele
+-- ============================================================
+
+create table if not exists public.metas (
+  id               uuid primary key default gen_random_uuid(),
+  nutricionista_id uuid        not null references auth.users (id) on delete cascade,
+  paciente_id      uuid        not null unique,
+  peso_meta        numeric(6, 2),
+  kcal_meta        numeric(7, 2),
+  pct_proteina     numeric(5, 2),
+  pct_carboidrato  numeric(5, 2),
+  pct_lipidio      numeric(5, 2),
+  observacoes      text        not null default '',
+  criado_em        timestamptz not null default now(),
+  atualizado_em    timestamptz not null default now(),
+
+  foreign key (paciente_id, nutricionista_id)
+    references public.pacientes (id, nutricionista_id) on delete cascade
+);
+
+drop trigger if exists trg_metas_atualizado_em on public.metas;
+create trigger trg_metas_atualizado_em
+  before update on public.metas
+  for each row execute function public.tocar_atualizado_em();
+
+
+-- ============================================================
+--  Criação automática do perfil no cadastro
+-- ============================================================
+-- Roda quando o Supabase Auth cria a conta, lendo o papel e o nome que
+-- o formulário de cadastro mandou em `options.data`.
+--
+-- Existe como trigger, e não como um insert feito pelo site, porque um
+-- insert do navegador pode falhar depois do cadastro ter dado certo
+-- (conexão caiu, aba fechada) e deixaria uma conta sem perfil — sem
+-- papel, sem saber para onde mandar a pessoa no login.
+--
+-- Sem papel informado assume nutricionista: é o caminho que o site usa
+-- por padrão, e errar para esse lado só mostra um painel vazio; errar
+-- para 'paciente' trancaria a pessoa numa área sem nada e sem saída.
+
+create or replace function public.criar_perfil_no_cadastro()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.perfis (id, papel, nome, email)
+  values (
+    new.id,
+    case
+      when coalesce(new.raw_user_meta_data ->> 'papel', '') = 'paciente' then 'paciente'
+      else 'nutricionista'
+    end,
+    coalesce(new.raw_user_meta_data ->> 'nome', ''),
+    coalesce(new.email, '')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_criar_perfil on auth.users;
+create trigger trg_criar_perfil
+  after insert on auth.users
+  for each row execute function public.criar_perfil_no_cadastro();
+
+
+-- ============================================================
+--  ROW LEVEL SECURITY
+-- ============================================================
+-- Ligada em TODAS as tabelas. Sem política que permita, nada passa —
+-- o padrão do Postgres com RLS ligada é negar.
+--
+-- Duas formas de acesso:
+--
+--   1. Nutricionista → tudo (ler, criar, editar, apagar) nas linhas em
+--      que `nutricionista_id = auth.uid()`. O `with check` na mesma
+--      condição impede criar linha no nome de outro profissional.
+--
+--   2. Paciente → SÓ LEITURA, e só nas linhas cuja ficha
+--      (`pacientes.paciente_id`) tem `usuario_id = auth.uid()`.
+--      Isso é o que impede um paciente de ver dados de outro paciente
+--      do mesmo nutricionista.
+--
+-- O `exists (...)` sobre `pacientes` não cria recursão: a política de
+-- `pacientes` não consulta nenhuma tabela filha. E ele roda com as
+-- permissões de quem está consultando, então a RLS de `pacientes` vale
+-- ali dentro também — o paciente só enxerga a própria ficha.
+
+alter table public.perfis          enable row level security;
+alter table public.pacientes       enable row level security;
+alter table public.consultas       enable row level security;
+alter table public.pagamentos      enable row level security;
+alter table public.anamneses       enable row level security;
+alter table public.avaliacoes      enable row level security;
+alter table public.fichas_tecnicas enable row level security;
+alter table public.planos          enable row level security;
+alter table public.metas           enable row level security;
+
+
+-- ───────────── perfis ─────────────
+-- Cada um enxerga e edita só o próprio perfil. O papel não entra no
+-- `update` da aplicação: quem virou nutricionista não vira paciente
+-- mudando um campo pelo console do navegador.
+
+drop policy if exists perfis_ler_proprio on public.perfis;
+create policy perfis_ler_proprio on public.perfis
+  for select using (id = auth.uid());
+
+drop policy if exists perfis_atualizar_proprio on public.perfis;
+create policy perfis_atualizar_proprio on public.perfis
+  for update using (id = auth.uid()) with check (id = auth.uid());
+
+
+-- ───────────── pacientes ─────────────
+
+drop policy if exists pacientes_nutricionista on public.pacientes;
+create policy pacientes_nutricionista on public.pacientes
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+-- O paciente lê a própria ficha, mas não edita: dado clínico é do
+-- prontuário, quem responde por ele é o profissional.
+drop policy if exists pacientes_proprio_ler on public.pacientes;
+create policy pacientes_proprio_ler on public.pacientes
+  for select using (usuario_id = auth.uid());
+
+
+-- ───────────── consultas ─────────────
+
+drop policy if exists consultas_nutricionista on public.consultas;
+create policy consultas_nutricionista on public.consultas
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+drop policy if exists consultas_paciente_ler on public.consultas;
+create policy consultas_paciente_ler on public.consultas
+  for select using (
+    exists (
+      select 1 from public.pacientes p
+      where p.id = consultas.paciente_id
+        and p.usuario_id = auth.uid()
+    )
+  );
+
+
+-- ───────────── pagamentos ─────────────
+-- Sem política de leitura para o paciente, de propósito: o financeiro é
+-- a contabilidade do consultório, não o extrato do paciente. Se um dia
+-- fizer sentido mostrar, entra como decisão própria — não de passagem.
+
+drop policy if exists pagamentos_nutricionista on public.pagamentos;
+create policy pagamentos_nutricionista on public.pagamentos
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+
+-- ───────────── anamneses ─────────────
+-- Também sem leitura pelo paciente: a anamnese tem anotação clínica
+-- escrita para o profissional, com termos que fora de contexto assustam
+-- ou confundem. O que o paciente acompanha é a evolução (avaliacoes).
+
+drop policy if exists anamneses_nutricionista on public.anamneses;
+create policy anamneses_nutricionista on public.anamneses
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+
+-- ───────────── avaliacoes ─────────────
+-- Esta o paciente vê: é o "antes e depois" dele, o gráfico de peso,
+-- cintura e IMC da própria área.
+
+drop policy if exists avaliacoes_nutricionista on public.avaliacoes;
+create policy avaliacoes_nutricionista on public.avaliacoes
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+drop policy if exists avaliacoes_paciente_ler on public.avaliacoes;
+create policy avaliacoes_paciente_ler on public.avaliacoes
+  for select using (
+    exists (
+      select 1 from public.pacientes p
+      where p.id = avaliacoes.paciente_id
+        and p.usuario_id = auth.uid()
+    )
+  );
+
+
+-- ───────────── fichas_tecnicas ─────────────
+-- Só quando o nutricionista marcar `visivel_paciente`. Ficha em rascunho
+-- não vaza.
+
+drop policy if exists fichas_nutricionista on public.fichas_tecnicas;
+create policy fichas_nutricionista on public.fichas_tecnicas
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+drop policy if exists fichas_paciente_ler on public.fichas_tecnicas;
+create policy fichas_paciente_ler on public.fichas_tecnicas
+  for select using (
+    visivel_paciente
+    and exists (
+      select 1 from public.pacientes p
+      where p.id = fichas_tecnicas.paciente_id
+        and p.usuario_id = auth.uid()
+    )
+  );
+
+
+-- ───────────── planos ─────────────
+
+drop policy if exists planos_nutricionista on public.planos;
+create policy planos_nutricionista on public.planos
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+drop policy if exists planos_paciente_ler on public.planos;
+create policy planos_paciente_ler on public.planos
+  for select using (
+    visivel_paciente
+    and exists (
+      select 1 from public.pacientes p
+      where p.id = planos.paciente_id
+        and p.usuario_id = auth.uid()
+    )
+  );
+
+
+-- ───────────── metas ─────────────
+-- O paciente lê: é a linha de meta sobreposta ao gráfico de peso dele.
+
+drop policy if exists metas_nutricionista on public.metas;
+create policy metas_nutricionista on public.metas
+  for all
+  using (nutricionista_id = auth.uid())
+  with check (nutricionista_id = auth.uid());
+
+drop policy if exists metas_paciente_ler on public.metas;
+create policy metas_paciente_ler on public.metas
+  for select using (
+    exists (
+      select 1 from public.pacientes p
+      where p.id = metas.paciente_id
+        and p.usuario_id = auth.uid()
+    )
+  );
+
+
+-- ============================================================
+--  Conferência
+-- ============================================================
+-- Deve listar as 9 tabelas, todas com rls_ligada = true e pelo menos
+-- uma política. Qualquer linha com false ou 0 é um vazamento.
+
+select
+  c.relname                as tabela,
+  c.relrowsecurity         as rls_ligada,
+  count(p.polname)         as politicas
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+left join pg_policy p on p.polrelid = c.oid
+where n.nspname = 'public'
+  and c.relkind = 'r'
+group by c.relname, c.relrowsecurity
+order by c.relname;

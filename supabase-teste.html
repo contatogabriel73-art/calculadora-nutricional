@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conferir o banco — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+<style>
+  /* Página de manutenção: estilos ficam aqui em vez de sujar o CSS
+     do app, que é carregado por todas as telas de verdade. */
+  .diag-lista { list-style: none; padding: 0; margin: 0; }
+  .diag-lista li {
+    display: flex; justify-content: space-between; gap: 1rem;
+    padding: .55rem 0; border-bottom: 1px solid rgba(0,0,0,.07);
+    font-size: .95rem;
+  }
+  .diag-lista li:last-child { border-bottom: 0; }
+  .diag-nome { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .diag-ok { color: #16694a; font-weight: 600; }
+  .diag-erro { color: #a12727; text-align: right; }
+  .diag-bloco { margin-top: 1.5rem; }
+  .diag-passo { font-size: .95rem; line-height: 1.6; }
+  .diag-passo code { background: rgba(0,0,0,.06); padding: .1rem .35rem; border-radius: 4px; }
+</style>
+</head>
+<body class="pagina-login">
+
+<main class="login-caixa" style="max-width:44rem">
+  <a class="brand brand-login" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <rect width="48" height="48" rx="12" fill="currentColor"/>
+      <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>NutriFicha</h1>
+      <p class="brand-sub">Conferência do banco de dados</p>
+    </div>
+  </a>
+
+  <div class="card">
+    <h2 class="card-title">Está tudo no lugar?</h2>
+    <p class="diag-passo">
+      Esta página não faz parte do sistema — serve só para conferir, durante a
+      migração, se a conexão com o Supabase e as tabelas estão de pé.
+    </p>
+
+    <div class="diag-bloco">
+      <h3 class="card-title">1. Configuração</h3>
+      <ul class="diag-lista" id="conf"></ul>
+    </div>
+
+    <div class="diag-bloco">
+      <h3 class="card-title">2. Tabelas</h3>
+      <p class="diag-passo" id="tabelas-intro">—</p>
+      <ul class="diag-lista" id="tabelas"></ul>
+    </div>
+
+    <div class="diag-bloco">
+      <h3 class="card-title">3. Row Level Security</h3>
+      <p class="diag-passo" id="rls">—</p>
+    </div>
+
+    <div class="diag-bloco">
+      <button id="btn-testar" class="btn btn-primary btn-bloco" type="button">Testar de novo</button>
+      <p class="login-voltar"><a href="index.html">← Voltar para a página inicial</a></p>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const elConf = document.querySelector('#conf');
+  const elTabelas = document.querySelector('#tabelas');
+  const elIntro = document.querySelector('#tabelas-intro');
+  const elRls = document.querySelector('#rls');
+
+  function escapar(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  function linha(nome, ok, detalhe) {
+    return `<li>
+      <span class="diag-nome">${escapar(nome)}</span>
+      <span class="${ok ? 'diag-ok' : 'diag-erro'}">${escapar(detalhe)}</span>
+    </li>`;
+  }
+
+  async function testar() {
+    /* ── 1. Configuração ── */
+    const cfg = window.SUPABASE_CONFIG || {};
+    const temUrl = !!String(cfg.url || '').trim();
+    const temChave = !!String(cfg.anonKey || '').trim();
+    const temLib = !!(window.supabase && window.supabase.createClient);
+
+    // A service_role começa igual à anon mas tem "service_role" no
+    // corpo do token. Se ela estiver aqui, o site inteiro ignora RLS.
+    const chaveSuspeita = temChave && /service_role/.test(
+      (() => { try { return atob(String(cfg.anonKey).split('.')[1] || ''); } catch (e) { return ''; } })()
+    );
+
+    elConf.innerHTML =
+      linha('URL do projeto', temUrl, temUrl ? 'preenchida' : 'faltando') +
+      linha('Chave anônima', temChave && !chaveSuspeita,
+        !temChave ? 'faltando'
+          : chaveSuspeita ? '⚠️ isto é a service_role — troque pela anon AGORA'
+          : 'preenchida') +
+      linha('Biblioteca do CDN', temLib, temLib ? 'carregada' : 'não carregou');
+
+    if (!temUrl || !temChave) {
+      elIntro.textContent = 'Preencha js/supabase-config.js e teste de novo.';
+      elTabelas.innerHTML = '';
+      elRls.textContent = '—';
+      return;
+    }
+
+    /* ── 2. Tabelas ── */
+    elIntro.textContent = 'Consultando…';
+    elTabelas.innerHTML = '';
+
+    const r = await Banco.diagnostico();
+    if (r.erro) {
+      elIntro.innerHTML = `<span class="diag-erro">${escapar(r.erro)}</span>`;
+      return;
+    }
+
+    elTabelas.innerHTML = Object.entries(r.tabelas)
+      .map(([nome, estado]) => linha(nome, estado === 'ok', estado))
+      .join('');
+
+    elIntro.textContent = r.ok
+      ? 'As 9 tabelas existem e respondem.'
+      : 'Alguma tabela não respondeu — rode supabase/schema.sql no SQL Editor.';
+
+    /* ── 3. RLS ──
+       Sem login, uma tabela protegida devolve lista vazia (e não erro).
+       Se vier linha, a política está aberta demais. */
+    const c = Banco.cx();
+    const { data: sessao } = await c.auth.getSession();
+
+    if (sessao && sessao.session) {
+      elRls.innerHTML = 'Você está logado nesta aba, então o teste anônimo não vale. ' +
+        'Saia da sessão e recarregue para conferir.';
+      return;
+    }
+
+    const vazados = [];
+    for (const nome of Object.keys(r.tabelas)) {
+      const { data } = await c.from(nome).select('id').limit(1);
+      if (data && data.length) vazados.push(nome);
+    }
+
+    elRls.innerHTML = vazados.length
+      ? `<span class="diag-erro">⚠️ Sem estar logado, deu para ler linhas de:
+         <strong>${escapar(vazados.join(', '))}</strong>. Rode a parte de RLS do
+         schema.sql — assim está aberto para qualquer visitante.</span>`
+      : '<span class="diag-ok">✓ Sem login, nenhuma tabela devolveu dados.</span> ' +
+        'Isso confirma o básico. O teste que falta — um paciente não ver o outro — ' +
+        'só dá para fazer com duas contas de verdade, na Fase 5.';
+  }
+
+  document.querySelector('#btn-testar').addEventListener('click', testar);
+  testar();
+})();
+</script>
+</body>
+</html>

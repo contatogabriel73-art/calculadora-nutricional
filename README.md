@@ -10,17 +10,22 @@ e guarda as fichas no prontuário de cada paciente.
 
 HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 
-> ## ⚠️ Estado atual: protótipo
+> ## ⚠️ Estado atual: protótipo, no meio da migração para banco de dados
 >
-> **Não há backend.** O login é fictício, com credenciais no próprio código, e
-> todos os dados ficam no `localStorage` do navegador — sem servidor, sem backup
-> e sem sincronizar entre aparelhos. Qualquer pessoa consegue ler as credenciais
-> ou marcar a flag de sessão pelo console.
+> **O login já é de verdade** — contas com e-mail e senha no Supabase Auth, e
+> dois papéis: nutricionista e paciente.
+>
+> **Os dados clínicos ainda não.** Pacientes, agenda, financeiro e fichas
+> continuam no `localStorage` do navegador enquanto os módulos de persistência
+> são migrados um a um — sem servidor, sem backup e sem sincronizar entre
+> aparelhos.
 >
 > **Não cadastre dados reais de paciente.** Nome, contato e observações de saúde
-> são dados pessoais sensíveis; guardá-los num protótipo público sem controle de
-> acesso não é adequado nem do ponto de vista da LGPD. Use dados fictícios até a
-> versão com banco de dados.
+> são dados pessoais sensíveis; guardá-los no `localStorage` não é adequado do
+> ponto de vista da LGPD. Use dados fictícios até a migração terminar **e ser
+> testada** — inclusive testando que um paciente não vê dados de outro.
+>
+> Como montar o banco: [`supabase/README.md`](supabase/README.md).
 
 ### ▶ Testar agora
 
@@ -37,12 +42,17 @@ Depois de instalado funciona **offline**.
 | Página | O que é |
 |---|---|
 | `index.html` | Landing pública que apresenta o produto. |
-| `login.html` | Entrada. Mostra as credenciais de demonstração na própria tela. |
+| `login.html` | Entrada, com conta de verdade. |
+| `cadastro.html` | Criação de conta, escolhendo nutricionista ou paciente. |
+| `area-paciente.html` | Área do paciente — só leitura da própria evolução. |
 | `pacientes.html` | Lista, busca, cadastro e edição de pacientes. |
 | `paciente.html?id=…` | Ficha do paciente e histórico de fichas técnicas. |
 | `ficha.html` | A ferramenta de cálculo. |
 
-**Credenciais de demonstração:** `nutricionista@teste.com` / `123456`
+Cada papel tem a sua área: o nutricionista cai no painel do consultório, o
+paciente na área de acompanhamento. Quem abre a área do outro é devolvido para
+a sua — `cadastro.html?papel=nutricionista` (ou `paciente`) já chega com a
+opção marcada.
 
 ### Modos da ferramenta de ficha
 
@@ -174,7 +184,9 @@ npx serve .
 ```
 calculadora/
 ├── index.html              Landing pública
-├── login.html              Entrada (credenciais de demonstração)
+├── login.html              Entrada (conta de verdade)
+├── cadastro.html           Criar conta, escolhendo o papel
+├── area-paciente.html      Área do paciente (só leitura)
 ├── pacientes.html          Lista e cadastro de pacientes
 ├── paciente.html           Detalhe do paciente + histórico de fichas
 ├── ficha.html              A ferramenta: 3 abas e as 3 folhas da ficha
@@ -182,11 +194,16 @@ calculadora/
 ├── plataforma.css          Landing, login, pacientes e casca do sistema
 ├── app.js                  Busca, cálculo, renderização e PWA. Expõe FichaTool
 ├── js/
-│   ├── auth.js             ← trocar por Supabase Auth
+│   ├── supabase-config.js  URL e chave pública do projeto
+│   ├── supabase-client.js  Conexão única com o banco
+│   ├── auth.js             Contas, papéis e guarda de rota
 │   ├── pacientes-storage.js ← trocar por tabela `pacientes`
-│   ├── fichas-storage.js   ← trocar por tabela `fichas`
+│   ├── fichas-storage.js   ← trocar por tabela `fichas_tecnicas`
 │   ├── shell.js            Cabeçalho comum e utilidades
 │   └── ficha-paciente.js   Vínculo ficha ↔ paciente
+├── supabase/
+│   ├── schema.sql          Tabelas, gatilhos e Row Level Security
+│   └── README.md           Como montar o banco
 ├── manifest.json           Manifesto do PWA
 ├── sw.js                   Service worker (offline)
 ├── server.js               Servidor estático de desenvolvimento

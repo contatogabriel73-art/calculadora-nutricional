@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v2.6';
+const CACHE = 'nutri-taco-v2.7';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 
@@ -38,6 +38,8 @@ const SHELL = [
   './index.html',
   './painel.html',
   './login.html',
+  './cadastro.html',
+  './area-paciente.html',
   './pacientes.html',
   './paciente.html',
   './ficha.html',
@@ -48,6 +50,11 @@ const SHELL = [
   './styles.css',
   './plataforma.css',
   './app.js',
+  // A biblioteca do Supabase vem de CDN e não entra aqui: o service
+  // worker só intercepta a própria origem. Sem internet, o cliente do
+  // banco não sobe e as telas internas avisam em vez de quebrar.
+  './js/supabase-config.js',
+  './js/supabase-client.js',
   './js/auth.js',
   './js/pacientes-storage.js',
   './js/fichas-storage.js',

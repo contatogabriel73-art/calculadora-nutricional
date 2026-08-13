@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Criar conta — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="pagina-login">
+
+<main class="login-caixa">
+  <a class="brand brand-login" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <rect width="48" height="48" rx="12" fill="currentColor"/>
+      <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>NutriFicha</h1>
+      <p class="brand-sub">Plataforma para nutricionistas</p>
+    </div>
+  </a>
+
+  <div class="card card-login">
+    <h2 class="card-title">Criar conta</h2>
+
+    <form id="form-cadastro" novalidate>
+
+      <fieldset class="escolha-papel">
+        <legend>Você é nutricionista ou está sendo avaliado por um nutricionista?</legend>
+
+        <label class="opcao-papel">
+          <input type="radio" name="papel" value="nutricionista" required>
+          <span>
+            <strong>Sou nutricionista</strong>
+            <span>Quero organizar meus pacientes, consultas, fichas técnicas e o
+                  financeiro do consultório.</span>
+          </span>
+        </label>
+
+        <label class="opcao-papel">
+          <input type="radio" name="papel" value="paciente" required>
+          <span>
+            <strong>Sou paciente</strong>
+            <span>Quero acompanhar minha evolução e minhas próximas consultas.
+                  Você vai precisar de um código do seu nutricionista para ver
+                  seus dados.</span>
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="campo">
+        <label class="field-label" for="nome">Seu nome</label>
+        <input id="nome" class="input" type="text" autocomplete="name" required>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="email">E-mail</label>
+        <input id="email" class="input" type="email" autocomplete="username"
+               inputmode="email" autocapitalize="none" spellcheck="false" required>
+      </div>
+
+      <div class="campo">
+        <label class="field-label" for="senha">Senha</label>
+        <input id="senha" class="input" type="password" autocomplete="new-password"
+               minlength="6" required>
+        <p class="dica">Pelo menos 6 caracteres.</p>
+      </div>
+
+      <p id="erro-cadastro" class="erro-form" role="alert" hidden></p>
+
+      <button id="btn-criar" class="btn btn-primary btn-bloco" type="submit">Criar conta</button>
+    </form>
+
+    <div id="confirmacao" hidden>
+      <div class="aviso-demo">
+        <strong>Confirme seu e-mail</strong>
+        <p>
+          Enviamos um link para <span id="email-enviado"></span>. Abra a mensagem
+          e clique no link para ativar a conta — depois é só entrar.
+        </p>
+      </div>
+      <p class="login-voltar"><a href="login.html">Ir para a tela de entrada</a></p>
+    </div>
+
+    <p class="login-alternativa">
+      Já tem conta? <a href="login.html">Entrar</a>
+    </p>
+
+    <p class="login-voltar"><a href="index.html">← Voltar para a página inicial</a></p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const form = document.querySelector('#form-cadastro');
+  const erro = document.querySelector('#erro-cadastro');
+  const botao = document.querySelector('#btn-criar');
+  const confirmacao = document.querySelector('#confirmacao');
+
+  function mostrarErro(msg) {
+    erro.textContent = msg;
+    erro.hidden = false;
+  }
+
+  /* A landing manda ?papel=nutricionista ou ?papel=paciente pelos botões
+     "Sou nutricionista" / "Sou paciente". Chegar com a opção já marcada
+     poupa um passo de quem clicou sabendo o que queria. */
+  const pedido = new URLSearchParams(location.search).get('papel');
+  if (Auth.PAPEIS.includes(pedido)) {
+    const alvo = form.querySelector('input[name="papel"][value="' + pedido + '"]');
+    if (alvo) alvo.checked = true;
+  }
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    erro.hidden = true;
+
+    const escolhido = form.querySelector('input[name="papel"]:checked');
+
+    botao.disabled = true;
+    botao.textContent = 'Criando…';
+
+    const resultado = await Auth.cadastrar({
+      papel: escolhido ? escolhido.value : '',
+      nome: document.querySelector('#nome').value,
+      email: document.querySelector('#email').value,
+      senha: document.querySelector('#senha').value
+    });
+
+    botao.disabled = false;
+    botao.textContent = 'Criar conta';
+
+    if (!resultado.ok) {
+      mostrarErro(resultado.erro);
+      return;
+    }
+
+    // Projeto com confirmação de e-mail ligada: a conta existe, mas ainda
+    // não há sessão. Mandar para o painel agora só faria a pessoa rebater
+    // no login sem entender por quê.
+    if (resultado.precisaConfirmar) {
+      form.hidden = true;
+      document.querySelector('#email-enviado').textContent = resultado.email;
+      confirmacao.hidden = false;
+      return;
+    }
+
+    location.replace(resultado.destino);
+  });
+
+  (async () => {
+    if (!Banco.configurado()) {
+      mostrarErro(Banco.motivo());
+      botao.disabled = true;
+      return;
+    }
+    // Já entrou? Não faz sentido oferecer cadastro.
+    if (await Auth.estaLogado()) {
+      location.replace(Auth.paginaInicial(await Auth.papelAtual()));
+    }
+  })();
+})();
+</script>
+</body>
+</html>

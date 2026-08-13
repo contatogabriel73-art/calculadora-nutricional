@@ -469,22 +469,91 @@ a.aba[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
 .aviso-demo strong { display: block; font-size: .84rem; color: var(--verde-escuro); margin-bottom: 4px; }
 .aviso-demo p { margin: 0 0 10px; font-size: .82rem; line-height: 1.5; color: var(--tinta-2); }
 
-.credenciais { margin: 0 0 10px; display: grid; gap: 4px; }
-.credenciais > div { display: flex; gap: 8px; align-items: baseline; }
-.credenciais dt { font-size: .76rem; color: var(--tinta-3); min-width: 52px; }
-.credenciais dd {
-  margin: 0;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: .84rem;
-  color: var(--verde-escuro);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
 .login-voltar { margin: 16px 0 0; text-align: center; font-size: .86rem; }
 .login-voltar a { color: var(--tinta-2); }
 
+.login-alternativa {
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--linha);
+  text-align: center;
+  font-size: .88rem;
+  color: var(--tinta-2);
+}
+.login-alternativa a { color: var(--verde); font-weight: 600; }
+
 .pagina-login .campo { margin-bottom: 14px; }
+
+/* ── Telas internas: nada aparece antes do guarda de rota decidir ──
+   Os scripts ficam no fim do <body>, então quando o guarda roda a
+   página já foi pintada. Sem isto, quem abre a área errada vê o
+   esqueleto dela piscar antes de ser redirecionado — um paciente
+   enxergando por um instante a tela de Financeiro do consultório.
+   Nenhum dado vaza (eles só carregam depois do guarda), mas a tela
+   errada não deveria aparecer.
+
+   `visibility` e não `display`: o layout já fica calculado, então
+   revelar não causa outro reflow.
+
+   Se algum dia o JS não rodar, a página fica em branco em vez de
+   mostrar um esqueleto vazio — o que é aceitável porque nenhuma destas
+   telas funciona sem JS de qualquer forma. */
+body.protegida { visibility: hidden; }
+body.protegida.liberada { visibility: visible; }
+
+/* ── Escolha do tipo de conta (cadastro) ──
+   Cartões clicáveis em vez de um <select>: a diferença entre as duas
+   contas muda tudo o que a pessoa vê depois, então vale ocupar espaço
+   explicando cada uma em vez de esconder atrás de uma lista. */
+
+.escolha-papel {
+  border: 0;
+  padding: 0;
+  margin: 0 0 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.escolha-papel legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--tinta);
+  line-height: 1.45;
+}
+
+.opcao-papel {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border: 1.5px solid var(--linha);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+.opcao-papel:hover { border-color: #bfdccf; }
+
+.opcao-papel input { margin: 2px 0 0; flex: none; accent-color: var(--verde); }
+
+.opcao-papel > span { display: block; }
+.opcao-papel strong { display: block; font-size: .92rem; color: var(--tinta); }
+.opcao-papel strong + span {
+  display: block;
+  margin-top: 3px;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--tinta-2);
+}
+
+/* :has() para pintar o cartão inteiro, e não só o bolinha do rádio.
+   Onde não houver suporte, a marcação do rádio ainda mostra a escolha. */
+.opcao-papel:has(input:checked) {
+  border-color: var(--verde);
+  background: var(--verde-claro);
+}
+.opcao-papel:has(input:focus-visible) { outline: 2px solid var(--verde); outline-offset: 2px; }
 
 /* ═══════════════════════════════════════════
    PACIENTES

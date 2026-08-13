@@ -84,24 +84,62 @@ const Shell = (() => {
       <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
+  /* A navegação muda por papel. Mesma casca, mesmo verde, mesma marca —
+     o que muda é o que cada um tem para fazer ali dentro.
+
+     O paciente não recebe uma versão reduzida do menu do profissional:
+     recebe o menu dele. Financeiro e ficha técnica não são seções que ele
+     "ainda não pode" abrir; são ferramentas de consultório que não fazem
+     parte do que ele veio ver. */
+  const NAVEGACAO = {
+    nutricionista: {
+      sub: 'Plataforma para nutricionistas',
+      inicio: 'painel.html',
+      abas: [
+        { id: 'painel',     href: 'painel.html',     rotulo: 'Painel' },
+        { id: 'pacientes',  href: 'pacientes.html',  rotulo: 'Pacientes' },
+        { id: 'agenda',     href: 'agenda.html',     rotulo: 'Agenda' },
+        { id: 'financeiro', href: 'financeiro.html', rotulo: 'Financeiro' },
+        { id: 'ficha',      href: 'ficha.html',      rotulo: 'Ficha Técnica' }
+      ]
+    },
+    paciente: {
+      sub: 'Seu acompanhamento nutricional',
+      inicio: 'area-paciente.html',
+      abas: [
+        { id: 'inicio', href: 'area-paciente.html', rotulo: 'Início' }
+      ]
+    }
+  };
+
   /**
    * Desenha o cabeçalho interno dentro de <header id="app-shell">.
-   * @param {string} ativo 'pacientes' | 'ficha'
+   * @param {string} ativo id da aba atual ('painel', 'pacientes', 'inicio'…)
    */
   async function montarCabecalho(ativo) {
     const alvo = document.querySelector('#app-shell');
     if (!alvo) return;
 
     const usuario = await Auth.usuarioAtual();
+    const nav = NAVEGACAO[usuario && usuario.papel] || NAVEGACAO.nutricionista;
+
+    /* Uma aba só não é navegação, é enfeite: o paciente ganha o cabeçalho
+       sem a barra de abas até a área dele ter mais de uma seção. */
+    const abas = nav.abas.length > 1 ? `
+      <nav class="abas wrap" aria-label="Seções do sistema">
+        ${nav.abas.map((a) => `
+          <a class="aba" href="${a.href}" ${ativo === a.id ? 'aria-current="page"' : ''}>${a.rotulo}</a>
+        `).join('')}
+      </nav>` : '';
 
     alvo.className = 'app-header';
     alvo.innerHTML = `
       <div class="wrap header-inner">
-        <a class="brand brand-link" href="painel.html">
+        <a class="brand brand-link" href="${nav.inicio}">
           ${MARCA_SVG}
           <div>
             <h1>NutriFicha</h1>
-            <p class="brand-sub">Plataforma para nutricionistas</p>
+            <p class="brand-sub">${escapar(nav.sub)}</p>
           </div>
         </a>
         <div class="header-acoes">
@@ -109,13 +147,7 @@ const Shell = (() => {
           <button id="btn-sair" class="btn btn-ghost btn-sm" type="button">Sair</button>
         </div>
       </div>
-      <nav class="abas wrap" aria-label="Seções do sistema">
-        <a class="aba" href="painel.html" ${ativo === 'painel' ? 'aria-current="page"' : ''}>Painel</a>
-        <a class="aba" href="pacientes.html" ${ativo === 'pacientes' ? 'aria-current="page"' : ''}>Pacientes</a>
-        <a class="aba" href="agenda.html" ${ativo === 'agenda' ? 'aria-current="page"' : ''}>Agenda</a>
-        <a class="aba" href="financeiro.html" ${ativo === 'financeiro' ? 'aria-current="page"' : ''}>Financeiro</a>
-        <a class="aba" href="ficha.html" ${ativo === 'ficha' ? 'aria-current="page"' : ''}>Ficha Técnica</a>
-      </nav>`;
+      ${abas}`;
 
     alvo.querySelector('#btn-sair').addEventListener('click', async () => {
       await Auth.logout();

@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="plataforma.css">
 </head>
-<body>
+<body class="protegida">
 
 <header id="app-shell"></header>
 
@@ -210,6 +210,9 @@
 <!-- Chart.js: única dependência externa. Carrega antes do script da tela,
      mas a página funciona sem ela (ver js/graficos.js). -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/pacientes-storage.js"></script>
 <script src="js/agenda-storage.js"></script>

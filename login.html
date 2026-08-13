@@ -29,19 +29,6 @@
   <div class="card card-login">
     <h2 class="card-title">Entrar</h2>
 
-    <div class="aviso-demo">
-      <strong>Acesso de demonstração</strong>
-      <p>
-        Ainda não existe cadastro nem senha de verdade. Use os dados abaixo
-        — eles estão no código do site e servem só para você navegar pelas telas.
-      </p>
-      <dl class="credenciais">
-        <div><dt>E-mail</dt><dd id="demo-email">—</dd></div>
-        <div><dt>Senha</dt><dd id="demo-senha">—</dd></div>
-      </dl>
-      <button id="btn-preencher" class="btn btn-ghost btn-sm" type="button">Preencher para mim</button>
-    </div>
-
     <form id="form-login" novalidate>
       <div class="campo">
         <label class="field-label" for="email">E-mail</label>
@@ -56,13 +43,20 @@
 
       <p id="erro-login" class="erro-form" role="alert" hidden></p>
 
-      <button class="btn btn-primary btn-bloco" type="submit">Entrar</button>
+      <button id="btn-entrar" class="btn btn-primary btn-bloco" type="submit">Entrar</button>
     </form>
+
+    <p class="login-alternativa">
+      Ainda não tem conta? <a href="cadastro.html">Criar uma conta</a>
+    </p>
 
     <p class="login-voltar"><a href="index.html">← Voltar para a página inicial</a></p>
   </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script>
 (() => {
@@ -72,43 +66,56 @@
   const email = document.querySelector('#email');
   const senha = document.querySelector('#senha');
   const erro = document.querySelector('#erro-login');
+  const botao = document.querySelector('#btn-entrar');
 
-  const demo = Auth.credenciaisDemo();
-  document.querySelector('#demo-email').textContent = demo.email;
-  document.querySelector('#demo-senha').textContent = demo.senha;
+  function mostrarErro(msg) {
+    erro.textContent = msg;
+    erro.hidden = false;
+  }
 
-  document.querySelector('#btn-preencher').addEventListener('click', () => {
-    email.value = demo.email;
-    senha.value = demo.senha;
-    erro.hidden = true;
-    senha.focus();
-  });
-
-  // Para onde ir depois de entrar. Só aceitamos caminhos internos:
-  // um destino vindo da URL não pode virar redirecionamento para outro site.
-  function destinoSeguro() {
-    const bruto = new URLSearchParams(location.search).get('destino') || 'painel.html';
-    if (/^[a-z0-9._-]+\.html(\?[^#]*)?$/i.test(bruto)) return bruto;
-    return 'painel.html';
+  /* Para onde ir depois de entrar.
+     Só aceitamos caminho interno: um destino vindo da URL não pode virar
+     redirecionamento para outro site. Sem destino, cada papel tem a sua
+     página inicial — o painel do consultório para o nutricionista, a
+     área de acompanhamento para o paciente. */
+  function destinoSeguro(padrao) {
+    const bruto = new URLSearchParams(location.search).get('destino');
+    if (bruto && /^[a-z0-9._-]+\.html(\?[^#]*)?$/i.test(bruto)) return bruto;
+    return padrao;
   }
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     erro.hidden = true;
+    botao.disabled = true;
+    botao.textContent = 'Entrando…';
 
     const resultado = await Auth.login(email.value, senha.value);
+
+    botao.disabled = false;
+    botao.textContent = 'Entrar';
+
     if (!resultado.ok) {
-      erro.textContent = resultado.erro;
-      erro.hidden = false;
+      mostrarErro(resultado.erro);
       senha.focus();
       senha.select();
       return;
     }
-    location.replace(destinoSeguro());
+    location.replace(destinoSeguro(resultado.destino));
   });
 
-  // Já logado? Vai direto.
-  Auth.estaLogado().then((sim) => { if (sim) location.replace(destinoSeguro()); });
+  // Já logado? Vai direto para a área do papel de quem está na sessão.
+  (async () => {
+    if (!Banco.configurado()) {
+      mostrarErro(Banco.motivo());
+      botao.disabled = true;
+      return;
+    }
+    if (await Auth.estaLogado()) {
+      const papel = await Auth.papelAtual();
+      location.replace(destinoSeguro(Auth.paginaInicial(papel)));
+    }
+  })();
 })();
 </script>
 </body>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meu acompanhamento — NutriFicha</title>
+<meta name="theme-color" content="#16694a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="protegida">
+
+<header id="app-shell"></header>
+
+<main class="wrap painel">
+
+  <div class="painel-topo">
+    <h1 id="saudacao"></h1>
+    <p class="painel-sub">Aqui você acompanha sua evolução e suas próximas consultas.</p>
+  </div>
+
+  <section class="bloco">
+    <div class="bloco-topo"><h2>Ainda falta conectar você ao seu nutricionista</h2></div>
+    <p class="vazio-suave">
+      Sua conta está criada, mas ainda não está ligada a nenhum profissional.
+      Peça ao seu nutricionista o código de convite dele — é com esse código
+      que suas consultas e sua evolução aparecem aqui.
+    </p>
+    <p class="dica">
+      Enquanto isso não acontece, não há nada para mostrar. Nenhum dado seu
+      fica visível para outro paciente.
+    </p>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/shell.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  (async () => {
+    // Área do paciente: um nutricionista que caia aqui é devolvido ao painel dele.
+    if (!(await Auth.exigirLogin('paciente'))) return;
+    await Shell.montarCabecalho('inicio');
+
+    const usuario = await Auth.usuarioAtual();
+    const primeiro = String(usuario.nome || '').trim().split(/\s+/)[0] || '';
+    document.querySelector('#saudacao').textContent =
+      primeiro ? `Olá, ${primeiro}` : 'Olá';
+  })();
+})();
+</script>
+</body>
+</html>

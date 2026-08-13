@@ -45,6 +45,17 @@ const Auth = (() => {
     perfilCarregado = false;
   }
 
+  /**
+   * Substitui o perfil em cache depois de uma gravação, para o
+   * cabeçalho não continuar mostrando o nome antigo até a próxima
+   * navegação. Usado por perfil-storage.js.
+   */
+  function atualizarPerfilEmCache(linha) {
+    if (!linha) return;
+    perfilCache = linha;
+    perfilCarregado = true;
+  }
+
   function paginaInicial(papel) {
     return INICIO[papel] || INICIO.nutricionista;
   }
@@ -110,6 +121,17 @@ const Auth = (() => {
   async function papelAtual() {
     const perfil = await perfilAtual();
     return perfil ? perfil.papel : '';
+  }
+
+  /**
+   * O auth.uid() de quem está logado. É o que vai na coluna
+   * `nutricionista_id` de tudo que o profissional cria, e o que as
+   * políticas do banco comparam.
+   * @returns {Promise<string>} '' quando não há sessão
+   */
+  async function idAtual() {
+    const s = await sessao();
+    return s ? s.user.id : '';
   }
 
   /* ───────────── Entrar, cadastrar, sair ───────────── */
@@ -260,7 +282,7 @@ const Auth = (() => {
   return {
     PAPEIS, paginaInicial,
     login, cadastrar, logout,
-    estaLogado, usuarioAtual, perfilAtual, papelAtual,
-    exigirLogin
+    estaLogado, usuarioAtual, perfilAtual, papelAtual, idAtual,
+    atualizarPerfilEmCache, exigirLogin
   };
 })();

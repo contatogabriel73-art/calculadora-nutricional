@@ -155,13 +155,18 @@ const Shell = (() => {
     });
   }
 
-  /** Aviso fixo: os dados vivem só neste navegador. */
+  /* Os dados agora ficam em banco, com Row Level Security separando por
+     conta. O aviso mudou de conteúdo, mas continua existindo: o teste
+     que falta — duas contas de paciente, uma não vendo a outra — só é
+     possível quando a área do paciente estiver pronta. Enquanto isso
+     não for verificado, dado real de saúde não entra aqui. */
   function avisoArmazenamento() {
     return `
       <p class="aviso-dados">
-        <strong>Protótipo:</strong> os dados ficam salvos apenas neste navegador,
-        sem backup e sem sincronizar entre aparelhos. Não cadastre informação
-        real de paciente até a versão com banco de dados.
+        <strong>Ainda em testes:</strong> os dados já ficam num banco de dados,
+        separados por conta, e não mais só neste navegador. A separação entre
+        contas de paciente ainda está sendo verificada — até lá, use dados
+        fictícios em vez de informação real de paciente.
       </p>`;
   }
 

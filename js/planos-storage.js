@@ -1,22 +1,26 @@
 /* ============================================================
-   planos-storage.js — planos alimentares e metas do paciente
+   planos-storage.js — planos alimentares e metas (tabelas `planos` e `metas`)
 
    • Plano alimentar: VÁRIOS por paciente. Cada plano tem refeições, e
-     cada refeição tem itens (alimento + gramas).
-   • Metas: UMA por paciente. Peso alvo, meta calórica e distribuição de
-     macronutrientes — servem de referência para todos os planos dele.
-
-   Grava no localStorage. TROCA POR SUPABASE: único ponto a mexer.
-     planos → tabela `planos` (refeicoes em coluna jsonb)
-     metas  → tabela `metas` (1 linha por paciente)
+     cada refeição tem itens (alimento + gramas). A árvore inteira vive
+     numa coluna `jsonb` — ela é lida e gravada sempre por inteiro, e
+     normalizar isso em três tabelas só criaria junções para montar de
+     volta o mesmo objeto.
+   • Metas: UMA por paciente (`unique (paciente_id)` no banco). Peso
+     alvo, meta calórica e distribuição de macronutrientes — servem de
+     referência para todos os planos dele.
    ============================================================ */
 
 'use strict';
 
 const PlanosStore = (() => {
 
-  const CHAVE_PLANOS = 'nutri:planos:v1';
-  const CHAVE_METAS = 'nutri:metas:v1';
+  const COLUNAS_PLANO = 'id, nutricionista_id, paciente_id, nome, data, observacoes, ' +
+                        'refeicoes, resumo, visivel_paciente, criado_em, atualizado_em';
+
+  const COLUNAS_METAS = 'id, nutricionista_id, paciente_id, peso_meta, kcal_meta, ' +
+                        'pct_proteina, pct_carboidrato, pct_lipidio, observacoes, ' +
+                        'criado_em, atualizado_em';
 
   /* Estrutura padrão de um dia. O profissional pode renomear, remover ou
      acrescentar refeições depois. */
@@ -33,26 +37,22 @@ const PlanosStore = (() => {
      Ponto de partida comum; o profissional ajusta por paciente. */
   const MACROS_PADRAO = { pctProteina: 20, pctCarboidrato: 50, pctLipidio: 30 };
 
-  function ler(chave) {
-    try {
-      const dados = JSON.parse(localStorage.getItem(chave) || '[]');
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function gravar(chave, lista) {
-    try {
-      localStorage.setItem(chave, JSON.stringify(lista));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
+  /* Os ids de refeição e item vivem dentro do jsonb, então continuam
+     sendo gerados aqui — o banco só gera o id da linha do plano. */
   function novoId(prefixo) {
     return prefixo + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function numeroOuNulo(valor) {
+    if (valor === null || valor === undefined || valor === '') return null;
+    const n = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
+    return isFinite(n) && n >= 0 ? n : null;
+  }
+
+  /* As telas de metas escrevem em <input> e comparam com string, então
+     o que sai daqui continua string, como era no localStorage. */
+  function textoOuVazio(valor) {
+    return valor === null || valor === undefined ? '' : String(valor);
   }
 
   /* ───────────── Planos ───────────── */
@@ -67,31 +67,58 @@ const PlanosStore = (() => {
     }));
   }
 
+  function daLinhaPlano(linha) {
+    if (!linha) return null;
+    return {
+      id: linha.id,
+      nutricionistaId: linha.nutricionista_id,
+      pacienteId: linha.paciente_id,
+      nome: linha.nome || '',
+      data: linha.data || '',
+      observacoes: linha.observacoes || '',
+      refeicoes: linha.refeicoes || [],
+      resumo: linha.resumo || {},
+      visivelPaciente: !!linha.visivel_paciente,
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+  }
+
   async function listarPlanos(pacienteId) {
-    return ler(CHAVE_PLANOS)
-      .filter((p) => p.pacienteId === pacienteId)
-      .sort((a, b) => String(b.atualizadoEm).localeCompare(String(a.atualizadoEm)));
+    if (!pacienteId) return [];
+    const { data, error } = await Banco.tabela('planos')
+      .select(COLUNAS_PLANO)
+      .eq('paciente_id', pacienteId)
+      .order('atualizado_em', { ascending: false });
+
+    if (error) {
+      console.error('listarPlanos:', error);
+      return [];
+    }
+    return (data || []).map(daLinhaPlano);
   }
 
   async function obterPlano(id) {
-    return ler(CHAVE_PLANOS).find((p) => p.id === id) || null;
+    if (!id) return null;
+    const { data, error } = await Banco.tabela('planos')
+      .select(COLUNAS_PLANO).eq('id', id).maybeSingle();
+    return error ? null : daLinhaPlano(data);
   }
 
   async function contarPlanos(pacienteId) {
-    return ler(CHAVE_PLANOS).filter((p) => p.pacienteId === pacienteId).length;
+    const { count, error } = await Banco.tabela('planos')
+      .select('id', { count: 'exact', head: true })
+      .eq('paciente_id', pacienteId);
+    return error ? 0 : (count || 0);
   }
 
   async function salvarPlano(dados) {
     if (!dados.pacienteId) return { ok: false, erro: 'Plano sem paciente vinculado.' };
 
-    const lista = ler(CHAVE_PLANOS);
-    const agora = new Date().toISOString();
-
-    const registro = {
-      id: dados.id || novoId('pl_'),
-      pacienteId: dados.pacienteId,
+    const campos = {
+      paciente_id: dados.pacienteId,
       nome: String(dados.nome || '').trim() || 'Plano alimentar',
-      data: dados.data || agora.slice(0, 10),
+      data: dados.data || new Date().toISOString().slice(0, 10),
       observacoes: String(dados.observacoes || '').trim(),
       refeicoes: (dados.refeicoes || []).map((r) => ({
         id: r.id || novoId('r_'),
@@ -104,61 +131,91 @@ const PlanosStore = (() => {
           medida: String(i.medida || '')
         }))
       })),
-      resumo: dados.resumo || {},
-      criadoEm: dados.criadoEm || agora,
-      atualizadoEm: agora
+      resumo: dados.resumo || {}
     };
-
-    const i = lista.findIndex((p) => p.id === registro.id);
-    if (i >= 0) {
-      registro.criadoEm = lista[i].criadoEm || agora;
-      lista[i] = registro;
-    } else {
-      lista.push(registro);
+    if (dados.visivelPaciente !== undefined) {
+      campos.visivel_paciente = !!dados.visivelPaciente;
     }
 
-    if (!gravar(CHAVE_PLANOS, lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
+    if (dados.id) {
+      const { data, error } = await Banco.tabela('planos')
+        .update(campos).eq('id', dados.id).select(COLUNAS_PLANO);
+
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+      if (!data || !data.length) {
+        return { ok: false, erro: 'Este plano não está mais disponível para edição.' };
+      }
+      return { ok: true, plano: daLinhaPlano(data[0]) };
     }
-    return { ok: true, plano: registro };
+
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('planos')
+      .insert(Object.assign({ nutricionista_id: nutricionistaId }, campos))
+      .select(COLUNAS_PLANO);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true, plano: daLinhaPlano(data[0]) };
   }
 
   async function removerPlano(id) {
-    return { ok: gravar(CHAVE_PLANOS, ler(CHAVE_PLANOS).filter((p) => p.id !== id)) };
+    const { data, error } = await Banco.tabela('planos')
+      .delete().eq('id', id).select('id');
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: !!(data && data.length) };
   }
 
   /* ───────────── Metas ───────────── */
 
+  function daLinhaMetas(linha) {
+    if (!linha) return null;
+    return {
+      pacienteId: linha.paciente_id,
+      pesoMeta: textoOuVazio(linha.peso_meta),
+      kcalMeta: textoOuVazio(linha.kcal_meta),
+      pctProteina: textoOuVazio(linha.pct_proteina),
+      pctCarboidrato: textoOuVazio(linha.pct_carboidrato),
+      pctLipidio: textoOuVazio(linha.pct_lipidio),
+      observacoes: linha.observacoes || '',
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+  }
+
   async function obterMetas(pacienteId) {
-    return ler(CHAVE_METAS).find((m) => m.pacienteId === pacienteId) || null;
+    if (!pacienteId) return null;
+    const { data, error } = await Banco.tabela('metas')
+      .select(COLUNAS_METAS).eq('paciente_id', pacienteId).maybeSingle();
+    return error ? null : daLinhaMetas(data);
   }
 
   async function salvarMetas(pacienteId, dados) {
     if (!pacienteId) return { ok: false, erro: 'Metas sem paciente.' };
 
-    const lista = ler(CHAVE_METAS);
-    const agora = new Date().toISOString();
-    const existente = lista.find((m) => m.pacienteId === pacienteId);
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
 
-    const registro = {
-      pacienteId,
-      pesoMeta: String(dados.pesoMeta || '').trim(),
-      kcalMeta: String(dados.kcalMeta || '').trim(),
-      pctProteina: String(dados.pctProteina || '').trim(),
-      pctCarboidrato: String(dados.pctCarboidrato || '').trim(),
-      pctLipidio: String(dados.pctLipidio || '').trim(),
-      observacoes: String(dados.observacoes || '').trim(),
-      criadoEm: existente ? existente.criadoEm : agora,
-      atualizadoEm: agora
+    const linha = {
+      paciente_id: pacienteId,
+      nutricionista_id: nutricionistaId,
+      peso_meta: numeroOuNulo(dados.pesoMeta),
+      kcal_meta: numeroOuNulo(dados.kcalMeta),
+      pct_proteina: numeroOuNulo(dados.pctProteina),
+      pct_carboidrato: numeroOuNulo(dados.pctCarboidrato),
+      pct_lipidio: numeroOuNulo(dados.pctLipidio),
+      observacoes: String(dados.observacoes || '').trim()
     };
 
-    if (existente) lista[lista.indexOf(existente)] = registro;
-    else lista.push(registro);
+    const { data, error } = await Banco.tabela('metas')
+      .upsert(linha, { onConflict: 'paciente_id' })
+      .select(COLUNAS_METAS);
 
-    if (!gravar(CHAVE_METAS, lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    if (!data || !data.length) {
+      return { ok: false, erro: 'Estas metas não estão mais disponíveis para edição.' };
     }
-    return { ok: true, metas: registro };
+    return { ok: true, metas: daLinhaMetas(data[0]) };
   }
 
   /**
@@ -187,10 +244,11 @@ const PlanosStore = (() => {
     };
   }
 
+  /* O banco já apaga tudo junto com o paciente (on delete cascade). */
   async function removerDoPaciente(pacienteId) {
-    const a = gravar(CHAVE_PLANOS, ler(CHAVE_PLANOS).filter((p) => p.pacienteId !== pacienteId));
-    const b = gravar(CHAVE_METAS, ler(CHAVE_METAS).filter((m) => m.pacienteId !== pacienteId));
-    return { ok: a && b };
+    const a = await Banco.tabela('planos').delete().eq('paciente_id', pacienteId);
+    const b = await Banco.tabela('metas').delete().eq('paciente_id', pacienteId);
+    return { ok: !a.error && !b.error };
   }
 
   return {

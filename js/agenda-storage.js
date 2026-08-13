@@ -1,16 +1,13 @@
 /* ============================================================
-   agenda-storage.js — consultas
+   agenda-storage.js — consultas (tabela `consultas`)
 
-   Cada consulta pertence a um paciente e tem data, horário, duração,
-   tipo e situação. Tudo local por enquanto.
-
-   TROCA POR SUPABASE: único ponto a mexer.
-     listarPorPeriodo / listarPorPaciente → select com filtro de data
-     salvarConsulta                        → upsert
-     removerConsulta                       → delete
+   Mesmas assinaturas de quando gravava no localStorage. O que mudou:
+   `id` virou UUID do banco, toda linha carrega `nutricionista_id` (é o
+   que a Row Level Security compara), e as colunas são snake_case —
+   a tradução para camelCase fica aqui.
 
    A integração real com Google Agenda depende de backend e fica para
-   depois; o formato aqui já guarda o que ela precisaria (data, hora,
+   depois; o formato já guarda o que ela precisaria (data, hora,
    duração e um campo livre de observações).
    ============================================================ */
 
@@ -18,7 +15,8 @@
 
 const AgendaStore = (() => {
 
-  const CHAVE = 'nutri:consultas:v1';
+  const COLUNAS = 'id, nutricionista_id, paciente_id, data, hora, duracao, ' +
+                  'tipo, status, observacoes, criado_em, atualizado_em';
 
   const STATUS = [
     { valor: 'agendada',  rotulo: 'Agendada',  nivel: 'baixo' },
@@ -45,74 +43,88 @@ const AgendaStore = (() => {
     return s ? s.nivel : 'baixo';
   }
 
-  function ler() {
-    try {
-      const dados = JSON.parse(localStorage.getItem(CHAVE) || '[]');
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
+  /* Coluna `time` do Postgres volta como "14:30:00"; as telas e os
+     <input type="time"> trabalham com "14:30". */
+  function horaCurta(hora) {
+    return String(hora || '').slice(0, 5);
+  }
+
+  function daLinha(linha) {
+    if (!linha) return null;
+    return {
+      id: linha.id,
+      nutricionistaId: linha.nutricionista_id,
+      pacienteId: linha.paciente_id,
+      data: linha.data,
+      hora: horaCurta(linha.hora),
+      duracao: Number(linha.duracao) || 60,
+      tipo: linha.tipo || 'Consulta',
+      status: linha.status,
+      observacoes: linha.observacoes || '',
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+  }
+
+  function paraLinha(dados) {
+    return {
+      paciente_id: dados.pacienteId,
+      data: dados.data,
+      hora: horaCurta(dados.hora),
+      duracao: Number(dados.duracao) || 60,
+      tipo: String(dados.tipo || '').trim() || 'Consulta',
+      status: STATUS.some((s) => s.valor === dados.status) ? dados.status : 'agendada',
+      observacoes: String(dados.observacoes || '').trim()
+    };
+  }
+
+  /* Ordena por data e hora, da mais antiga para a mais recente. Vai no
+     banco (e não no navegador) para o índice (nutricionista_id, data)
+     poder ser usado. */
+  function ordenado(consulta) {
+    return consulta.order('data', { ascending: true }).order('hora', { ascending: true });
+  }
+
+  async function buscar(montar) {
+    const { data, error } = await montar(ordenado(Banco.tabela('consultas').select(COLUNAS)));
+    if (error) {
+      console.error('agenda:', error);
       return [];
     }
-  }
-
-  function gravar(lista) {
-    try {
-      localStorage.setItem(CHAVE, JSON.stringify(lista));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function novoId() {
-    return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-  }
-
-  /** Ordena por data e hora, da mais antiga para a mais recente. */
-  function ordenar(lista) {
-    return lista.sort((a, b) =>
-      (a.data + a.hora).localeCompare(b.data + b.hora));
+    return (data || []).map(daLinha);
   }
 
   /** Consultas entre duas datas ISO, inclusive nas pontas. */
   async function listarPorPeriodo(inicioIso, fimIso) {
-    return ordenar(ler().filter((c) => c.data >= inicioIso && c.data <= fimIso));
+    return buscar((q) => q.gte('data', inicioIso).lte('data', fimIso));
   }
 
   async function listarPorPaciente(pacienteId) {
-    return ordenar(ler().filter((c) => c.pacienteId === pacienteId));
+    return buscar((q) => q.eq('paciente_id', pacienteId));
   }
 
   /** Próxima consulta futura (ou de hoje) que não foi cancelada. */
   async function proximaDoPaciente(pacienteId, hojeIso) {
-    return (await listarPorPaciente(pacienteId))
-      .find((c) => c.data >= hojeIso && c.status !== 'cancelada') || null;
+    const lista = await buscar((q) => q
+      .eq('paciente_id', pacienteId)
+      .gte('data', hojeIso)
+      .neq('status', 'cancelada')
+      .limit(1));
+    return lista[0] || null;
   }
 
   async function obterConsulta(id) {
-    return ler().find((c) => c.id === id) || null;
+    if (!id) return null;
+    const { data, error } = await Banco.tabela('consultas')
+      .select(COLUNAS).eq('id', id).maybeSingle();
+    return error ? null : daLinha(data);
   }
 
   async function contarPorPaciente(pacienteId) {
-    return ler().filter((c) => c.pacienteId === pacienteId).length;
-  }
-
-  /**
-   * Outras consultas que ocupam o mesmo intervalo de tempo.
-   * Serve para avisar sobre choque de horário — não bloqueia, porque
-   * atendimento sobreposto às vezes é intencional.
-   */
-  async function conflitos(consulta) {
-    const inicio = minutos(consulta.hora);
-    const fim = inicio + (Number(consulta.duracao) || 60);
-
-    return ler().filter((c) => {
-      if (c.id === consulta.id) return false;
-      if (c.data !== consulta.data) return false;
-      if (c.status === 'cancelada') return false;
-      const i = minutos(c.hora);
-      const f = i + (Number(c.duracao) || 60);
-      return inicio < f && i < fim;
-    });
+    const { count, error } = await Banco.tabela('consultas')
+      .select('id', { count: 'exact', head: true })
+      .eq('paciente_id', pacienteId);
+    return error ? 0 : (count || 0);
   }
 
   function minutos(hora) {
@@ -120,59 +132,85 @@ const AgendaStore = (() => {
     return (h || 0) * 60 + (m || 0);
   }
 
+  /**
+   * Outras consultas que ocupam o mesmo intervalo de tempo.
+   * Serve para avisar sobre choque de horário — não bloqueia, porque
+   * atendimento sobreposto às vezes é intencional.
+   *
+   * O banco filtra pelo dia (que é indexado) e a sobreposição de
+   * horário é calculada aqui: são poucas consultas por dia, e a conta
+   * em SQL exigiria somar `duracao` a `hora` no filtro.
+   */
+  async function conflitos(consulta) {
+    const inicio = minutos(consulta.hora);
+    const fim = inicio + (Number(consulta.duracao) || 60);
+
+    const doDia = await buscar((q) => q.eq('data', consulta.data).neq('status', 'cancelada'));
+
+    return doDia.filter((c) => {
+      if (c.id === consulta.id) return false;
+      const i = minutos(c.hora);
+      const f = i + (Number(c.duracao) || 60);
+      return inicio < f && i < fim;
+    });
+  }
+
   async function salvarConsulta(dados) {
     if (!dados.pacienteId) return { ok: false, erro: 'Escolha o paciente.' };
     if (!dados.data) return { ok: false, erro: 'Informe a data.' };
     if (!dados.hora) return { ok: false, erro: 'Informe o horário.' };
 
-    const lista = ler();
-    const agora = new Date().toISOString();
+    const campos = paraLinha(dados);
 
-    const registro = {
-      id: dados.id || novoId(),
-      pacienteId: dados.pacienteId,
-      data: dados.data,
-      hora: dados.hora,
-      duracao: Number(dados.duracao) || 60,
-      tipo: String(dados.tipo || '').trim() || 'Consulta',
-      status: STATUS.some((s) => s.valor === dados.status) ? dados.status : 'agendada',
-      observacoes: String(dados.observacoes || '').trim(),
-      criadoEm: dados.criadoEm || agora,
-      atualizadoEm: agora
-    };
+    if (dados.id) {
+      const { data, error } = await Banco.tabela('consultas')
+        .update(campos).eq('id', dados.id).select(COLUNAS);
 
-    const i = lista.findIndex((c) => c.id === registro.id);
-    if (i >= 0) {
-      registro.criadoEm = lista[i].criadoEm || agora;
-      lista[i] = registro;
-    } else {
-      lista.push(registro);
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+      if (!data || !data.length) {
+        return { ok: false, erro: 'Esta consulta não está mais disponível para edição.' };
+      }
+      return { ok: true, consulta: daLinha(data[0]) };
     }
 
-    if (!gravar(lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
-    }
-    return { ok: true, consulta: registro };
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('consultas')
+      .insert(Object.assign({ nutricionista_id: nutricionistaId }, campos))
+      .select(COLUNAS);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true, consulta: daLinha(data[0]) };
   }
 
   /** Muda só a situação, sem abrir o formulário inteiro. */
   async function alterarStatus(id, status) {
-    const lista = ler();
-    const c = lista.find((x) => x.id === id);
-    if (!c) return { ok: false, erro: 'Consulta não encontrada.' };
-    if (!STATUS.some((s) => s.valor === status)) return { ok: false, erro: 'Situação inválida.' };
+    if (!STATUS.some((s) => s.valor === status)) {
+      return { ok: false, erro: 'Situação inválida.' };
+    }
 
-    c.status = status;
-    c.atualizadoEm = new Date().toISOString();
-    return { ok: gravar(lista), consulta: c };
+    const { data, error } = await Banco.tabela('consultas')
+      .update({ status }).eq('id', id).select(COLUNAS);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    if (!data || !data.length) return { ok: false, erro: 'Consulta não encontrada.' };
+    return { ok: true, consulta: daLinha(data[0]) };
   }
 
   async function removerConsulta(id) {
-    return { ok: gravar(ler().filter((c) => c.id !== id)) };
+    const { data, error } = await Banco.tabela('consultas')
+      .delete().eq('id', id).select('id');
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: !!(data && data.length) };
   }
 
+  /* O banco já apaga as consultas junto com o paciente
+     (on delete cascade). Continua existindo porque a tela de exclusão
+     chama, e porque apagar o que já não existe é inofensivo. */
   async function removerDoPaciente(pacienteId) {
-    return { ok: gravar(ler().filter((c) => c.pacienteId !== pacienteId)) };
+    const { error } = await Banco.tabela('consultas').delete().eq('paciente_id', pacienteId);
+    return { ok: !error };
   }
 
   return {

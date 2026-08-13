@@ -1,82 +1,115 @@
 /* ============================================================
    prontuario-storage.js — anamnese e avaliações antropométricas
 
-   Duas coisas com naturezas diferentes:
+   Duas coisas com naturezas diferentes, e é por isso que são duas
+   tabelas:
 
-   • Anamnese: UMA por paciente, editável. É o retrato do histórico de
-     saúde, que se atualiza em vez de acumular versões.
-   • Avaliação antropométrica: VÁRIAS por paciente, uma por data. É
-     justamente a série ao longo do tempo que interessa.
+   • Anamnese (`anamneses`): UMA por paciente, editável. É o retrato do
+     histórico de saúde, que se atualiza em vez de acumular versões —
+     alergia e cirurgia antiga não mudam a cada consulta. O
+     `unique (paciente_id)` no banco é o que garante isso.
 
-   Grava no localStorage. TROCA POR SUPABASE: único ponto a mexer,
-   mantendo as assinaturas (já assíncronas).
-     obterAnamnese / salvarAnamnese  → tabela `anamneses` (1 por paciente)
-     listarAvaliacoes / salvarAvaliacao / removerAvaliacao → `avaliacoes`
+   • Avaliação (`avaliacoes`): VÁRIAS por paciente, uma por data, e cada
+     consulta cria um registro NOVO. Nunca sobrescreve. É justamente a
+     série ao longo do tempo que vira o gráfico de evolução.
+
+   Quem lê o quê: o paciente enxerga as próprias avaliações (é o "antes
+   e depois" dele), mas NÃO a anamnese — ela tem anotação clínica
+   escrita para o profissional, com termos que fora de contexto
+   assustam. Isso está nas políticas do banco, não aqui.
+
+   Mudança de tipo: `peso` e `altura` agora são numéricos no banco, não
+   texto. Voltam como número (ou '' quando em branco); `Antropometria.num()`
+   aceita os dois, então as telas não mudaram.
    ============================================================ */
 
 'use strict';
 
 const ProntuarioStore = (() => {
 
-  const CHAVE_ANAMNESE = 'nutri:anamneses:v1';
-  const CHAVE_AVALIACOES = 'nutri:avaliacoes:v1';
+  /* Nomes em camelCase que as telas usam, e a coluna correspondente.
+     A lista existe uma vez só e serve para ler, gravar e para o
+     `CAMPOS_ANAMNESE` que a tela de prontuário percorre. */
+  const MAPA_ANAMNESE = {
+    historicoSaude: 'historico_saude',
+    medicamentos: 'medicamentos',
+    queixas: 'queixas',
+    habitos: 'habitos',
+    restricoes: 'restricoes',
+    alergias: 'alergias',
+    atividadeFisica: 'atividade_fisica',
+    sono: 'sono',
+    hidratacao: 'hidratacao',
+    funcionamentoIntestinal: 'funcionamento_intestinal',
+    observacoes: 'observacoes'
+  };
 
-  function ler(chave) {
-    try {
-      const dados = JSON.parse(localStorage.getItem(chave) || '[]');
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
-      return [];
-    }
+  const CAMPOS_ANAMNESE = Object.keys(MAPA_ANAMNESE);
+
+  const COLUNAS_ANAMNESE = 'id, paciente_id, ' +
+    Object.values(MAPA_ANAMNESE).join(', ') + ', criado_em, atualizado_em';
+
+  const COLUNAS_AVALIACAO = 'id, nutricionista_id, paciente_id, data, peso, altura, ' +
+                            'circunferencias, dobras, observacoes, criado_em, atualizado_em';
+
+  /* Campo numérico vazio precisa virar null: coluna `numeric` não
+     aceita string vazia, e 0 significaria "pesa zero". */
+  function numeroOuNulo(valor) {
+    if (valor === null || valor === undefined || valor === '') return null;
+    const n = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
+    return isFinite(n) && n > 0 ? n : null;
   }
 
-  function gravar(chave, lista) {
-    try {
-      localStorage.setItem(chave, JSON.stringify(lista));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function novoId(prefixo) {
-    return prefixo + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  function numeroOuVazio(valor) {
+    return valor === null || valor === undefined ? '' : Number(valor);
   }
 
   /* ───────────── Anamnese ───────────── */
 
-  const CAMPOS_ANAMNESE = [
-    'historicoSaude', 'medicamentos', 'queixas', 'habitos',
-    'restricoes', 'alergias', 'atividadeFisica', 'sono',
-    'hidratacao', 'funcionamentoIntestinal', 'observacoes'
-  ];
+  function daLinhaAnamnese(linha) {
+    if (!linha) return null;
+    const saida = {
+      id: linha.id,
+      pacienteId: linha.paciente_id,
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+    CAMPOS_ANAMNESE.forEach((c) => { saida[c] = linha[MAPA_ANAMNESE[c]] || ''; });
+    return saida;
+  }
 
   async function obterAnamnese(pacienteId) {
-    return ler(CHAVE_ANAMNESE).find((a) => a.pacienteId === pacienteId) || null;
+    if (!pacienteId) return null;
+    const { data, error } = await Banco.tabela('anamneses')
+      .select(COLUNAS_ANAMNESE)
+      .eq('paciente_id', pacienteId)
+      .maybeSingle();
+    return error ? null : daLinhaAnamnese(data);
   }
 
   async function salvarAnamnese(pacienteId, dados) {
     if (!pacienteId) return { ok: false, erro: 'Anamnese sem paciente.' };
 
-    const lista = ler(CHAVE_ANAMNESE);
-    const agora = new Date().toISOString();
-    const existente = lista.find((a) => a.pacienteId === pacienteId);
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
 
-    const registro = {
-      id: existente ? existente.id : novoId('an_'),
-      pacienteId,
-      criadoEm: existente ? existente.criadoEm : agora,
-      atualizadoEm: agora
-    };
-    CAMPOS_ANAMNESE.forEach((c) => { registro[c] = String(dados[c] || '').trim(); });
+    const linha = { paciente_id: pacienteId, nutricionista_id: nutricionistaId };
+    CAMPOS_ANAMNESE.forEach((c) => {
+      linha[MAPA_ANAMNESE[c]] = String(dados[c] || '').trim();
+    });
 
-    if (existente) lista[lista.indexOf(existente)] = registro;
-    else lista.push(registro);
+    /* upsert com onConflict no paciente: é o que faz "uma anamnese por
+       paciente" sem precisar consultar antes para decidir entre insert
+       e update — e sem a corrida entre as duas operações. */
+    const { data, error } = await Banco.tabela('anamneses')
+      .upsert(linha, { onConflict: 'paciente_id' })
+      .select(COLUNAS_ANAMNESE);
 
-    if (!gravar(CHAVE_ANAMNESE, lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    if (!data || !data.length) {
+      return { ok: false, erro: 'Esta anamnese não está mais disponível para edição.' };
     }
-    return { ok: true, anamnese: registro };
+    return { ok: true, anamnese: daLinhaAnamnese(data[0]) };
   }
 
   /** true se a anamnese tem algum campo preenchido. */
@@ -87,11 +120,36 @@ const ProntuarioStore = (() => {
 
   /* ───────────── Avaliações antropométricas ───────────── */
 
+  function daLinhaAvaliacao(linha) {
+    if (!linha) return null;
+    return {
+      id: linha.id,
+      nutricionistaId: linha.nutricionista_id,
+      pacienteId: linha.paciente_id,
+      data: linha.data,
+      peso: numeroOuVazio(linha.peso),
+      altura: numeroOuVazio(linha.altura),
+      circunferencias: linha.circunferencias || {},
+      dobras: linha.dobras || {},
+      observacoes: linha.observacoes || '',
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+  }
+
   /** Da mais recente para a mais antiga. */
   async function listarAvaliacoes(pacienteId) {
-    return ler(CHAVE_AVALIACOES)
-      .filter((a) => a.pacienteId === pacienteId)
-      .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    if (!pacienteId) return [];
+    const { data, error } = await Banco.tabela('avaliacoes')
+      .select(COLUNAS_AVALIACAO)
+      .eq('paciente_id', pacienteId)
+      .order('data', { ascending: false });
+
+    if (error) {
+      console.error('listarAvaliacoes:', error);
+      return [];
+    }
+    return (data || []).map(daLinhaAvaliacao);
   }
 
   /** Da mais antiga para a mais recente — ordem de gráfico e de evolução. */
@@ -100,56 +158,67 @@ const ProntuarioStore = (() => {
   }
 
   async function obterAvaliacao(id) {
-    return ler(CHAVE_AVALIACOES).find((a) => a.id === id) || null;
+    if (!id) return null;
+    const { data, error } = await Banco.tabela('avaliacoes')
+      .select(COLUNAS_AVALIACAO).eq('id', id).maybeSingle();
+    return error ? null : daLinhaAvaliacao(data);
   }
 
   async function contarAvaliacoes(pacienteId) {
-    return ler(CHAVE_AVALIACOES).filter((a) => a.pacienteId === pacienteId).length;
+    const { count, error } = await Banco.tabela('avaliacoes')
+      .select('id', { count: 'exact', head: true })
+      .eq('paciente_id', pacienteId);
+    return error ? 0 : (count || 0);
   }
 
   async function salvarAvaliacao(dados) {
     if (!dados.pacienteId) return { ok: false, erro: 'Avaliação sem paciente.' };
     if (!dados.data) return { ok: false, erro: 'Informe a data da avaliação.' };
 
-    const lista = ler(CHAVE_AVALIACOES);
-    const agora = new Date().toISOString();
-
-    const registro = {
-      id: dados.id || novoId('av_'),
-      pacienteId: dados.pacienteId,
+    const campos = {
+      paciente_id: dados.pacienteId,
       data: dados.data,
-      peso: dados.peso || '',
-      altura: dados.altura || '',
+      peso: numeroOuNulo(dados.peso),
+      altura: numeroOuNulo(dados.altura),
       circunferencias: Object.assign({}, dados.circunferencias || {}),
       dobras: Object.assign({}, dados.dobras || {}),
-      observacoes: String(dados.observacoes || '').trim(),
-      criadoEm: dados.criadoEm || agora,
-      atualizadoEm: agora
+      observacoes: String(dados.observacoes || '').trim()
     };
 
-    const i = lista.findIndex((a) => a.id === registro.id);
-    if (i >= 0) {
-      registro.criadoEm = lista[i].criadoEm || agora;
-      lista[i] = registro;
-    } else {
-      lista.push(registro);
+    if (dados.id) {
+      const { data, error } = await Banco.tabela('avaliacoes')
+        .update(campos).eq('id', dados.id).select(COLUNAS_AVALIACAO);
+
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+      if (!data || !data.length) {
+        return { ok: false, erro: 'Esta avaliação não está mais disponível para edição.' };
+      }
+      return { ok: true, avaliacao: daLinhaAvaliacao(data[0]) };
     }
 
-    if (!gravar(CHAVE_AVALIACOES, lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
-    }
-    return { ok: true, avaliacao: registro };
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('avaliacoes')
+      .insert(Object.assign({ nutricionista_id: nutricionistaId }, campos))
+      .select(COLUNAS_AVALIACAO);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true, avaliacao: daLinhaAvaliacao(data[0]) };
   }
 
   async function removerAvaliacao(id) {
-    return { ok: gravar(CHAVE_AVALIACOES, ler(CHAVE_AVALIACOES).filter((a) => a.id !== id)) };
+    const { data, error } = await Banco.tabela('avaliacoes')
+      .delete().eq('id', id).select('id');
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: !!(data && data.length) };
   }
 
-  /** Chamado ao excluir um paciente, para não deixar registro órfão. */
+  /* O banco já apaga tudo junto com o paciente (on delete cascade). */
   async function removerDoPaciente(pacienteId) {
-    const a = gravar(CHAVE_ANAMNESE, ler(CHAVE_ANAMNESE).filter((x) => x.pacienteId !== pacienteId));
-    const b = gravar(CHAVE_AVALIACOES, ler(CHAVE_AVALIACOES).filter((x) => x.pacienteId !== pacienteId));
-    return { ok: a && b };
+    const a = await Banco.tabela('anamneses').delete().eq('paciente_id', pacienteId);
+    const b = await Banco.tabela('avaliacoes').delete().eq('paciente_id', pacienteId);
+    return { ok: !a.error && !b.error };
   }
 
   return {

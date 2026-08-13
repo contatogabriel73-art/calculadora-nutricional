@@ -1,110 +1,125 @@
 /* ============================================================
-   fichas-storage.js — persistência das fichas técnicas salvas
+   fichas-storage.js — fichas técnicas salvas (tabela `fichas_tecnicas`)
 
-   Cada ficha guardada aqui é um registro fechado, vinculado ao id de
-   um paciente. É diferente do rascunho automático que a ferramenta
-   mantém enquanto você digita (esse fica em 'calc-nutri:ficha:v2',
-   dentro de app.js, e não pertence a paciente nenhum).
+   Cada ficha guardada aqui é um registro fechado, vinculado a um
+   paciente. É diferente do rascunho automático que a ferramenta mantém
+   enquanto você digita (esse fica em 'calc-nutri:ficha:v2', dentro de
+   app.js, no localStorage, e não pertence a paciente nenhum) — esse
+   continua local de propósito: é rascunho, não prontuário.
 
-   Grava no localStorage — mesmas limitações descritas em
-   pacientes-storage.js.
+   `conteudo` guarda o estado completo da ferramenta (campos +
+   ingredientes) e `resumo` os números já calculados, para a listagem
+   não precisar recarregar a base TACO e refazer as contas. Os dois são
+   `jsonb` no banco, então vão e voltam como objeto.
 
-   TROCA POR SUPABASE: único ponto a mexer. Sugestão de tabela `fichas`
-   com coluna jsonb para `conteudo`:
-
-     listarFichasDoPaciente(id) → select().eq('paciente_id', id)
-     obterFicha(id)             → select().eq('id', id).single()
-     salvarFicha(dados)         → upsert(...)
-     removerFicha(id)           → delete().eq('id', id)
+   `visivelPaciente` decide se o paciente enxerga a ficha na área dele.
+   Nasce falso: ficha em rascunho não vaza. Quem usa isso é a Fase 5.
    ============================================================ */
 
 'use strict';
 
 const FichasStore = (() => {
 
-  const CHAVE = 'nutri:fichas:v1';
+  const COLUNAS = 'id, nutricionista_id, paciente_id, titulo, conteudo, resumo, ' +
+                  'visivel_paciente, criado_em, atualizado_em';
 
-  function lerTudo() {
-    try {
-      const dados = JSON.parse(localStorage.getItem(CHAVE) || '[]');
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function gravarTudo(lista) {
-    try {
-      localStorage.setItem(CHAVE, JSON.stringify(lista));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function novoId() {
-    return 'f_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  function daLinha(linha) {
+    if (!linha) return null;
+    return {
+      id: linha.id,
+      nutricionistaId: linha.nutricionista_id,
+      pacienteId: linha.paciente_id,
+      titulo: linha.titulo || '',
+      conteudo: linha.conteudo || {},
+      resumo: linha.resumo || {},
+      visivelPaciente: !!linha.visivel_paciente,
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
   }
 
   /** Fichas de um paciente, da mais recente para a mais antiga. */
   async function listarFichasDoPaciente(pacienteId) {
-    return lerTudo()
-      .filter((f) => f.pacienteId === pacienteId)
-      .sort((a, b) => String(b.atualizadoEm).localeCompare(String(a.atualizadoEm)));
+    if (!pacienteId) return [];
+    const { data, error } = await Banco.tabela('fichas_tecnicas')
+      .select(COLUNAS)
+      .eq('paciente_id', pacienteId)
+      .order('atualizado_em', { ascending: false });
+
+    if (error) {
+      console.error('listarFichasDoPaciente:', error);
+      return [];
+    }
+    return (data || []).map(daLinha);
   }
 
   async function obterFicha(id) {
-    return lerTudo().find((f) => f.id === id) || null;
+    if (!id) return null;
+    const { data, error } = await Banco.tabela('fichas_tecnicas')
+      .select(COLUNAS).eq('id', id).maybeSingle();
+    return error ? null : daLinha(data);
   }
 
   async function contarPorPaciente(pacienteId) {
-    return lerTudo().filter((f) => f.pacienteId === pacienteId).length;
+    const { count, error } = await Banco.tabela('fichas_tecnicas')
+      .select('id', { count: 'exact', head: true })
+      .eq('paciente_id', pacienteId);
+    return error ? 0 : (count || 0);
   }
 
   /**
    * Cria ou atualiza uma ficha.
-   * @param {object} dados { id?, pacienteId, titulo, conteudo, resumo }
-   *   `conteudo` guarda o estado completo da ferramenta (campos + ingredientes)
-   *   `resumo`   guarda os números já calculados, para a listagem não precisar
-   *              recarregar a base TACO e refazer as contas.
+   * @param {object} dados { id?, pacienteId, titulo, conteudo, resumo, visivelPaciente? }
    */
   async function salvarFicha(dados) {
     if (!dados.pacienteId) return { ok: false, erro: 'Ficha sem paciente vinculado.' };
 
-    const lista = lerTudo();
-    const agora = new Date().toISOString();
-
-    const registro = {
-      id: dados.id || novoId(),
-      pacienteId: dados.pacienteId,
+    const campos = {
+      paciente_id: dados.pacienteId,
       titulo: String(dados.titulo || '').trim() || 'Preparação sem nome',
       conteudo: dados.conteudo || {},
-      resumo: dados.resumo || {},
-      criadoEm: dados.criadoEm || agora,
-      atualizadoEm: agora
+      resumo: dados.resumo || {}
     };
-
-    const i = lista.findIndex((f) => f.id === registro.id);
-    if (i >= 0) {
-      registro.criadoEm = lista[i].criadoEm || agora;
-      lista[i] = registro;
-    } else {
-      lista.push(registro);
+    // Só mexe na visibilidade quando quem chama tocou no assunto —
+    // senão salvar uma ficha já liberada a esconderia sem querer.
+    if (dados.visivelPaciente !== undefined) {
+      campos.visivel_paciente = !!dados.visivelPaciente;
     }
 
-    if (!gravarTudo(lista)) {
-      return { ok: false, erro: 'Não foi possível salvar neste navegador (armazenamento cheio ou bloqueado).' };
+    if (dados.id) {
+      const { data, error } = await Banco.tabela('fichas_tecnicas')
+        .update(campos).eq('id', dados.id).select(COLUNAS);
+
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+      if (!data || !data.length) {
+        return { ok: false, erro: 'Esta ficha não está mais disponível para edição.' };
+      }
+      return { ok: true, ficha: daLinha(data[0]) };
     }
-    return { ok: true, ficha: registro };
+
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('fichas_tecnicas')
+      .insert(Object.assign({ nutricionista_id: nutricionistaId }, campos))
+      .select(COLUNAS);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true, ficha: daLinha(data[0]) };
   }
 
   async function removerFicha(id) {
-    return { ok: gravarTudo(lerTudo().filter((f) => f.id !== id)) };
+    const { data, error } = await Banco.tabela('fichas_tecnicas')
+      .delete().eq('id', id).select('id');
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: !!(data && data.length) };
   }
 
-  /** Usado ao excluir um paciente, para não deixar fichas órfãs. */
+  /* O banco já apaga junto com o paciente (on delete cascade). */
   async function removerFichasDoPaciente(pacienteId) {
-    return { ok: gravarTudo(lerTudo().filter((f) => f.pacienteId !== pacienteId)) };
+    const { error } = await Banco.tabela('fichas_tecnicas')
+      .delete().eq('paciente_id', pacienteId);
+    return { ok: !error };
   }
 
   return {

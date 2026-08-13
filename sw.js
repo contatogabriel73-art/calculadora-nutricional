@@ -19,7 +19,7 @@
    ============================================================ */
 
 /* Manter em sincronia com VERSAO_APP em app.js. */
-const CACHE = 'nutri-taco-v2.7';
+const CACHE = 'nutri-taco-v2.8';
 
 /* Busca que ignora o cache HTTP do navegador e revalida com o servidor.
 

@@ -1,23 +1,32 @@
 /* ============================================================
-   financeiro-storage.js — pagamentos
+   financeiro-storage.js — pagamentos (tabela `pagamentos`)
 
    Um pagamento pertence sempre a um paciente e, opcionalmente, a uma
    consulta. O vínculo com a consulta é opcional de propósito: nem todo
    recebimento corresponde a um atendimento avulso — pacotes, planos
    mensais e retornos cortesia existem.
 
-   Valores são guardados em CENTAVOS (inteiro). Somar reais em ponto
-   flutuante acumula erro: 0,1 + 0,2 dá 0,30000000000000004, e num
-   relatório financeiro isso vira centavo perdido.
+   Valores continuam em CENTAVOS (inteiro), agora numa coluna `integer`.
+   Somar reais em ponto flutuante acumula erro: 0,1 + 0,2 dá
+   0,30000000000000004, e num relatório financeiro isso vira centavo
+   perdido.
 
-   TROCA POR SUPABASE: único ponto a mexer, mantendo as assinaturas.
+   O paciente NÃO lê esta tabela. Não é esquecimento: o financeiro é a
+   contabilidade do consultório, não o extrato dele. Não existe política
+   de leitura para o papel `paciente` em `pagamentos`.
+
+   ⚠️ `serieMensal` e `porSemanaDoMes` eram síncronas e agora são
+   assíncronas — elas liam a lista inteira da memória e agora consultam
+   o banco. Quem chama precisa de `await`.
    ============================================================ */
 
 'use strict';
 
 const FinanceiroStore = (() => {
 
-  const CHAVE = 'nutri:pagamentos:v1';
+  const COLUNAS = 'id, nutricionista_id, paciente_id, consulta_id, data, ' +
+                  'data_pagamento, centavos, forma, status, descricao, ' +
+                  'observacoes, criado_em, atualizado_em';
 
   const FORMAS = [
     { valor: 'pix', rotulo: 'PIX' },
@@ -72,121 +81,160 @@ const FinanceiroStore = (() => {
     return (Number(centavos) || 0) / 100;
   }
 
-  function ler() {
-    try {
-      const dados = JSON.parse(localStorage.getItem(CHAVE) || '[]');
-      return Array.isArray(dados) ? dados : [];
-    } catch (e) {
+  function daLinha(linha) {
+    if (!linha) return null;
+    return {
+      id: linha.id,
+      nutricionistaId: linha.nutricionista_id,
+      pacienteId: linha.paciente_id,
+      consultaId: linha.consulta_id || '',
+      data: linha.data,
+      dataPagamento: linha.data_pagamento || '',
+      centavos: Number(linha.centavos) || 0,
+      forma: linha.forma || '',
+      status: linha.status,
+      descricao: linha.descricao || '',
+      observacoes: linha.observacoes || '',
+      criadoEm: linha.criado_em,
+      atualizadoEm: linha.atualizado_em
+    };
+  }
+
+  function paraLinha(dados) {
+    const status = STATUS.some((s) => s.valor === dados.status) ? dados.status : 'pendente';
+    return {
+      paciente_id: dados.pacienteId,
+      // Coluna com chave estrangeira: sem consulta é null, não ''.
+      consulta_id: dados.consultaId || null,
+      data: dados.data,
+      // Só faz sentido registrar quando foi pago se está pago.
+      data_pagamento: status === 'pago' ? (dados.dataPagamento || dados.data) : null,
+      centavos: paraCentavos(dados.valor),
+      forma: dados.forma || '',
+      status,
+      descricao: String(dados.descricao || '').trim() || 'Consulta de nutrição',
+      observacoes: String(dados.observacoes || '').trim()
+    };
+  }
+
+  /* Primeiro dia do mês seguinte, para usar `< limite` em vez de
+     `<= dia 31` — que erraria em fevereiro e nos meses de 30 dias. */
+  function limiteDoMes(anoMes) {
+    const [ano, mes] = String(anoMes).split('-').map(Number);
+    const d = new Date(Date.UTC(ano, mes, 1));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function primeiroDia(anoMes) {
+    return anoMes + '-01';
+  }
+
+  async function buscar(montar) {
+    const base = Banco.tabela('pagamentos').select(COLUNAS)
+      .order('data', { ascending: false });
+    const { data, error } = await (montar ? montar(base) : base);
+    if (error) {
+      console.error('financeiro:', error);
       return [];
     }
-  }
-
-  function gravar(lista) {
-    try {
-      localStorage.setItem(CHAVE, JSON.stringify(lista));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function novoId() {
-    return 'pg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-  }
-
-  function ordenar(lista) {
-    return lista.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    return (data || []).map(daLinha);
   }
 
   async function listarTodos() {
-    return ordenar(ler());
+    return buscar(null);
   }
 
   /** Pagamentos com data dentro do mês 'YYYY-MM'. */
   async function listarPorMes(anoMes) {
-    return ordenar(ler().filter((p) => String(p.data).slice(0, 7) === anoMes));
+    return buscar((q) => q.gte('data', primeiroDia(anoMes)).lt('data', limiteDoMes(anoMes)));
   }
 
   async function listarPorPaciente(pacienteId) {
-    return ordenar(ler().filter((p) => p.pacienteId === pacienteId));
+    return buscar((q) => q.eq('paciente_id', pacienteId));
   }
 
   async function listarPendentes() {
-    return ordenar(ler().filter((p) => p.status === 'pendente'));
+    return buscar((q) => q.eq('status', 'pendente'));
   }
 
   async function obterPagamento(id) {
-    return ler().find((p) => p.id === id) || null;
+    if (!id) return null;
+    const { data, error } = await Banco.tabela('pagamentos')
+      .select(COLUNAS).eq('id', id).maybeSingle();
+    return error ? null : daLinha(data);
   }
 
   async function daConsulta(consultaId) {
-    return ler().find((p) => p.consultaId === consultaId) || null;
+    if (!consultaId) return null;
+    const { data, error } = await Banco.tabela('pagamentos')
+      .select(COLUNAS).eq('consulta_id', consultaId).limit(1);
+    return error || !data || !data.length ? null : daLinha(data[0]);
   }
 
   async function salvarPagamento(dados) {
     if (!dados.pacienteId) return { ok: false, erro: 'Escolha o paciente.' };
     if (!dados.data) return { ok: false, erro: 'Informe a data.' };
 
-    const centavos = paraCentavos(dados.valor);
-    if (centavos <= 0) return { ok: false, erro: 'Informe um valor maior que zero.' };
+    const campos = paraLinha(dados);
+    if (campos.centavos <= 0) return { ok: false, erro: 'Informe um valor maior que zero.' };
 
-    const lista = ler();
-    const agora = new Date().toISOString();
-    const status = STATUS.some((s) => s.valor === dados.status) ? dados.status : 'pendente';
+    if (dados.id) {
+      const { data, error } = await Banco.tabela('pagamentos')
+        .update(campos).eq('id', dados.id).select(COLUNAS);
 
-    const registro = {
-      id: dados.id || novoId(),
-      pacienteId: dados.pacienteId,
-      consultaId: dados.consultaId || '',
-      data: dados.data,
-      // Só faz sentido registrar quando foi pago se está pago.
-      dataPagamento: status === 'pago' ? (dados.dataPagamento || dados.data) : '',
-      centavos,
-      forma: status === 'pago' ? (dados.forma || '') : (dados.forma || ''),
-      status,
-      descricao: String(dados.descricao || '').trim() || 'Consulta de nutrição',
-      observacoes: String(dados.observacoes || '').trim(),
-      criadoEm: dados.criadoEm || agora,
-      atualizadoEm: agora
-    };
-
-    const i = lista.findIndex((p) => p.id === registro.id);
-    if (i >= 0) {
-      registro.criadoEm = lista[i].criadoEm || agora;
-      lista[i] = registro;
-    } else {
-      lista.push(registro);
+      if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+      if (!data || !data.length) {
+        return { ok: false, erro: 'Este lançamento não está mais disponível para edição.' };
+      }
+      return { ok: true, pagamento: daLinha(data[0]) };
     }
 
-    if (!gravar(lista)) return { ok: false, erro: 'Não foi possível salvar neste navegador.' };
-    return { ok: true, pagamento: registro };
+    const nutricionistaId = await Auth.idAtual();
+    if (!nutricionistaId) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('pagamentos')
+      .insert(Object.assign({ nutricionista_id: nutricionistaId }, campos))
+      .select(COLUNAS);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true, pagamento: daLinha(data[0]) };
   }
 
   /** Marca como pago sem abrir o formulário inteiro. */
   async function marcarComoPago(id, dataPagamento, forma) {
-    const lista = ler();
-    const p = lista.find((x) => x.id === id);
-    if (!p) return { ok: false, erro: 'Pagamento não encontrado.' };
+    const atual = await obterPagamento(id);
+    if (!atual) return { ok: false, erro: 'Pagamento não encontrado.' };
 
-    p.status = 'pago';
-    p.dataPagamento = dataPagamento || p.data;
-    if (forma) p.forma = forma;
-    p.atualizadoEm = new Date().toISOString();
+    const mudanca = {
+      status: 'pago',
+      data_pagamento: dataPagamento || atual.data
+    };
+    if (forma) mudanca.forma = forma;
 
-    return { ok: gravar(lista), pagamento: p };
+    const { data, error } = await Banco.tabela('pagamentos')
+      .update(mudanca).eq('id', id).select(COLUNAS);
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    if (!data || !data.length) return { ok: false, erro: 'Pagamento não encontrado.' };
+    return { ok: true, pagamento: daLinha(data[0]) };
   }
 
   async function removerPagamento(id) {
-    return { ok: gravar(ler().filter((p) => p.id !== id)) };
+    const { data, error } = await Banco.tabela('pagamentos')
+      .delete().eq('id', id).select('id');
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: !!(data && data.length) };
   }
 
+  /* O banco já apaga junto com o paciente (on delete cascade). */
   async function removerDoPaciente(pacienteId) {
-    return { ok: gravar(ler().filter((p) => p.pacienteId !== pacienteId)) };
+    const { error } = await Banco.tabela('pagamentos').delete().eq('paciente_id', pacienteId);
+    return { ok: !error };
   }
 
   /**
-   * Números do período. Tudo em centavos, para somar sem erro de arredondamento.
-   * @param {Array} lista pagamentos já filtrados
+   * Números do período. Continua síncrona: recebe a lista já carregada.
+   * Tudo em centavos, para somar sem erro de arredondamento.
    */
   function resumir(lista) {
     const recebido = lista.filter((p) => p.status === 'pago')
@@ -215,19 +263,29 @@ const FinanceiroStore = (() => {
 
   /**
    * Série dos últimos N meses, do mais antigo para o mais recente.
+   *
+   * Uma consulta só cobrindo a janela inteira, agrupada aqui — e não
+   * uma consulta por mês. Doze idas ao banco para desenhar um gráfico
+   * seria doze vezes a latência da rede.
+   *
    * @param {number} meses quantidade de meses
    * @param {Date} referencia último mês da série (padrão: hoje)
+   * @returns {Promise<Array>}
    */
-  function serieMensal(meses, referencia) {
+  async function serieMensal(meses, referencia) {
     const base = referencia || new Date();
-    const todos = ler();
+    const primeiro = new Date(base.getFullYear(), base.getMonth() - (meses - 1), 1);
+    const inicio = primeiro.getFullYear() + '-' +
+                   String(primeiro.getMonth() + 1).padStart(2, '0') + '-01';
+    const fim = limiteDoMes(base.getFullYear() + '-' + String(base.getMonth() + 1).padStart(2, '0'));
+
+    const todos = await buscar((q) => q.gte('data', inicio).lt('data', fim));
     const saida = [];
 
     for (let i = meses - 1; i >= 0; i--) {
       const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
       const chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      const doMes = todos.filter((p) => String(p.data).slice(0, 7) === chave);
-      const r = resumir(doMes);
+      const r = resumir(todos.filter((p) => String(p.data).slice(0, 7) === chave));
       saida.push({
         anoMes: chave,
         ano: d.getFullYear(),
@@ -245,9 +303,13 @@ const FinanceiroStore = (() => {
    * Agrupa por faixa de dia (1–7, 8–14, …) em vez de semana do calendário:
    * é determinístico, não depende do dia da semana em que o mês começa, e
    * o profissional lê "primeira semana do mês" da mesma forma todo mês.
+   *
+   * @param {string} anoMes 'YYYY-MM'
+   * @param {Array} [lista] pagamentos já carregados; sem ela, busca no banco
+   * @returns {Promise<Array>}
    */
-  function porSemanaDoMes(anoMes, lista) {
-    const doMes = lista || ler().filter((p) => String(p.data).slice(0, 7) === anoMes);
+  async function porSemanaDoMes(anoMes, lista) {
+    const doMes = lista || await listarPorMes(anoMes);
     const faixas = [
       { rotulo: '1 a 7', de: 1, ate: 7 },
       { rotulo: '8 a 14', de: 8, ate: 14 },

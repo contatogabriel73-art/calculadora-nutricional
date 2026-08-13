@@ -158,7 +158,9 @@
   const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun',
                         'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-  function desenharGraficos() {
+  // Assíncrona desde que serieMensal/porSemanaDoMes passaram a consultar
+  // o banco em vez de ler a lista da memória.
+  async function desenharGraficos() {
     if (!Graficos.disponivel()) {
       $('#caixa-mensal').innerHTML = Graficos.avisoIndisponivel();
       $('#caixa-semanal').innerHTML = '';
@@ -167,7 +169,7 @@
     }
 
     const janela = Number($('#janela-meses').value) || 12;
-    const serie = F.serieMensal(janela, referencia);
+    const serie = await F.serieMensal(janela, referencia);
 
     Graficos.desenhar('grafico-mensal', {
       type: 'bar',
@@ -202,7 +204,7 @@
     });
 
     // ── Semanas do mês ──
-    const semanas = F.porSemanaDoMes(anoMes());
+    const semanas = await F.porSemanaDoMes(anoMes());
     const temReceita = semanas.some((s) => s.recebido > 0);
 
     if (!temReceita) {
@@ -321,7 +323,7 @@
   async function redesenhar() {
     await desenharResumo();
     await desenharListas();
-    desenharGraficos();
+    await desenharGraficos();
   }
 
   /* ───────────── Navegação ───────────── */

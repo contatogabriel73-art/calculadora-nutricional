@@ -100,7 +100,8 @@
   async function testar() {
     /* ── 1. Configuração ── */
     const cfg = window.SUPABASE_CONFIG || {};
-    const temUrl = !!String(cfg.url || '').trim();
+    const urlUsada = Banco.normalizarUrl(cfg.url);
+    const temUrl = !!urlUsada;
     const temChave = !!String(cfg.anonKey || '').trim();
     const temLib = !!(window.supabase && window.supabase.createClient);
 
@@ -116,7 +117,7 @@
       (/^sb_secret_/.test(chave) || /service_role/.test(corpoJwt));
 
     elConf.innerHTML =
-      linha('URL do projeto', temUrl, temUrl ? 'preenchida' : 'faltando') +
+      linha('URL do projeto', temUrl, urlUsada || 'faltando') +
       linha('Chave pública', temChave && !chaveSuspeita,
         !temChave ? 'faltando'
           : chaveSuspeita ? '⚠️ isto é a chave SECRETA — troque pela publishable AGORA'
@@ -152,7 +153,17 @@
 
     /* ── 3. RLS ──
        Sem login, uma tabela protegida devolve lista vazia (e não erro).
-       Se vier linha, a política está aberta demais. */
+       Se vier linha, a política está aberta demais.
+
+       Só faz sentido com as tabelas no ar: tabela que não existe também
+       devolve lista vazia, e isso passaria por "RLS funcionando" sem
+       nada estar protegido. */
+    if (!r.ok) {
+      elRls.innerHTML = '<span class="diag-erro">Não dá para testar enquanto faltar tabela. ' +
+        'Resolva o bloco 2 primeiro.</span>';
+      return;
+    }
+
     const c = Banco.cx();
     const { data: sessao } = await c.auth.getSession();
 

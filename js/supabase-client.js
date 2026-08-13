@@ -30,10 +30,22 @@ const Banco = (() => {
     return window.SUPABASE_CONFIG || {};
   }
 
+  /* A tela do Supabase mostra, lado a lado, a raiz do projeto e o
+     endereço da API REST (`.../rest/v1/`). Copiar o segundo é um erro
+     fácil e o sintoma é ruim: a biblioteca monta `/rest/v1/rest/v1/...`
+     e todas as consultas voltam 404, sem dizer o motivo.
+     Melhor aparar aqui do que caçar isso depois. */
+  function normalizarUrl(bruta) {
+    return String(bruta || '')
+      .trim()
+      .replace(/\/(rest|auth|storage|realtime)\/v\d+\/?$/i, '')
+      .replace(/\/+$/, '');
+  }
+
   /** true quando url e chave foram preenchidas em supabase-config.js. */
   function configurado() {
     const c = config();
-    return !!(String(c.url || '').trim() && String(c.anonKey || '').trim());
+    return !!(normalizarUrl(c.url) && String(c.anonKey || '').trim());
   }
 
   /**
@@ -54,7 +66,7 @@ const Banco = (() => {
     }
 
     const c = config();
-    cliente = window.supabase.createClient(String(c.url).trim(), String(c.anonKey).trim(), {
+    cliente = window.supabase.createClient(normalizarUrl(c.url), String(c.anonKey).trim(), {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -95,6 +107,8 @@ const Banco = (() => {
     [/unable to validate email address/i, 'E-mail inválido.'],
     [/email rate limit exceeded/i,        'Muitas tentativas seguidas. Espere alguns minutos.'],
     [/for security purposes.*(\d+) seconds/i, 'Espere $1 segundos antes de tentar de novo.'],
+    [/could not find the table '(?:public\.)?(\w+)' in the schema cache/i,
+                                          'A tabela $1 não existe no banco — rode supabase/schema.sql no SQL Editor.'],
     [/row-level security/i,               'Você não tem permissão para acessar este registro.'],
     [/duplicate key value/i,              'Este registro já existe.'],
     [/jwt expired|invalid claim/i,        'Sua sessão expirou. Entre novamente.'],
@@ -127,14 +141,20 @@ const Banco = (() => {
 
     const tabelas = {};
     for (const nome of NOMES) {
-      // head + count não traz linha nenhuma: só queremos saber se a
-      // tabela existe e se a política deixa consultar.
-      const { error } = await c.from(nome).select('id', { count: 'exact', head: true });
+      /* GET de verdade, com limit(1) — e não `head: true`.
+         Numa requisição HEAD o PostgREST responde sem corpo, então o
+         postgrest-js não tem como ler a mensagem de erro e devolve
+         `error: null` mesmo quando o HTTP foi 404. Resultado: tabela
+         inexistente aparecia como "ok". Um diagnóstico que mente é pior
+         que não ter diagnóstico nenhum.
+         O custo de trazer uma linha é irrelevante, e com RLS ligada
+         nem linha vem. */
+      const { error } = await c.from(nome).select('id').limit(1);
       tabelas[nome] = error ? traduzirErro(error) : 'ok';
     }
 
     return { ok: Object.values(tabelas).every((v) => v === 'ok'), tabelas };
   }
 
-  return { CDN, configurado, cx, tabela, motivo, traduzirErro, diagnostico };
+  return { CDN, configurado, normalizarUrl, cx, tabela, motivo, traduzirErro, diagnostico };
 })();

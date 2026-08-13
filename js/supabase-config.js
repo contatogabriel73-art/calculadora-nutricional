@@ -25,6 +25,6 @@
 'use strict';
 
 window.SUPABASE_CONFIG = {
-  url: '',
+  url: 'https://wxezmcabuuiwixsvkwum.supabase.co',
   anonKey: 'sb_publishable_gH3KXEPoQ---X6GOZX5bSQ_WMgi3_va'
 };

@@ -164,6 +164,11 @@ diferente da chave `anon` da seção 3, que é segura de expor).
 linha do banco como lembrete — exclua em **Authentication → Users** antes
 do lançamento em produção.
 
+✅ **Já rodado.** A conta existe, com o e-mail real do Gabriel
+(`contatogabriel73@gmail.com`), `status_verificacao = 'verificado'` e
+`papel_admin = true`. A senha não fica documentada aqui nem em nenhum outro
+arquivo do repositório — só com ele, num gerenciador de senhas.
+
 ---
 
 ## Cadastro de nutricionista: CPF, CRN e verificação

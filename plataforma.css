@@ -2124,6 +2124,25 @@ body.protegida.liberada { visibility: visible; }
   padding: 16px 18px 18px;
 }
 
+.bloco-recolhivel summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--tinta-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  touch-action: manipulation;
+}
+.bloco-recolhivel summary::-webkit-details-marker { display: none; }
+.bloco-recolhivel summary::after { content: '+'; font-size: 1rem; color: var(--verde-escuro); }
+.bloco-recolhivel[open] summary::after { content: '–'; }
+.bloco-recolhivel[open] summary { margin-bottom: 12px; }
+.bloco-recolhivel .form-codigo { margin-top: 10px; }
+
 .bloco-topo {
   display: flex;
   align-items: baseline;

@@ -184,6 +184,26 @@ const Auth = (() => {
     }
   }
 
+  /**
+   * Define/troca a senha de quem já está logado — usado por quem entrou
+   * por um link de convite por e-mail (só o link funciona até definir
+   * uma senha própria).
+   * @returns {Promise<{ok: boolean, erro?: string}>}
+   */
+  async function trocarSenha(novaSenha) {
+    const c = Banco.cx();
+    if (!c) return { ok: false, erro: Banco.motivo() };
+
+    const senha = String(novaSenha || '');
+    if (senha.length < 6) {
+      return { ok: false, erro: 'A senha precisa ter pelo menos 6 caracteres.' };
+    }
+
+    const { error } = await c.auth.updateUser({ password: senha });
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    return { ok: true };
+  }
+
   /* ───────────── Entrar, cadastrar, sair ───────────── */
 
   /**
@@ -388,7 +408,7 @@ const Auth = (() => {
 
   return {
     PAPEIS, paginaInicial, destinoParaPerfil,
-    login, cadastrar, logout,
+    login, cadastrar, logout, trocarSenha,
     estaLogado, usuarioAtual, perfilAtual, papelAtual, idAtual,
     atualizarPerfilEmCache, tentarVerificarCrn, exigirLogin
   };

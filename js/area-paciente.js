@@ -24,6 +24,26 @@
   const primeiro = String(usuario.nome || '').trim().split(/\s+/)[0] || '';
   $('#saudacao').textContent = primeiro ? `Olá, ${primeiro}` : 'Olá';
 
+  $('#form-senha').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const erro = $('#erro-senha');
+    erro.hidden = true;
+
+    const botao = ev.target.querySelector('button[type="submit"]');
+    botao.disabled = true;
+    const r = await Auth.trocarSenha($('#nova-senha').value);
+    botao.disabled = false;
+
+    if (!r.ok) {
+      erro.textContent = r.erro;
+      erro.hidden = false;
+      return;
+    }
+    $('#nova-senha').value = '';
+    $('#bloco-senha').open = false;
+    Shell.toast('Senha definida. Da próxima vez, entre com e-mail e senha.');
+  });
+
   const paciente = await VinculoStore.fichaVinculada();
 
   /* ───────────── Sem vínculo: pede o código ───────────── */

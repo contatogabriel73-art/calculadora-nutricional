@@ -99,16 +99,30 @@
       return;
     }
 
-    // Sem conta e sem código gerado ainda: mostra a explicação e o botão.
-    // Um código já gerado (mas ainda não usado) fica visível de novo —
-    // reabrir a tela não deveria trocar o código que a pessoa já anotou.
+    // Sem conta e sem código gerado ainda: mostra a explicação e as
+    // opções. Um código já gerado (mas ainda não usado) fica visível de
+    // novo — reabrir a tela não deveria trocar o código que a pessoa já
+    // anotou. O convite por e-mail só aparece com e-mail cadastrado —
+    // sem e-mail, o código manual é o único caminho mesmo.
     const codigo = esc(paciente.codigoConvite || '');
+    const temEmail = !!paciente.email;
     alvo.innerHTML = `
-      <p class="dica">
-        Gere um código e passe para o paciente. Com ele, o paciente cria a
-        própria conta e passa a ver as consultas e a evolução dele — sem
-        acesso a nada de outro paciente seu.
-      </p>
+      ${temEmail ? `
+        <p class="dica">
+          Manda um convite direto para <strong>${esc(paciente.email)}</strong> — o paciente
+          clica no link do e-mail, cria a senha e já entra vinculado a esta ficha, sem
+          precisar digitar código nenhum.
+        </p>
+        <button id="btn-convidar-email" class="btn btn-primary btn-sm" type="button">
+          Enviar acesso por e-mail
+        </button>
+        <p class="dica">Prefere o código manual? Use a opção abaixo.</p>
+      ` : `
+        <p class="dica">
+          Cadastre um e-mail na ficha para enviar o acesso automaticamente, ou passe o
+          código abaixo para o paciente digitar na conta dele.
+        </p>
+      `}
       ${codigo ? `
         <div class="codigo-convite">
           <span class="codigo-convite-valor">${codigo}</span>
@@ -116,9 +130,29 @@
         </div>
         <p class="dica">Ainda não usado. Gerar de novo não é necessário.</p>
       ` : `
-        <button id="btn-gerar-codigo" class="btn btn-primary btn-sm" type="button">Gerar código de convite</button>
+        <button id="btn-gerar-codigo" class="btn btn-ghost btn-sm" type="button">Gerar código de convite</button>
       `}
       <p id="vinculo-erro" class="erro-form" role="alert" hidden></p>`;
+
+    const btnConvidar = $('#btn-convidar-email');
+    if (btnConvidar) {
+      btnConvidar.addEventListener('click', async () => {
+        btnConvidar.disabled = true;
+        btnConvidar.textContent = 'Enviando…';
+        const r = await VinculoStore.convidarPorEmail(paciente.id);
+        btnConvidar.disabled = false;
+        btnConvidar.textContent = 'Enviar acesso por e-mail';
+        if (!r.ok) {
+          const erro = $('#vinculo-erro');
+          erro.textContent = r.erro;
+          erro.hidden = false;
+          return;
+        }
+        Shell.toast(`Convite enviado para ${r.email}.`);
+        paciente.usuarioId = true; // só pra desenharVinculo() já mostrar o estado vinculado
+        desenharVinculo();
+      });
+    }
 
     const btnGerar = $('#btn-gerar-codigo');
     if (btnGerar) {

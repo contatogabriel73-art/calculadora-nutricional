@@ -22,6 +22,30 @@
     <p class="painel-sub">Aqui você acompanha sua evolução e suas próximas consultas.</p>
   </div>
 
+  <!-- ═══════ Senha de acesso ═══════
+       Sempre visível, não só logo após um convite por e-mail: quem
+       entrou pelo link ainda não tem senha nenhuma (só o link
+       funcionou), e detectar "acabei de entrar por um convite" de
+       forma confiável no navegador não é garantido — mais simples e
+       mais robusto deixar sempre disponível do que arriscar esconder
+       de quem precisa. -->
+  <details id="bloco-senha" class="bloco bloco-recolhivel">
+    <summary>Senha de acesso</summary>
+    <p class="dica">
+      Se você entrou pelo link do e-mail, ainda não tem uma senha definida — só o link
+      funciona até aqui. Defina uma para conseguir entrar direto por e-mail e senha da
+      próxima vez.
+    </p>
+    <form id="form-senha" class="form-codigo" novalidate>
+      <div class="campo">
+        <label class="field-label" for="nova-senha">Nova senha</label>
+        <input id="nova-senha" class="input" type="password" autocomplete="new-password" minlength="6" required>
+      </div>
+      <p id="erro-senha" class="erro-form" role="alert" hidden></p>
+      <button class="btn btn-primary btn-sm" type="submit">Salvar senha</button>
+    </form>
+  </details>
+
   <!-- ═══════ Sem vínculo ainda ═══════ -->
   <section id="bloco-sem-vinculo" class="bloco" hidden>
     <div class="bloco-topo"><h2>Falta ligar você ao seu nutricionista</h2></div>

@@ -98,5 +98,36 @@ const VinculoStore = (() => {
     return error ? null : data;
   }
 
-  return { gerarCodigoConvite, resgatarConvite, fichaVinculada };
+  /**
+   * Cria a conta de paciente e manda o convite por e-mail (Edge Function
+   * `convidar-paciente`) — já vincula a ficha, sem precisar de código.
+   * Exige e-mail cadastrado na ficha; se o e-mail já tiver conta em
+   * outro lugar, a função devolve erro sugerindo o código manual.
+   * @returns {Promise<{ok: boolean, email?: string, erro?: string}>}
+   */
+  async function convidarPorEmail(pacienteId) {
+    const c = Banco.cx();
+    if (!c) return { ok: false, erro: Banco.motivo() };
+
+    try {
+      const { data, error } = await c.functions.invoke('convidar-paciente', {
+        method: 'POST',
+        body: { pacienteId }
+      });
+      if (error) {
+        // FunctionsHttpError guarda a resposta original (com a mensagem
+        // em português que a função devolveu) em error.context.
+        const corpo = error.context && typeof error.context.json === 'function'
+          ? await error.context.json().catch(() => null)
+          : null;
+        return { ok: false, erro: (corpo && corpo.erro) || Banco.traduzirErro(error) };
+      }
+      if (!data || !data.ok) return { ok: false, erro: (data && data.erro) || 'Não foi possível enviar o convite.' };
+      return { ok: true, email: data.email };
+    } catch (e) {
+      return { ok: false, erro: 'Sem conexão com o servidor. Verifique a internet.' };
+    }
+  }
+
+  return { gerarCodigoConvite, resgatarConvite, fichaVinculada, convidarPorEmail };
 })();

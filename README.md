@@ -34,8 +34,9 @@ HTML, CSS e JavaScript puros — **sem build, sem dependências, sem backend**.
 > [`cadastro-em-analise.html`](cadastro-em-analise.html) em vez do painel,
 > até um admin aprovar ou recusar na tela [`admin.html`](admin.html).
 >
-> **O que falta:** a landing explicando os dois públicos (Fase 5) e a conta
-> de admin com o e-mail de verdade do Gabriel (Fase 4 — hoje só existe uma
+> **O que falta:** a conta de admin com o e-mail de verdade do Gabriel
+> (Fase 4 — o script já existe em [`supabase/seed-conta-teste.js`](supabase/seed-conta-teste.js),
+> falta só rodar com a chave `service_role` do projeto; hoje só existe uma
 > conta de admin de teste). Até lá, use dados fictícios ao testar — é
 > prudência de quem está no meio de uma migração, não sinal de
 > vulnerabilidade conhecida.

@@ -139,6 +139,31 @@ texto traduzido (`deixe` no lugar de `let`, `tentar` no lugar de `try`), mas
 isso é só exibição — o que é salvo é o conteúdo real, não o que apareceu
 traduzido na tela. Ainda assim, desligar a tradução evita a confusão.
 
+## 7. Conta de teste/admin do Gabriel (Fase 4)
+
+`admin.html` só é visível para quem tem `papel_admin = true`, e todo cadastro
+público nasce `status_verificacao = 'pendente'` — então a primeira conta
+admin não pode vir do formulário normal, tem que ser plantada direto no
+banco. É para isso que existe [`seed-conta-teste.js`](seed-conta-teste.js):
+cria a conta pela Admin API do Supabase (pula a verificação de CRN de
+propósito) e já marca `status_verificacao = 'verificado'`,
+`papel_admin = true` e `conta_teste = true`.
+
+```bash
+# PowerShell — as duas chaves ficam em Project Settings → API
+$env:SUPABASE_URL = "https://<projeto>.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY = "<chave service_role, NUNCA a anon>"
+node supabase/seed-conta-teste.js seu@email.com "sua-senha" "Seu Nome"
+```
+
+⚠️ A chave `service_role` ignora Row Level Security — use só neste comando,
+no seu terminal, e nunca cole ela em nenhum arquivo do repositório (é
+diferente da chave `anon` da seção 3, que é segura de expor).
+
+⚠️ **É uma conta de teste.** `conta_teste = true` fica marcado na própria
+linha do banco como lembrete — exclua em **Authentication → Users** antes
+do lançamento em produção.
+
 ---
 
 ## Cadastro de nutricionista: CPF, CRN e verificação
@@ -343,7 +368,8 @@ não o estado "de fábrica" de nenhuma delas.
 
 `teste.nutri2` foi marcada `papel_admin = true` só para testar a tela
 `admin.html` nesta fase. **A conta de admin de verdade, com o e-mail real do
-Gabriel, é a Fase 4** — não confundir as duas.
+Gabriel, é a Fase 4** — criada com [`seed-conta-teste.js`](seed-conta-teste.js)
+(ver seção 7), não pela tela de cadastro. Não confundir as duas.
 
 As duas contas de paciente foram criadas numa janela em que **Confirm email**
 estava temporariamente desligado — precisou ser assim porque o domínio de

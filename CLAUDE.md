@@ -97,6 +97,43 @@ escuro na área interna.
 **Depois:** prescrição de plano alimentar, diário alimentar, questionário pré-consulta,
 pagamento, envio automático de e-mail/WhatsApp, integração com Google Agenda.
 
+## Fase 4 — Conta de teste para o Gabriel
+
+- Criar, via seed/script (não pela tela de cadastro normal, pra pular a verificação de
+  CRN), uma conta de nutricionista de teste:
+  - E-mail e senha fixos e simples, que você escolhe ao rodar o script.
+  - `status_verificacao = 'verificado'` direto, sem passar pela Fase 2.
+  - Marcar essa conta com uma flag clara (`conta_teste = true`), e/ou um comentário no
+    script avisando: "Conta de teste — excluir antes do lançamento em produção."
+- Essa mesma conta pode servir também de conta administradora pra aprovar os cadastros
+  pendentes da Fase 2 (`papel_admin = true`).
+
+(Isso já está parcialmente feito — usei `teste.nutri2@nutrificha.test` como admin de
+teste pra validar a tela. A diferença é que essa aqui era só pra mim testar; a Fase 4
+de verdade é criar a conta com o seu e-mail real, que você efetivamente vai usar.)
+
+## Fase 5 — Landing: explicar os dois públicos, com um único caminho de cadastro
+
+⚠️ Corrige um resquício do fluxo antigo: se `cadastro.html` ainda lesse `?papel=` da URL
+pra alternar entre formulário de nutricionista e paciente (de uma versão anterior do
+prompt), isso devia ser removido — hoje só existe um cadastro possível, o do
+nutricionista.
+
+- Reescrever a seção "Feito para o seu consultório" (ou criar uma nova) explicando que
+  o NutriFicha serve tanto o nutricionista quanto o paciente dele, mas o acesso funciona
+  diferente pra cada um:
+  - O nutricionista cria a própria conta (botão "Começar agora" / "Sou nutricionista",
+    único caminho de cadastro da landing) e organiza pacientes, agenda, fichas técnicas
+    e evolução num só lugar.
+  - O paciente não cria conta pela landing. Ele recebe o acesso automaticamente por
+    e-mail quando o próprio nutricionista cadastra ele no sistema. Um parágrafo curto
+    explicando isso, com chamada tipo "É paciente de um nutricionista que usa o
+    NutriFicha? Peça pra ele liberar seu acesso" — sem botão, sem formulário, só
+    orientação.
+- `cadastro.html` passa a ter um único formulário (o do nutricionista), sem branch por
+  papel.
+- Manter o tom e a identidade visual da landing (direto, sem exagero, verde `#16694a`).
+
 ## Como trabalhar neste projeto
 
 - Implementar em **fases numeradas, uma de cada vez**. Ao fim de cada fase, parar, rodar

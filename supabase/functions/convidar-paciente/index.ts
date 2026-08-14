@@ -93,9 +93,16 @@ Deno.serve(async (req: Request) => {
   // direto na área dela — o vínculo com a ficha é gravado abaixo, antes
   // do e-mail sair, então quando ela chegar lá já está tudo pronto, sem
   // precisar digitar código nenhum.
-  const origem = req.headers.get("origin") || req.headers.get("referer") || "";
-  const redirectTo = origem
-    ? new URL("area-paciente.html", origem).toString()
+  //
+  // Usa o Referer, não o Origin: o site fica num subcaminho do domínio
+  // (github.io/calculadora-nutricional/...), e o cabeçalho Origin nunca
+  // carrega caminho, só esquema+host — resolver "area-paciente.html"
+  // contra ele ia pra raiz do domínio, sem o /calculadora-nutricional/.
+  // O Referer é a URL completa de quem chamou (paciente.html), então
+  // resolver relativo a ele acerta o subcaminho.
+  const referenciador = req.headers.get("referer") || req.headers.get("origin") || "";
+  const redirectTo = referenciador
+    ? new URL("area-paciente.html", referenciador).toString()
     : undefined;
 
   const { data: convite, error: erroConvite } = await comoServico.auth.admin.inviteUserByEmail(

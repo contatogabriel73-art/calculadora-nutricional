@@ -1,0 +1,179 @@
+{
+  "versao": "0.1.0",
+  "observacoes": [
+    "Catálogo de referência para ajudar a nutricionista a começar a montar um plano — sugestão de ponto de partida, nunca uma prescrição pronta. Tudo aqui pode ser ajustado pela nutricionista a qualquer momento.",
+    "macros_sugeridos é a distribuição percentual de proteína/carboidrato/lipídio (soma 100) — ponto de partida a recalcular conforme o total calórico e a avaliação individual do paciente.",
+    "observacao_padrao só entra no campo 'Orientações gerais' do plano se ele ainda estiver vazio, e os macros só preenchem campos de meta vazios ou zerados — nunca sobrescrevem o que a nutricionista já escreveu (ver js/plano.js).",
+    "Lista para crescer aos poucos, um tipo de cada vez — não é uma lista fechada."
+  ],
+  "categorias": [
+    "Emagrecimento",
+    "Ganho de peso",
+    "Saúde geral",
+    "Condição clínica",
+    "Fase da vida da mulher",
+    "Performance esportiva"
+  ],
+  "tipos": [
+    {
+      "id": "hipocalorica",
+      "nome": "Emagrecimento — hipocalórica tradicional",
+      "categoria": "Emagrecimento",
+      "publico": "geral",
+      "objetivo": "Déficit calórico moderado, sem exclusão de grupo alimentar",
+      "descricao": "Reduz o total calórico diário mantendo a proporção usual de macros; indicada como primeira abordagem antes de dietas mais restritivas.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 45, "lipidio": 30 },
+      "observacao_padrao": "Ajustar o déficit calórico conforme avaliação individual — evitar cortes acima de 25% do gasto energético total."
+    },
+    {
+      "id": "low-carb",
+      "nome": "Emagrecimento — low carb",
+      "categoria": "Emagrecimento",
+      "publico": "geral",
+      "objetivo": "Carboidrato limitado a uma fração pequena da refeição, sem chegar à cetose",
+      "descricao": "Prioriza proteínas e gorduras boas, com carboidrato mais controlado que numa dieta hipocalórica tradicional — costuma ajudar quem precisa de mais saciedade entre as refeições.",
+      "macros_sugeridos": { "proteina": 30, "carboidrato": 25, "lipidio": 45 },
+      "observacao_padrao": "Reduzir o carboidrato de forma gradual nas primeiras semanas evita queda de energia — ajustar a fração conforme a tolerância e a rotina do paciente."
+    },
+    {
+      "id": "cetogenica",
+      "nome": "Emagrecimento — cetogênica",
+      "categoria": "Emagrecimento",
+      "publico": "geral",
+      "objetivo": "Predomínio de proteínas e gorduras boas, com carboidrato bem restrito",
+      "descricao": "Abordagem mais restritiva, indicada para induzir cetose — não costuma ser a primeira escolha antes de tentar formatos menos restritivos.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 5, "lipidio": 70 },
+      "observacao_padrao": "Exige acompanhamento mais próximo, inclusive com exames periódicos — não manter sem monitorar adesão e possíveis efeitos colaterais."
+    },
+    {
+      "id": "jejum-intermitente",
+      "nome": "Emagrecimento — jejum intermitente",
+      "categoria": "Emagrecimento",
+      "publico": "geral",
+      "objetivo": "Concentrar a alimentação numa janela restrita do dia",
+      "descricao": "O efeito vem da janela de alimentação, não de uma distribuição de macro específica — combina com qualquer proporção de proteína/carboidrato/lipídio.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 45, "lipidio": 30 },
+      "observacao_padrao": "Contraindicado em gestantes, em quem tem histórico de transtorno alimentar e em diabetes tipo 1 — confirmar ausência dessas condições antes de sugerir."
+    },
+    {
+      "id": "hiperproteica",
+      "nome": "Ganho de peso — hiperproteica",
+      "categoria": "Ganho de peso",
+      "publico": "geral",
+      "objetivo": "Aumento da proteína animal e/ou vegetal na dieta",
+      "descricao": "Eleva a proporção de proteína sem depender de suplementação, apoiando ganho ou manutenção de massa magra.",
+      "macros_sugeridos": { "proteina": 30, "carboidrato": 40, "lipidio": 30 },
+      "observacao_padrao": "Distribuir a proteína ao longo do dia, não concentrada numa única refeição, melhora o aproveitamento — ajustar a quantidade total pelo peso e nível de atividade do paciente."
+    },
+    {
+      "id": "bulking",
+      "nome": "Ganho de peso — bulking",
+      "categoria": "Ganho de peso",
+      "publico": "geral",
+      "objetivo": "Superávit calórico com mais carboidrato, voltado a ganho de peso",
+      "descricao": "Fase de ganho, geralmente alternada com um período de definição ('cutting') — mais indicada para quem já treina de forma consistente.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 50, "lipidio": 25 },
+      "observacao_padrao": "Ajustar o superávit calórico para evitar ganho de gordura em excesso — reavaliar composição corporal periodicamente."
+    },
+    {
+      "id": "mediterranea",
+      "nome": "Saúde geral — dieta mediterrânea",
+      "categoria": "Saúde geral",
+      "publico": "geral",
+      "objetivo": "Priorizar azeite, peixes, grãos integrais e vegetais",
+      "descricao": "Padrão alimentar de referência para saúde cardiovascular, não voltado especificamente a emagrecimento ou ganho de peso.",
+      "macros_sugeridos": { "proteina": 20, "carboidrato": 45, "lipidio": 35 },
+      "observacao_padrao": "Ajustar o total calórico conforme o objetivo do paciente — esta dieta é sobre a qualidade e a origem dos alimentos, não sobre restrição."
+    },
+    {
+      "id": "dash",
+      "nome": "Saúde geral — dieta DASH",
+      "categoria": "Saúde geral",
+      "publico": "geral",
+      "objetivo": "Controle da pressão arterial",
+      "descricao": "Reduz sódio e prioriza frutas, vegetais e laticínios com baixo teor de gordura — indicada especialmente para quem tem ou tem risco de hipertensão.",
+      "macros_sugeridos": { "proteina": 20, "carboidrato": 50, "lipidio": 30 },
+      "observacao_padrao": "Reforçar a redução de sódio, não só a distribuição de macros — confirmar acompanhamento médico se o paciente já tiver diagnóstico de hipertensão."
+    },
+    {
+      "id": "diabetes",
+      "nome": "Condição clínica — para diabetes",
+      "categoria": "Condição clínica",
+      "publico": "geral",
+      "objetivo": "Controle de carboidrato e de índice glicêmico",
+      "descricao": "Prioriza carboidratos de menor índice glicêmico e distribui as refeições ao longo do dia para evitar picos de glicemia.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 40, "lipidio": 35 },
+      "observacao_padrao": "Depende de laudo e acompanhamento médico em conjunto — confirmar o tipo de diabetes e a medicação em uso antes de ajustar o carboidrato."
+    },
+    {
+      "id": "renal",
+      "nome": "Condição clínica — renal",
+      "categoria": "Condição clínica",
+      "publico": "geral",
+      "objetivo": "Restrição de sódio, potássio e proteína conforme a fase da doença",
+      "descricao": "Os limites variam bastante conforme o estágio da doença renal e se o paciente faz diálise — não existe um valor padrão único.",
+      "macros_sugeridos": { "proteina": 15, "carboidrato": 50, "lipidio": 35 },
+      "observacao_padrao": "Depende de laudo e acompanhamento médico/nefrológico em conjunto — os limites de sódio, potássio e proteína mudam conforme a fase da doença."
+    },
+    {
+      "id": "vegetariana",
+      "nome": "Vegetariana",
+      "categoria": "Condição clínica",
+      "publico": "geral",
+      "objetivo": "Excluir carne e derivados de abate, mantendo ovos e laticínios conforme o caso",
+      "descricao": "Cobre as variações mais comuns (ovolactovegetariana, lactovegetariana etc.) — confirmar com o paciente exatamente o que ele inclui ou não.",
+      "macros_sugeridos": { "proteina": 20, "carboidrato": 50, "lipidio": 30 },
+      "observacao_padrao": "Atenção à combinação de proteínas vegetais ao longo do dia e à reposição de ferro e vitamina B12, conforme o padrão alimentar do paciente."
+    },
+    {
+      "id": "vegana",
+      "nome": "Vegana",
+      "categoria": "Condição clínica",
+      "publico": "geral",
+      "objetivo": "Excluir todo alimento de origem animal",
+      "descricao": "Mais restritiva que a vegetariana — exige atenção maior à combinação de proteínas vegetais e a nutrientes que praticamente só vêm de fonte animal.",
+      "macros_sugeridos": { "proteina": 20, "carboidrato": 50, "lipidio": 30 },
+      "observacao_padrao": "Avaliar suplementação de vitamina B12 (praticamente ausente em fontes vegetais) e monitorar ferro, zinco, ômega-3 e cálcio."
+    },
+    {
+      "id": "gestacao",
+      "nome": "Fase da vida da mulher — gestação",
+      "categoria": "Fase da vida da mulher",
+      "publico": "mulheres",
+      "objetivo": "Aumento calórico e de proteína por trimestre, com atenção a ácido fólico e ferro",
+      "descricao": "As necessidades mudam a cada trimestre — não é uma dieta fixa do início ao fim da gestação.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 45, "lipidio": 30 },
+      "observacao_padrao": "Ajustar o aporte calórico e de proteína por trimestre, e confirmar com o pré-natal a suplementação de ácido fólico e ferro em uso."
+    },
+    {
+      "id": "lactacao",
+      "nome": "Fase da vida da mulher — lactação",
+      "categoria": "Fase da vida da mulher",
+      "publico": "mulheres",
+      "objetivo": "Aumento calórico e hídrico para sustentar a produção de leite",
+      "descricao": "Demanda calórica extra em relação ao período pré-gestacional, com atenção especial à hidratação.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 45, "lipidio": 30 },
+      "observacao_padrao": "Reforçar a ingestão hídrica — a produção de leite aumenta bastante a necessidade de água, não só a de calorias."
+    },
+    {
+      "id": "menopausa",
+      "nome": "Fase da vida da mulher — menopausa/climatério",
+      "categoria": "Fase da vida da mulher",
+      "publico": "mulheres",
+      "objetivo": "Foco em cálcio, vitamina D e proteína, por conta da perda óssea e da sarcopenia acelerada nessa fase",
+      "descricao": "Inclui também fitoestrógenos (soja, linhaça) como apoio, e redução de cafeína, álcool e condimentos picantes como parte do manejo dos fogachos.",
+      "macros_sugeridos": { "proteina": 28, "carboidrato": 42, "lipidio": 30 },
+      "observacao_padrao": "Reforçar cálcio e vitamina D (perda óssea), proteína mais alta (sarcopenia), fitoestrógenos como soja e linhaça, e reduzir cafeína/álcool/condimentos picantes como manejo de fogachos."
+    },
+    {
+      "id": "performance-esportiva",
+      "nome": "Nutrição esportiva e performance",
+      "categoria": "Performance esportiva",
+      "publico": "geral",
+      "objetivo": "Timing de carboidrato e proteína pré/pós-treino, com atenção à hidratação",
+      "descricao": "Pensada para quem treina forte e busca desempenho, não só estética — a distribuição das refeições ao redor do treino importa tanto quanto o total do dia.",
+      "macros_sugeridos": { "proteina": 25, "carboidrato": 50, "lipidio": 25 },
+      "observacao_padrao": "Ajustar o carboidrato pré/pós-treino conforme volume e intensidade do treino, e reforçar a hidratação — não só nos dias de treino."
+    }
+  ]
+}

@@ -148,6 +148,10 @@ const Shell = (() => {
       : nav.abas;
 
     const nomeUsuario = escapar(usuario ? usuario.nome : '');
+    const ehNutricionista = !!(usuario && usuario.papel === 'nutricionista');
+    const fotoUrl = (usuario && usuario.perfil && usuario.perfil.foto_url) || '';
+    const plano = (usuario && usuario.perfil && usuario.perfil.plano) || 'gratuito';
+    const planoRotulo = plano === 'pro' ? 'Pro' : 'Gratuito';
 
     /* Uma aba só não é navegação, é enfeite: o paciente fica com o
        cabeçalho simples de sempre até a área dele ter mais de uma seção
@@ -205,6 +209,20 @@ const Shell = (() => {
           </button>
         </div>
 
+        ${ehNutricionista ? `
+          <div class="sidebar-perfil">
+            <button class="avatar avatar-grande avatar-perfil" id="btn-avatar" type="button" aria-label="Editar foto de perfil">
+              ${fotoUrl
+                ? `<img src="${escapar(fotoUrl)}" alt="">`
+                : `<span aria-hidden="true">${iniciais(usuario.nome)}</span>`}
+            </button>
+            <input type="file" accept="image/*" id="input-foto" hidden>
+            <div class="sidebar-perfil-info">
+              <strong class="sidebar-perfil-nome">${nomeUsuario}</strong>
+              <a class="badge-plano" href="perfil.html">${planoRotulo}</a>
+            </div>
+          </div>` : ''}
+
         <nav class="sidebar-nav" aria-label="Seções do sistema">
           ${abasComAdmin.map((a) => `
             <a class="item-sidebar" href="${a.href}" ${ativo === a.id ? 'aria-current="page"' : ''}>
@@ -214,12 +232,33 @@ const Shell = (() => {
         </nav>
 
         <div class="sidebar-rodape">
-          <span class="sidebar-usuario">${nomeUsuario}</span>
           <button id="btn-sair" class="btn btn-ghost btn-sm sidebar-sair" type="button">Sair</button>
         </div>
       </div>`;
 
     alvo.querySelector('#btn-sair').addEventListener('click', sair);
+
+    if (ehNutricionista) {
+      const btnAvatar = alvo.querySelector('#btn-avatar');
+      const inputFoto = alvo.querySelector('#input-foto');
+      btnAvatar.addEventListener('click', () => inputFoto.click());
+      inputFoto.addEventListener('change', async () => {
+        const arquivo = inputFoto.files[0];
+        // Limpa já aqui: sem isso, escolher o mesmo arquivo de novo (pra
+        // tentar de novo depois de um erro, por exemplo) não dispara o
+        // evento 'change' uma segunda vez.
+        inputFoto.value = '';
+        if (!arquivo) return;
+
+        btnAvatar.disabled = true;
+        const resultado = await PerfilStore.enviarFoto(arquivo);
+        btnAvatar.disabled = false;
+
+        if (!resultado.ok) { toast(resultado.erro); return; }
+        btnAvatar.innerHTML = `<img src="${escapar(resultado.fotoUrl)}" alt="">`;
+        toast('Foto atualizada.');
+      });
+    }
 
     const btnAbrir = alvo.querySelector('#btn-abrir-menu');
     const btnFechar = alvo.querySelector('#btn-fechar-menu');

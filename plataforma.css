@@ -129,6 +129,50 @@ body.tem-sidebar { padding-left: 0; padding-top: 56px; }
 }
 .btn-fechar-menu svg { width: 20px; height: 20px; }
 
+.sidebar-perfil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 16px 16px;
+  flex: none;
+}
+
+.avatar-perfil {
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+.avatar-perfil:hover { filter: brightness(.95); }
+.avatar-perfil:disabled { opacity: .6; cursor: default; }
+.avatar-perfil img { width: 100%; height: 100%; object-fit: cover; }
+
+.sidebar-perfil-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-perfil-nome {
+  font-size: .92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-plano {
+  /* rose-escuro sólido + texto branco, não rose claro com texto escuro:
+     o par claro/escuro do rosé tem o mesmo contraste baixo que o verde
+     tinha antes da Fase 1 (~2.3:1) — mesmo ajuste aplicado aqui. */
+  align-self: flex-start;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-decoration: none;
+  color: #fff;
+  background: var(--rose-escuro);
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+.badge-plano:hover { filter: brightness(1.08); }
+.badge-plano-grande { font-size: .82rem; padding: 5px 14px; margin: 0 0 12px; }
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;

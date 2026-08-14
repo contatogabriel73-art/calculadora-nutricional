@@ -60,5 +60,71 @@ const PerfilStore = (() => {
     return !!(perfil && perfil.nome);
   }
 
-  return { CAMPOS, obterPerfil, salvarPerfil, perfilCompleto };
+  /* ───────────── Foto de perfil (Fase 3) ─────────────
+     Função separada de salvarPerfil(): aquela reflete o formulário de
+     dados do emitente (financeiro.html) e só manda os campos da tela —
+     se foto_url estivesse dentro de CAMPOS, salvar o recibo apagaria a
+     foto toda vez, porque o formulário não tem esse campo pra mandar.
+  */
+
+  const BUCKET_AVATARS = 'avatars';
+  const TAMANHO_MAXIMO = 5 * 1024 * 1024;
+
+  /** Só grava a URL já enviada — usado por enviarFoto() logo abaixo. */
+  async function salvarFoto(fotoUrl) {
+    const id = await Auth.idAtual();
+    if (!id) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const { data, error } = await Banco.tabela('perfis')
+      .update({ foto_url: fotoUrl }).eq('id', id).select('*');
+
+    if (error) return { ok: false, erro: Banco.traduzirErro(error) };
+    if (!data || !data.length) return { ok: false, erro: 'Não foi possível salvar a foto.' };
+
+    Auth.atualizarPerfilEmCache(data[0]);
+    return { ok: true, fotoUrl: data[0].foto_url || '' };
+  }
+
+  /**
+   * Sobe o arquivo pro Supabase Storage (bucket `avatars`) e grava a URL
+   * pública em perfis.foto_url. Nunca base64 no banco — foto pesa demais
+   * pra caber numa coluna de texto sem inflar toda consulta ao perfil.
+   * @param {File} arquivo
+   */
+  async function enviarFoto(arquivo) {
+    if (!arquivo) return { ok: false, erro: 'Nenhum arquivo selecionado.' };
+    if (arquivo.size > TAMANHO_MAXIMO) {
+      return { ok: false, erro: 'A foto precisa ter até 5 MB.' };
+    }
+
+    const id = await Auth.idAtual();
+    if (!id) return { ok: false, erro: 'Sua sessão expirou. Entre novamente.' };
+
+    const c = Banco.cx();
+    if (!c) return { ok: false, erro: Banco.motivo() };
+
+    // Nome fixo por conta (não o nome original do arquivo): evita
+    // acumular lixo no bucket a cada troca de foto, e o prefixo com o
+    // próprio id é o que a política de RLS do bucket usa pra restringir
+    // cada conta a escrever só na própria pasta (ver supabase/schema.sql).
+    const extensao = (arquivo.name.split('.').pop() || 'jpg')
+      .toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const caminho = `${id}/avatar.${extensao}`;
+
+    const { error: erroEnvio } = await c.storage.from(BUCKET_AVATARS)
+      .upload(caminho, arquivo, { upsert: true, cacheControl: '3600' });
+    if (erroEnvio) return { ok: false, erro: Banco.traduzirErro(erroEnvio) };
+
+    const { data } = c.storage.from(BUCKET_AVATARS).getPublicUrl(caminho);
+    // O caminho não muda entre uma foto e outra, então sem isto o
+    // navegador continuaria mostrando a imagem antiga do próprio cache.
+    const url = data.publicUrl + '?t=' + Date.now();
+
+    return salvarFoto(url);
+  }
+
+  return {
+    CAMPOS, obterPerfil, salvarPerfil, perfilCompleto,
+    enviarFoto
+  };
 })();

@@ -7,6 +7,13 @@
 > (`verificar-crn`) está publicada e testada nos quatro caminhos possíveis.
 > Este guia fica para quem for montar outro ambiente, ou para repetir se
 > algo se perder.
+>
+> ⚠️ **Ação pendente da Fase 3 (redesign):** `schema.sql` ganhou as colunas
+> `perfis.foto_url`/`perfis.plano` e o bucket de Storage `avatars` (com as
+> políticas de RLS dele). **Precisa rodar o arquivo de novo no SQL Editor**
+> — é seguro, ele não duplica nada — antes do upload de foto de perfil
+> funcionar. Sem isso, o avatar continua mostrando as iniciais normalmente
+> (não quebra a tela), só o envio da foto que vai falhar com "Bucket not found".
 
 Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez só.
 

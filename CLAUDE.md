@@ -55,6 +55,9 @@ funcionando normalmente com pacientes que nunca criam conta própria.
   porção, valor per capita; rótulo no padrão RDC 429/2020 e IN 75/2020 (ANVISA)
 - Agenda de consultas (`agenda.html`) — visão mês/semana, status, detecção de conflito
 - Financeiro (`financeiro.html`) — lançamentos, pendências, recibo, dados do emitente
+- Redesign: paleta VITABLOOM, sidebar fixa na área interna substituindo a barra de
+  abas, e menu de perfil do nutricionista (foto via Supabase Storage + badge de
+  plano de assinatura, sem cobrança — `perfil.html`)
 
 ## Anamnese e evolução — princípio estrutural (não violar)
 

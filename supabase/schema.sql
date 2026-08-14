@@ -95,6 +95,15 @@ alter table public.perfis add column if not exists status_verificacao
 alter table public.perfis add column if not exists conta_teste  boolean not null default false;
 alter table public.perfis add column if not exists papel_admin boolean not null default false;
 
+-- Fase 3 — perfil da nutricionista: foto e plano de assinatura.
+-- foto_url aponta pro Supabase Storage (bucket `avatars`, criado mais
+-- abaixo neste arquivo) — nunca base64 aqui, pesaria em toda consulta
+-- ao perfil. `plano` ainda não é cobrado (sem checkout nesta fase): só
+-- existe pra já ter onde mostrar o selo "Gratuito"/"Pro" no menu.
+alter table public.perfis add column if not exists foto_url text not null default '';
+alter table public.perfis add column if not exists plano   text not null default 'gratuito'
+  check (plano in ('gratuito', 'pro'));
+
 drop trigger if exists trg_perfis_atualizado_em on public.perfis;
 create trigger trg_perfis_atualizado_em
   before update on public.perfis
@@ -836,6 +845,47 @@ create policy metas_paciente_ler on public.metas
         and p.usuario_id = auth.uid()
     )
   );
+
+
+-- ============================================================
+--  Storage — foto de perfil da nutricionista (Fase 3)
+-- ============================================================
+-- Bucket público de propósito: é foto de perfil profissional, não dado
+-- clínico de paciente — o mesmo tipo de informação que já aparece pro
+-- paciente vinculado (nome, CRN). `on conflict do update` deixa
+-- reaplicar o arquivo pra ajustar o limite de tamanho/tipos sem duplicar
+-- o bucket.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 5242880, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- Qualquer um lê (é a foto que aparece pro paciente também), mas só o
+-- dono escreve — e só dentro da própria pasta. js/perfil-storage.js
+-- salva em `<id-do-usuário>/avatar.<ext>`, então
+-- storage.foldername(name)[1] é sempre o id de quem enviou.
+
+drop policy if exists avatars_leitura_publica on storage.objects;
+create policy avatars_leitura_publica on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists avatars_dono_envia on storage.objects;
+create policy avatars_dono_envia on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists avatars_dono_atualiza on storage.objects;
+create policy avatars_dono_atualiza on storage.objects
+  for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists avatars_dono_apaga on storage.objects;
+create policy avatars_dono_apaga on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
 
 -- ============================================================

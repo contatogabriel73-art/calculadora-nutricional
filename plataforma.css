@@ -33,6 +33,167 @@
 }
 @media (min-width: 560px) { .usuario-nome { display: inline; } }
 
+/* ───────────── Sidebar (área interna) ─────────────
+   #app-shell vira sidebar quando há mais de uma seção pra navegar
+   (montarCabecalho decide isso). body.tem-sidebar reserva o espaço com
+   padding — assim main/footer/qualquer outro irmão do #app-shell é
+   empurrado pra direita sem precisar tocar em cada página. No celular
+   a sidebar vira um painel deslizante por cima do conteúdo, e o padding
+   vira só o espaço da barrinha fixa do topo. */
+
+body.tem-sidebar { padding-left: 0; padding-top: 56px; }
+
+.app-sidebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  z-index: 40;
+  background: var(--verde-escuro);
+}
+
+.sidebar-barra-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 6px 0 16px;
+}
+.brand-mini { display: flex; align-items: center; gap: 9px; color: #fff; }
+.brand-mini .brand-mark { width: 30px; height: 30px; color: rgba(255, 255, 255, .2); }
+.brand-mini span { font-weight: 650; font-size: .95rem; }
+
+.btn-hamburguer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn-hamburguer svg { width: 24px; height: 24px; }
+
+.sidebar-fundo {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 32, 27, .45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+  z-index: 42;
+}
+.app-sidebar.menu-aberto .sidebar-fundo { opacity: 1; pointer-events: auto; }
+
+.sidebar-painel {
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  width: 82vw;
+  max-width: 300px;
+  background: var(--verde-claro);
+  box-shadow: 2px 0 24px rgba(20, 32, 27, .18);
+  transform: translateX(-100%);
+  transition: transform .22s ease;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.app-sidebar.menu-aberto .sidebar-painel { transform: translateX(0); }
+
+.sidebar-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  flex: none;
+}
+.sidebar-topo .brand-mark { color: var(--verde-escuro); }
+
+.btn-fechar-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  background: transparent;
+  border: 0;
+  color: var(--tinta-2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn-fechar-menu svg { width: 20px; height: 20px; }
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  flex: 1;
+}
+
+.item-sidebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--tinta-2);
+  text-decoration: none;
+  font-size: .92rem;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+.item-sidebar:hover { background: rgba(93, 107, 86, .12); color: var(--verde-escuro); }
+.item-sidebar[aria-current="page"] { background: var(--verde-escuro); color: #fff; }
+.item-sidebar-icone { width: 20px; height: 20px; flex: none; }
+
+.sidebar-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid #d9e2dc;
+  flex: none;
+}
+.sidebar-usuario {
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--tinta-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  body.tem-sidebar { padding-left: 240px; padding-top: 0; }
+
+  .app-sidebar {
+    right: auto;
+    width: 240px;
+    height: 100vh;
+  }
+  .sidebar-barra-mobile { display: none; }
+  .sidebar-fundo { display: none; }
+  .sidebar-painel {
+    position: static;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    transform: none;
+    box-shadow: none;
+    border-right: 1px solid var(--linha);
+  }
+  .btn-fechar-menu { display: none; }
+}
+
 /* Abas dentro da ferramenta (fora do header, que agora é compartilhado) */
 .abas-ferramenta {
   background: var(--verde-escuro);

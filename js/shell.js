@@ -84,6 +84,23 @@ const Shell = (() => {
       <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
+  /* Ícones da sidebar — mesmo estilo de traço fino usado nos ícones da
+     landing (stroke, sem preenchimento), um por item de navegação. */
+  const ICONES = {
+    painel: '<path d="M4 13h6V4H4v9zM14 20h6v-9h-6v9zM14 4v5h6V4h-6zM4 20h6v-5H4v5z"/>',
+    pacientes: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    agenda: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    financeiro: '<rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
+    ficha: '<path d="M9 3h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h6"/>',
+    admin: '<path d="M12 3l8 3v6c0 4.5-3 8-8 9-5-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    inicio: '<path d="M4 12l8-8 8 8"/><path d="M6 10v10h12V10"/>'
+  };
+
+  function icone(id) {
+    return `<svg class="item-sidebar-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[id] || ICONES.painel}</svg>`;
+  }
+
   /* A navegação muda por papel. Mesma casca, mesmo verde, mesma marca —
      o que muda é o que cada um tem para fazer ali dentro.
 
@@ -130,36 +147,107 @@ const Shell = (() => {
       ? [...nav.abas, { id: 'admin', href: 'admin.html', rotulo: 'Aprovações' }]
       : nav.abas;
 
-    /* Uma aba só não é navegação, é enfeite: o paciente ganha o cabeçalho
-       sem a barra de abas até a área dele ter mais de uma seção. */
-    const abas = abasComAdmin.length > 1 ? `
-      <nav class="abas wrap" aria-label="Seções do sistema">
-        ${abasComAdmin.map((a) => `
-          <a class="aba" href="${a.href}" ${ativo === a.id ? 'aria-current="page"' : ''}>${a.rotulo}</a>
-        `).join('')}
-      </nav>` : '';
+    const nomeUsuario = escapar(usuario ? usuario.nome : '');
 
-    alvo.className = 'app-header';
-    alvo.innerHTML = `
-      <div class="wrap header-inner">
-        <a class="brand brand-link" href="${nav.inicio}">
-          ${MARCA_SVG}
-          <div>
-            <h1>NutriFicha</h1>
-            <p class="brand-sub">${escapar(nav.sub)}</p>
+    /* Uma aba só não é navegação, é enfeite: o paciente fica com o
+       cabeçalho simples de sempre até a área dele ter mais de uma seção
+       — trocar para sidebar aqui só empurraria o conteúdo sem ganhar
+       nada, já que não há entre o que navegar. */
+    if (abasComAdmin.length <= 1) {
+      document.body.classList.remove('tem-sidebar');
+      alvo.className = 'app-header';
+      alvo.innerHTML = `
+        <div class="wrap header-inner">
+          <a class="brand brand-link" href="${nav.inicio}">
+            ${MARCA_SVG}
+            <div>
+              <h1>NutriFicha</h1>
+              <p class="brand-sub">${escapar(nav.sub)}</p>
+            </div>
+          </a>
+          <div class="header-acoes">
+            <span class="usuario-nome">${nomeUsuario}</span>
+            <button id="btn-sair" class="btn btn-ghost btn-sm" type="button">Sair</button>
           </div>
-        </a>
-        <div class="header-acoes">
-          <span class="usuario-nome">${escapar(usuario ? usuario.nome : '')}</span>
-          <button id="btn-sair" class="btn btn-ghost btn-sm" type="button">Sair</button>
-        </div>
-      </div>
-      ${abas}`;
+        </div>`;
+      alvo.querySelector('#btn-sair').addEventListener('click', sair);
+      return;
+    }
 
-    alvo.querySelector('#btn-sair').addEventListener('click', async () => {
-      await Auth.logout();
-      location.href = 'index.html';
+    document.body.classList.add('tem-sidebar');
+    alvo.className = 'app-sidebar';
+    alvo.innerHTML = `
+      <div class="sidebar-barra-mobile naoimprimir">
+        <a class="brand brand-link brand-mini" href="${nav.inicio}">
+          ${MARCA_SVG}<span>NutriFicha</span>
+        </a>
+        <button id="btn-abrir-menu" class="btn-hamburguer" type="button"
+                aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar-painel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-fundo naoimprimir" id="sidebar-fundo"></div>
+
+      <div class="sidebar-painel" id="sidebar-painel">
+        <div class="sidebar-topo">
+          <a class="brand brand-link" href="${nav.inicio}">
+            ${MARCA_SVG}
+            <div>
+              <h1>NutriFicha</h1>
+              <p class="brand-sub">${escapar(nav.sub)}</p>
+            </div>
+          </a>
+          <button id="btn-fechar-menu" class="btn-fechar-menu naoimprimir" type="button" aria-label="Fechar menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Seções do sistema">
+          ${abasComAdmin.map((a) => `
+            <a class="item-sidebar" href="${a.href}" ${ativo === a.id ? 'aria-current="page"' : ''}>
+              ${icone(a.id)}<span>${a.rotulo}</span>
+            </a>
+          `).join('')}
+        </nav>
+
+        <div class="sidebar-rodape">
+          <span class="sidebar-usuario">${nomeUsuario}</span>
+          <button id="btn-sair" class="btn btn-ghost btn-sm sidebar-sair" type="button">Sair</button>
+        </div>
+      </div>`;
+
+    alvo.querySelector('#btn-sair').addEventListener('click', sair);
+
+    const btnAbrir = alvo.querySelector('#btn-abrir-menu');
+    const btnFechar = alvo.querySelector('#btn-fechar-menu');
+    const fundo = alvo.querySelector('#sidebar-fundo');
+
+    function abrirMenu() {
+      alvo.classList.add('menu-aberto');
+      btnAbrir.setAttribute('aria-expanded', 'true');
+    }
+    function fecharMenu() {
+      alvo.classList.remove('menu-aberto');
+      btnAbrir.setAttribute('aria-expanded', 'false');
+    }
+
+    btnAbrir.addEventListener('click', abrirMenu);
+    btnFechar.addEventListener('click', fecharMenu);
+    fundo.addEventListener('click', fecharMenu);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') fecharMenu();
     });
+    // Ir para outra seção fecha o menu sozinho — sem isso, o painel
+    // continuaria aberto por cima da página seguinte já carregada.
+    alvo.querySelectorAll('.item-sidebar').forEach((a) => a.addEventListener('click', fecharMenu));
+  }
+
+  async function sair() {
+    await Auth.logout();
+    location.href = 'index.html';
   }
 
   /* Os dados agora ficam em banco, com Row Level Security separando por

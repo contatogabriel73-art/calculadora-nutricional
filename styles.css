@@ -814,8 +814,9 @@ textarea.input { resize: vertical; line-height: 1.5; }
 
 @media print {
   body { background: #fff; font-size: 11pt; }
+  body.tem-sidebar { padding: 0 !important; }
 
-  .app-header, .app-footer, .toast, .naoimprimir { display: none !important; }
+  .app-header, .app-sidebar, .app-footer, .toast, .naoimprimir { display: none !important; }
 
   .wrap { max-width: none; padding: 0; }
 

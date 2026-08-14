@@ -169,6 +169,17 @@ do lançamento em produção.
 `papel_admin = true`. A senha não fica documentada aqui nem em nenhum outro
 arquivo do repositório — só com ele, num gerenciador de senhas.
 
+### Esqueceu a senha (não tem "esqueci minha senha" no site ainda)
+
+`login.html` ainda não tem esse fluxo. Para trocar a senha de qualquer
+conta plantada por `seed-conta-teste.js`, use
+[`resetar-senha.js`](resetar-senha.js) — mesmo padrão de variáveis de
+ambiente da seção acima:
+
+```bash
+node supabase/resetar-senha.js seu@email.com "senha-nova"
+```
+
 ---
 
 ## Cadastro de nutricionista: CPF, CRN e verificação

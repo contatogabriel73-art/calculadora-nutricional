@@ -110,9 +110,17 @@ const VinculoStore = (() => {
     if (!c) return { ok: false, erro: Banco.motivo() };
 
     try {
+      // Calcula a URL completa aqui, não no servidor: a chamada à Edge
+      // Function é entre origens diferentes (github.io → supabase.co), e
+      // navegadores modernos só mandam o cabeçalho Referer/Origin com o
+      // esquema+host nesse caso, sem caminho nenhum — não dá pra
+      // reconstruir "/calculadora-nutricional/area-paciente.html" a
+      // partir deles. Aqui, com `location.href` da própria aba, o
+      // caminho completo está sempre disponível.
+      const redirectTo = new URL('area-paciente.html', location.href).toString();
       const { data, error } = await c.functions.invoke('convidar-paciente', {
         method: 'POST',
-        body: { pacienteId }
+        body: { pacienteId, redirectTo }
       });
       if (error) {
         // FunctionsHttpError guarda a resposta original (com a mensagem

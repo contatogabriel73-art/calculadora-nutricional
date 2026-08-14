@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
   const cabecalhoAuth = req.headers.get("Authorization") || "";
   if (!cabecalhoAuth) return json({ erro: "Sem autenticação." }, 401);
 
-  let corpo: { pacienteId?: string };
+  let corpo: { pacienteId?: string; redirectTo?: string };
   try {
     corpo = await req.json();
   } catch {
@@ -124,14 +124,17 @@ Deno.serve(async (req: Request) => {
   // e-mail/senha mostrados no corpo do e-mail — qualquer um dos dois
   // funciona.
   //
-  // Usa o Referer, não o Origin: o site fica num subcaminho do domínio
-  // (github.io/calculadora-nutricional/...), e o cabeçalho Origin nunca
-  // carrega caminho, só esquema+host — resolver "area-paciente.html"
-  // contra ele ia pra raiz do domínio, sem o /calculadora-nutricional/.
-  // O Referer é a URL completa de quem chamou (paciente.html), então
-  // resolver relativo a ele acerta o subcaminho.
+  // Preferimos o valor mandado pelo cliente: essa chamada é entre
+  // origens diferentes (github.io → supabase.co), e nesse caso o
+  // navegador só manda esquema+host nos cabeçalhos Referer/Origin, sem
+  // caminho — não dá pra reconstruir "/calculadora-nutricional/..." a
+  // partir deles (tentamos isso antes; o link saía sem o subcaminho do
+  // GitHub Pages). Os cabeçalhos ficam só como fallback pra chamadas
+  // antigas/de teste que não mandem redirectTo.
   const referenciador = req.headers.get("referer") || req.headers.get("origin") || "";
-  const redirectTo = referenciador
+  const redirectTo = corpo.redirectTo
+    ? corpo.redirectTo
+    : referenciador
     ? new URL("area-paciente.html", referenciador).toString()
     : undefined;
 

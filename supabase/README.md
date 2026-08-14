@@ -149,10 +149,12 @@ cria a conta pela Admin API do Supabase (pula a verificação de CRN de
 propósito) e já marca `status_verificacao = 'verificado'`,
 `papel_admin = true` e `conta_teste = true`.
 
-```bash
-# PowerShell — as duas chaves ficam em Project Settings → API
+```powershell
+# As duas chaves ficam em Project Settings → API.
+# Read-Host evita o erro mais comum aqui: colar a chave sem aspas ao
+# redor trava o PowerShell com "não é reconhecido como nome de cmdlet".
 $env:SUPABASE_URL = "https://<projeto>.supabase.co"
-$env:SUPABASE_SERVICE_ROLE_KEY = "<chave service_role, NUNCA a anon>"
+$env:SUPABASE_SERVICE_ROLE_KEY = Read-Host "Cole a chave service_role"
 node supabase/seed-conta-teste.js seu@email.com "sua-senha" "Seu Nome"
 ```
 
@@ -176,7 +178,7 @@ conta plantada por `seed-conta-teste.js`, use
 [`resetar-senha.js`](resetar-senha.js) — mesmo padrão de variáveis de
 ambiente da seção acima:
 
-```bash
+```powershell
 node supabase/resetar-senha.js seu@email.com "senha-nova"
 ```
 

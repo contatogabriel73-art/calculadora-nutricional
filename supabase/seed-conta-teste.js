@@ -9,7 +9,7 @@
    Como rodar (Windows / PowerShell):
 
      $env:SUPABASE_URL = "https://<projeto>.supabase.co"
-     $env:SUPABASE_SERVICE_ROLE_KEY = "<a chave service_role, NUNCA a anon>"
+     $env:SUPABASE_SERVICE_ROLE_KEY = Read-Host "Cole a chave service_role"
      node supabase/seed-conta-teste.js seu@email.com "sua-senha" "Seu Nome"
 
    O e-mail, a senha e o nome são escolhidos por quem roda o script — nada
@@ -30,25 +30,18 @@ const CHAVE_SERVICO = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const [, , email, senha, nome] = process.argv;
 
+// Sinaliza uma falha já tratada (mensagem já impressa) — diferente de um
+// erro de verdade não previsto. Nunca chama process.exit(): num script que
+// já usou fetch, isso derruba o Node com "Assertion failed ... UV_HANDLE_
+// CLOSING" no Windows (bug conhecido do libuv/Node com sockets ainda
+// fechando). Deixar o processo terminar sozinho, só marcando
+// `process.exitCode`, evita o crash.
+class Falha extends Error {}
+
 function sair(mensagem) {
   console.error(mensagem);
-  process.exit(1);
-}
-
-if (!URL_BASE || !CHAVE_SERVICO) {
-  sair(
-    'Faltam as variáveis de ambiente SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY.\n' +
-    'Encontre as duas em Project Settings → API no painel do Supabase.'
-  );
-}
-if (!email || !senha) {
-  sair(
-    'Uso: node supabase/seed-conta-teste.js <email> <senha> ["Nome opcional"]\n' +
-    'Ex.:  node supabase/seed-conta-teste.js voce@exemplo.com "senha-forte-123" "Gabriel"'
-  );
-}
-if (senha.length < 6) {
-  sair('A senha precisa ter pelo menos 6 caracteres (mínimo do Supabase Auth).');
+  process.exitCode = 1;
+  throw new Falha(mensagem);
 }
 
 const cabecalhos = {
@@ -57,7 +50,23 @@ const cabecalhos = {
   'Content-Type': 'application/json'
 };
 
-async function criarConta() {
+async function main() {
+  if (!URL_BASE || !CHAVE_SERVICO) {
+    sair(
+      'Faltam as variáveis de ambiente SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY.\n' +
+      'Encontre as duas em Project Settings → API no painel do Supabase.'
+    );
+  }
+  if (!email || !senha) {
+    sair(
+      'Uso: node supabase/seed-conta-teste.js <email> <senha> ["Nome opcional"]\n' +
+      'Ex.:  node supabase/seed-conta-teste.js voce@exemplo.com "senha-forte-123" "Gabriel"'
+    );
+  }
+  if (senha.length < 6) {
+    sair('A senha precisa ter pelo menos 6 caracteres (mínimo do Supabase Auth).');
+  }
+
   // email_confirm: true pula o e-mail de confirmação — é uma conta criada
   // por quem já tem a chave service_role, não um cadastro anônimo, então
   // a mesma cautela da seção 5 do README não se aplica aqui.
@@ -106,4 +115,8 @@ async function criarConta() {
   console.log('Lembrete: exclua esta conta (Authentication → Users) antes do lançamento em produção.');
 }
 
-criarConta().catch((erro) => sair(`Erro inesperado: ${erro.message}`));
+main().catch((erro) => {
+  if (erro instanceof Falha) return;
+  console.error(`Erro inesperado: ${erro.message}`);
+  process.exitCode = 1;
+});

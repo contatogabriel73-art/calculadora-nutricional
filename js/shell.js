@@ -211,7 +211,8 @@ const Shell = (() => {
 
         ${ehNutricionista ? `
           <div class="sidebar-perfil">
-            <button class="avatar avatar-grande avatar-perfil" id="btn-avatar" type="button" aria-label="Editar foto de perfil">
+            <button class="avatar avatar-grande avatar-perfil" id="btn-perfil-trigger" type="button"
+                    aria-haspopup="true" aria-expanded="false" aria-label="Menu da conta">
               ${fotoUrl
                 ? `<img src="${escapar(fotoUrl)}" alt="">`
                 : `<span aria-hidden="true">${iniciais(usuario.nome)}</span>`}
@@ -220,6 +221,11 @@ const Shell = (() => {
             <div class="sidebar-perfil-info">
               <strong class="sidebar-perfil-nome">${nomeUsuario}</strong>
               <a class="badge-plano" href="perfil.html">${planoRotulo}</a>
+            </div>
+
+            <div class="menu-perfil naoimprimir" id="menu-perfil" hidden>
+              <button type="button" class="item-menu-perfil" id="btn-editar-foto">Editar foto</button>
+              <a class="item-menu-perfil" href="configuracoes.html">Configurações da conta</a>
             </div>
           </div>` : ''}
 
@@ -239,9 +245,41 @@ const Shell = (() => {
     alvo.querySelector('#btn-sair').addEventListener('click', sair);
 
     if (ehNutricionista) {
-      const btnAvatar = alvo.querySelector('#btn-avatar');
+      const btnTrigger = alvo.querySelector('#btn-perfil-trigger');
+      const menuPerfil = alvo.querySelector('#menu-perfil');
+      const btnEditarFoto = alvo.querySelector('#btn-editar-foto');
       const inputFoto = alvo.querySelector('#input-foto');
-      btnAvatar.addEventListener('click', () => inputFoto.click());
+
+      function abrirMenuPerfil() {
+        menuPerfil.hidden = false;
+        btnTrigger.setAttribute('aria-expanded', 'true');
+      }
+      function fecharMenuPerfil() {
+        menuPerfil.hidden = true;
+        btnTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      btnTrigger.addEventListener('click', (ev) => {
+        // Sem isto, o listener de documento logo abaixo veria este
+        // mesmo clique borbulhar e fecharia o menu no instante em que
+        // ele abre.
+        ev.stopPropagation();
+        if (menuPerfil.hidden) abrirMenuPerfil(); else fecharMenuPerfil();
+      });
+      document.addEventListener('click', (ev) => {
+        if (!menuPerfil.hidden && ev.target !== btnTrigger && !menuPerfil.contains(ev.target)) {
+          fecharMenuPerfil();
+        }
+      });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') fecharMenuPerfil();
+      });
+
+      btnEditarFoto.addEventListener('click', () => {
+        fecharMenuPerfil();
+        inputFoto.click();
+      });
+
       inputFoto.addEventListener('change', async () => {
         const arquivo = inputFoto.files[0];
         // Limpa já aqui: sem isso, escolher o mesmo arquivo de novo (pra
@@ -250,12 +288,12 @@ const Shell = (() => {
         inputFoto.value = '';
         if (!arquivo) return;
 
-        btnAvatar.disabled = true;
+        btnTrigger.disabled = true;
         const resultado = await PerfilStore.enviarFoto(arquivo);
-        btnAvatar.disabled = false;
+        btnTrigger.disabled = false;
 
         if (!resultado.ok) { toast(resultado.erro); return; }
-        btnAvatar.innerHTML = `<img src="${escapar(resultado.fotoUrl)}" alt="">`;
+        btnTrigger.innerHTML = `<img src="${escapar(resultado.fotoUrl)}" alt="">`;
         toast('Foto atualizada.');
       });
     }

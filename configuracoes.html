@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Configurações da conta — NutriFicha</title>
+<meta name="theme-color" content="#A8B5A0">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="plataforma.css">
+</head>
+<body class="protegida">
+
+<header id="app-shell"></header>
+
+<main class="wrap conteudo wrap-estreito">
+
+  <h1>Configurações da conta</h1>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Foto de perfil</h2>
+    </div>
+    <div class="config-foto-linha">
+      <button class="avatar avatar-grande avatar-perfil" id="btn-avatar-config" type="button" aria-label="Trocar foto de perfil">
+        <span aria-hidden="true">…</span>
+      </button>
+      <div>
+        <button class="btn btn-ghost btn-sm" id="btn-trocar-foto" type="button">Trocar foto</button>
+        <p class="dica">JPG, PNG, WEBP ou GIF, até 5 MB.</p>
+      </div>
+      <input type="file" accept="image/*" id="input-foto-config" hidden>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">Meus dados</h2>
+      <span id="perfil-estado" class="dica"></span>
+    </div>
+    <p class="dica">Nome, CRN e contato — os mesmos dados usados no recibo.</p>
+
+    <form id="form-perfil">
+      <div class="grade-campos">
+        <div class="campo">
+          <label class="field-label" for="pf-nome">Nome completo *</label>
+          <input id="pf-nome" class="input" type="text" data-perfil="nome" maxlength="120">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-crn">CRN</label>
+          <input id="pf-crn" class="input" type="text" data-perfil="crn" maxlength="40" placeholder="Ex.: CRN-3 12345">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-documento">CPF ou CNPJ</label>
+          <input id="pf-documento" class="input" type="text" data-perfil="documento" maxlength="30">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-telefone">Telefone</label>
+          <input id="pf-telefone" class="input" type="tel" data-perfil="telefone" maxlength="30">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-email">E-mail de contato</label>
+          <input id="pf-email" class="input" type="email" data-perfil="email" maxlength="120"
+                 autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="campo">
+          <label class="field-label" for="pf-cidade">Cidade</label>
+          <input id="pf-cidade" class="input" type="text" data-perfil="cidade" maxlength="80">
+        </div>
+        <div class="campo campo-largo">
+          <label class="field-label" for="pf-endereco">Endereço do consultório</label>
+          <input id="pf-endereco" class="input" type="text" data-perfil="endereco" maxlength="200">
+        </div>
+      </div>
+      <p class="dica">
+        Este e-mail de contato aparece no recibo — para trocar o e-mail de
+        login, fale com o suporte.
+      </p>
+      <div class="acoes-form">
+        <button type="submit" class="btn btn-primary">Salvar dados</button>
+      </div>
+    </form>
+  </div>
+
+  <p class="login-voltar"><a href="perfil.html">Ver meu plano</a></p>
+  <p class="login-voltar"><a href="painel.html">← Voltar para o painel</a></p>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/perfil-storage.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/configuracoes.js"></script>
+</body>
+</html>

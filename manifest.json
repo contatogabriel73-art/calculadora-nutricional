@@ -1,7 +1,7 @@
 {
-  "name": "NutriFicha — Ficha técnica e rótulo nutricional",
-  "short_name": "NutriFicha",
-  "description": "Plataforma para nutricionistas: ficha técnica de preparo e rótulo nutricional a partir da Tabela TACO, com cadastro de pacientes.",
+  "name": "NutriBloom — Consultório online para nutricionistas",
+  "short_name": "NutriBloom",
+  "description": "Cadastre pacientes, organize a agenda, controle o financeiro e monte fichas técnicas e rótulos nutricionais — tudo no mesmo consultório online, feito para o seu dia a dia de nutricionista.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "./index.html",

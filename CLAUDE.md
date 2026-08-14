@@ -1,4 +1,4 @@
-# NutriFicha — Contexto do Projeto
+# NutriBloom — Contexto do Projeto
 
 Leia este arquivo antes de qualquer alteração. Ele resume decisões já tomadas para não
 serem revertidas por engano numa sessão nova.
@@ -9,7 +9,8 @@ Plataforma web para nutricionistas, do Gabriel. Começou como calculadora nutric
 simples e evoluiu para sistema de gestão de consultório (SaaS B2B, venda para
 nutricionistas usarem em seus consultórios).
 
-- **Nome:** NutriFicha
+- **Nome:** NutriBloom (rebranding — chamava-se NutriFicha antes; o repositório e a pasta
+  do projeto continuam com o nome antigo de propósito, não precisa trocar)
 - **Referência de mercado:** WebDiet (webdiet.com.br) — **sem** a parte de cursos
 - **Repositório:** github.com/contatogabriel73-art/calculadora-nutricional
 - **Contato do rodapé:** contatogabriel73@gmail.com
@@ -130,7 +131,7 @@ prompt), isso devia ser removido — hoje só existe um cadastro possível, o do
 nutricionista.
 
 - Reescrever a seção "Feito para o seu consultório" (ou criar uma nova) explicando que
-  o NutriFicha serve tanto o nutricionista quanto o paciente dele, mas o acesso funciona
+  o NutriBloom serve tanto o nutricionista quanto o paciente dele, mas o acesso funciona
   diferente pra cada um:
   - O nutricionista cria a própria conta (botão "Começar agora" / "Sou nutricionista",
     único caminho de cadastro da landing) e organiza pacientes, agenda, fichas técnicas
@@ -138,7 +139,7 @@ nutricionista.
   - O paciente não cria conta pela landing. Ele recebe o acesso automaticamente por
     e-mail quando o próprio nutricionista cadastra ele no sistema. Um parágrafo curto
     explicando isso, com chamada tipo "É paciente de um nutricionista que usa o
-    NutriFicha? Peça pra ele liberar seu acesso" — sem botão, sem formulário, só
+    NutriBloom? Peça pra ele liberar seu acesso" — sem botão, sem formulário, só
     orientação.
 - `cadastro.html` passa a ter um único formulário (o do nutricionista), sem branch por
   papel.

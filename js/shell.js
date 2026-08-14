@@ -80,8 +80,18 @@ const Shell = (() => {
   const MARCA_SVG = `
     <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
       <rect width="48" height="48" rx="12" fill="currentColor"/>
-      <path d="M15 12v10a4 4 0 0 0 4 4h0v10a2 2 0 0 0 4 0V26a4 4 0 0 0 4-4V12" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M21 12v8M33 12c3 2 4 6 4 10s-1 5-3 5v9a2 2 0 1 1-4 0V15z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <g fill="#fff">
+        <circle cx="24" cy="9.4" r="3.4"/>
+        <circle cx="30.2" cy="13.9" r="3.4"/>
+        <circle cx="27.85" cy="21.2" r="3.4"/>
+        <circle cx="20.15" cy="21.2" r="3.4"/>
+        <circle cx="17.8" cy="13.9" r="3.4"/>
+      </g>
+      <circle cx="24" cy="16.1" r="2.2" fill="currentColor"/>
+      <g fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 22.1c-1.3 6.2-1.3 13 0 18.4"/>
+        <path d="M24 32c4.3-2.5 9 .1 7.9 4.4-4.5 1-9-.9-7.9-4.4z" fill="#fff" stroke="none"/>
+      </g>
     </svg>`;
 
   /* Ícones da sidebar — mesmo estilo de traço fino usado nos ícones da
@@ -110,7 +120,7 @@ const Shell = (() => {
      parte do que ele veio ver. */
   const NAVEGACAO = {
     nutricionista: {
-      sub: 'Plataforma para nutricionistas',
+      sub: 'Consultório online para nutricionistas',
       inicio: 'painel.html',
       abas: [
         { id: 'painel',     href: 'painel.html',     rotulo: 'Painel' },
@@ -165,7 +175,7 @@ const Shell = (() => {
           <a class="brand brand-link" href="${nav.inicio}">
             ${MARCA_SVG}
             <div>
-              <h1>NutriFicha</h1>
+              <h1>NutriBloom</h1>
               <p class="brand-sub">${escapar(nav.sub)}</p>
             </div>
           </a>
@@ -183,7 +193,7 @@ const Shell = (() => {
     alvo.innerHTML = `
       <div class="sidebar-barra-mobile naoimprimir">
         <a class="brand brand-link brand-mini" href="${nav.inicio}">
-          ${MARCA_SVG}<span>NutriFicha</span>
+          ${MARCA_SVG}<span>NutriBloom</span>
         </a>
         <button id="btn-abrir-menu" class="btn-hamburguer" type="button"
                 aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar-painel">
@@ -199,7 +209,7 @@ const Shell = (() => {
           <a class="brand brand-link" href="${nav.inicio}">
             ${MARCA_SVG}
             <div>
-              <h1>NutriFicha</h1>
+              <h1>NutriBloom</h1>
               <p class="brand-sub">${escapar(nav.sub)}</p>
             </div>
           </a>

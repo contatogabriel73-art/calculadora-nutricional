@@ -1,4 +1,4 @@
-# NutriFicha — plataforma para nutricionistas
+# NutriBloom — plataforma para nutricionistas
 
 Aplicativo web (PWA) que monta uma **Ficha Técnica de Preparo** completa a partir
 dos ingredientes: você digita o nome do alimento e os pesos, e o app preenche

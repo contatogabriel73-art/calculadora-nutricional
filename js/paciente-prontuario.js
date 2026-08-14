@@ -67,7 +67,7 @@
 
   function desenharPaciente() {
     const idade = Shell.calcularIdade(paciente.nascimento);
-    document.title = paciente.nome + ' — NutriFicha';
+    document.title = paciente.nome + ' — NutriBloom';
     $('#avatar').textContent = Shell.iniciais(paciente.nome);
     $('#nome').textContent = paciente.nome;
     $('#subtitulo').textContent = [

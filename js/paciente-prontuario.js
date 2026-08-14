@@ -24,6 +24,11 @@
   }
   document.querySelector('#conteudo').hidden = false;
 
+  // Catálogo de tipos de dieta, só pra rotular o chip na lista de planos
+  // — não é crítico, então não trava a tela esperando (ver uso em
+  // recarregarPlanos()).
+  TiposDieta.carregar().catch(() => {});
+
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => [...document.querySelectorAll(s)];
   const esc = Shell.escapar;
@@ -488,10 +493,15 @@
       const url = 'plano.html?paciente=' + encodeURIComponent(paciente.id) +
                   '&plano=' + encodeURIComponent(p.id);
 
+      const tipoDieta = p.tipoDieta ? TiposDieta.porId(p.tipoDieta) : null;
+
       return `
         <li class="plano-item">
           <a class="plano-link" href="${url}">
-            <span class="plano-titulo">${esc(p.nome)}</span>
+            <span class="plano-titulo">
+              ${esc(p.nome)}
+              ${tipoDieta ? `<span class="badge-plano">${esc(tipoDieta.nome)}</span>` : ''}
+            </span>
             <span class="plano-detalhe">${esc(partes || 'Plano vazio')}</span>
             <span class="plano-data">${esc(Shell.formatarData(p.data))} · atualizado em ${esc(Shell.formatarDataHora(p.atualizadoEm))}</span>
           </a>

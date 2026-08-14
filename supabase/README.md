@@ -14,6 +14,13 @@
 > — é seguro, ele não duplica nada — antes do upload de foto de perfil
 > funcionar. Sem isso, o avatar continua mostrando as iniciais normalmente
 > (não quebra a tela), só o envio da foto que vai falhar com "Bucket not found".
+>
+> ⚠️ **Ação pendente da Fase 7 (tipos de dieta):** `schema.sql` também ganhou
+> `planos.tipo_dieta` — mesma ação, rodar o arquivo de novo. Sem isso, o
+> seletor "Formato da dieta" em `plano.html` funciona normalmente na tela,
+> mas salvar o plano falha com um erro de coluna inexistente, e a lista de
+> planos do paciente fica vazia (o erro aparece só no console, a tela
+> não quebra).
 
 Passo a passo para deixar o banco de pé. São uns dez minutos, feitos uma vez só.
 

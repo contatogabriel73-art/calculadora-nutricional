@@ -354,6 +354,13 @@ create table if not exists public.planos (
 create index if not exists idx_planos_paciente
   on public.planos (paciente_id, atualizado_em desc);
 
+-- Fase 7 — guarda o id do catálogo em data/tipos-dieta.json (ex.:
+-- "menopausa"), nunca o nome por extenso. Sem check constraint de
+-- propósito: o catálogo é pra crescer aos poucos, e travar aqui os ids
+-- validos exigiria alterar o schema toda vez que um tipo novo entrasse
+-- no JSON. Nulo/vazio = "sem formato específico", que é sempre válido.
+alter table public.planos add column if not exists tipo_dieta text;
+
 drop trigger if exists trg_planos_atualizado_em on public.planos;
 create trigger trg_planos_atualizado_em
   before update on public.planos

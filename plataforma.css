@@ -205,6 +205,8 @@ body.tem-sidebar { padding-left: 0; padding-top: 56px; }
 .badge-plano:hover { filter: brightness(1.08); }
 .badge-plano-grande { font-size: .82rem; padding: 5px 14px; margin: 0 0 12px; }
 
+#chip-tipo-dieta { display: inline-block; margin-top: 8px; background: var(--verde-escuro); }
+
 .config-foto-linha { display: flex; align-items: center; gap: 16px; }
 .config-foto-linha .avatar-perfil { flex: none; }
 .config-foto-linha .dica { margin: 4px 0 0; }
@@ -1478,6 +1480,7 @@ body.protegida.liberada { visibility: visible; }
 }
 .plano-link:hover { background: var(--verde-claro); }
 .plano-titulo { font-weight: 620; font-size: .95rem; overflow-wrap: anywhere; }
+.plano-titulo .badge-plano { margin-left: 8px; vertical-align: middle; }
 .plano-detalhe { font-size: .8rem; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
 .plano-data { font-size: .74rem; color: var(--tinta-3); }
 

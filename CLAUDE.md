@@ -57,7 +57,14 @@ funcionando normalmente com pacientes que nunca criam conta própria.
 - Financeiro (`financeiro.html`) — lançamentos, pendências, recibo, dados do emitente
 - Redesign: paleta VITABLOOM, sidebar fixa na área interna substituindo a barra de
   abas, e menu de perfil do nutricionista (foto via Supabase Storage + badge de
-  plano de assinatura, sem cobrança — `perfil.html`)
+  plano de assinatura, sem cobrança — `perfil.html`, `configuracoes.html`)
+- Tipos de dieta. `data/tipos-dieta.json` guarda um catálogo de formatos de dieta
+  (emagrecimento, ganho de peso, saúde geral, condição clínica, fases da vida da
+  mulher, performance esportiva) com macros sugeridos e uma observação padrão por
+  tipo. Em `plano.html`, a nutricionista pode escolher um tipo ao montar o plano —
+  isso só sugere valores em campos vazios, nunca sobrescreve o que ela já
+  preencheu. O catálogo é para crescer aos poucos, um tipo de cada vez, não uma
+  lista fechada.
 
 ## Anamnese e evolução — princípio estrutural (não violar)
 

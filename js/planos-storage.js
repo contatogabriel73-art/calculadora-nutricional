@@ -16,7 +16,7 @@
 const PlanosStore = (() => {
 
   const COLUNAS_PLANO = 'id, nutricionista_id, paciente_id, nome, data, observacoes, ' +
-                        'refeicoes, resumo, visivel_paciente, criado_em, atualizado_em';
+                        'refeicoes, resumo, visivel_paciente, tipo_dieta, criado_em, atualizado_em';
 
   const COLUNAS_METAS = 'id, nutricionista_id, paciente_id, peso_meta, kcal_meta, ' +
                         'pct_proteina, pct_carboidrato, pct_lipidio, observacoes, ' +
@@ -79,6 +79,7 @@ const PlanosStore = (() => {
       refeicoes: linha.refeicoes || [],
       resumo: linha.resumo || {},
       visivelPaciente: !!linha.visivel_paciente,
+      tipoDieta: linha.tipo_dieta || '',
       criadoEm: linha.criado_em,
       atualizadoEm: linha.atualizado_em
     };
@@ -131,7 +132,8 @@ const PlanosStore = (() => {
           medida: String(i.medida || '')
         }))
       })),
-      resumo: dados.resumo || {}
+      resumo: dados.resumo || {},
+      tipo_dieta: String(dados.tipoDieta || '').trim() || null
     };
     if (dados.visivelPaciente !== undefined) {
       campos.visivel_paciente = !!dados.visivelPaciente;

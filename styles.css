@@ -175,6 +175,7 @@ body {
   letter-spacing: .04em;
   margin-bottom: 6px;
 }
+.field-label .dica-inline { text-transform: none; font-weight: 500; letter-spacing: normal; }
 
 .ajuda {
   margin: 0 0 12px;

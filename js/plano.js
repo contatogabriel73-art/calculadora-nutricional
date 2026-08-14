@@ -44,6 +44,22 @@
     return;
   }
 
+  // Catálogo é só sugestão — se falhar (ex.: sem internet num momento
+  // ruim), o campo "Formato da dieta" continua no ar, só sem opções pra
+  // escolher além de "Sem formato específico". Não trava o plano todo.
+  let gruposTipoDieta = [];
+  try {
+    await TiposDieta.carregar();
+    gruposTipoDieta = TiposDieta.agrupadosPorCategoria();
+  } catch (e) {
+    console.error('tipos-dieta:', e);
+  }
+  $('#pl-tipo-dieta').insertAdjacentHTML('beforeend', gruposTipoDieta.map((grupo) => `
+    <optgroup label="${esc(grupo.categoria)}">
+      ${grupo.tipos.map((t) => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join('')}
+    </optgroup>
+  `).join(''));
+
   $('#conteudo').hidden = false;
   $('#bp-avatar').textContent = Shell.iniciais(paciente.nome);
   $('#bp-link').textContent = paciente.nome;
@@ -87,11 +103,24 @@
     };
   }
 
-  metas = await PlanosStore.obterMetas(paciente.id) ||
+  const metasSalvas = await PlanosStore.obterMetas(paciente.id);
+  metas = metasSalvas ||
     Object.assign({ pacienteId: paciente.id, pesoMeta: '', kcalMeta: '', observacoes: '' },
       { pctProteina: String(PlanosStore.MACROS_PADRAO.pctProteina),
         pctCarboidrato: String(PlanosStore.MACROS_PADRAO.pctCarboidrato),
         pctLipidio: String(PlanosStore.MACROS_PADRAO.pctLipidio) });
+  // Sem meta salva, os campos de macro mostram os valores padrão do
+  // sistema (20/50/30) — não é uma escolha da nutricionista, então um
+  // tipo de dieta escolhido depois ainda pode sugerir por cima deles.
+  // Vira false assim que ela mexer em qualquer um dos três, mesmo sem
+  // salvar ainda (ver listener de [data-meta] mais abaixo).
+  let macrosAindaPadrao = !metasSalvas;
+
+  // Mesma lógica para "Orientações gerais": só bloqueia a sugestão se
+  // já existia texto salvo (plano existente) ou se a nutricionista
+  // digitou algo nesta sessão — enquanto for só sugestão de um tipo
+  // anterior, trocar de tipo de novo ainda pode substituir o texto.
+  let obsBloqueada = !!(plano.observacoes && plano.observacoes.trim());
 
   $('#pl-nome').value = plano.nome;
   $('#pl-data').value = plano.data;
@@ -183,6 +212,7 @@
   }
 
   $$('[data-meta]').forEach((i) => i.addEventListener('input', () => {
+    macrosAindaPadrao = false;
     desenharMetas();
     desenharTotal();
     desenharDicasMeta();
@@ -624,7 +654,64 @@
 
   $('#pl-nome').addEventListener('input', () => { plano.nome = $('#pl-nome').value; marcarAlterado(); });
   $('#pl-data').addEventListener('input', () => { plano.data = $('#pl-data').value; marcarAlterado(); });
-  $('#pl-observacoes').addEventListener('input', () => { plano.observacoes = $('#pl-observacoes').value; marcarAlterado(); });
+  $('#pl-observacoes').addEventListener('input', () => {
+    plano.observacoes = $('#pl-observacoes').value;
+    obsBloqueada = true;
+    marcarAlterado();
+  });
+
+  /* ───────────── Formato da dieta (Fase 7) ───────────── */
+  /* Catálogo é sugestão, não prescrição pronta — só preenche campo
+     vazio, nunca troca o que a nutricionista já escreveu. */
+
+  function desenharChipTipoDieta() {
+    const chip = $('#chip-tipo-dieta');
+    const tipo = plano.tipoDieta ? TiposDieta.porId(plano.tipoDieta) : null;
+    chip.hidden = !tipo;
+    chip.textContent = tipo ? tipo.nome : '';
+  }
+
+  $('#pl-tipo-dieta').value = plano.tipoDieta || '';
+  desenharChipTipoDieta();
+
+  $('#pl-tipo-dieta').addEventListener('change', () => {
+    const id = $('#pl-tipo-dieta').value;
+    plano.tipoDieta = id;
+    desenharChipTipoDieta();
+    marcarAlterado();
+    if (!id) return;
+
+    const tipo = TiposDieta.porId(id);
+    if (!tipo) return;
+
+    let preencheuObs = false;
+    let preencheuMacros = false;
+
+    if (!obsBloqueada && tipo.observacao_padrao) {
+      $('#pl-observacoes').value = tipo.observacao_padrao;
+      plano.observacoes = tipo.observacao_padrao;
+      preencheuObs = true;
+    }
+
+    if (tipo.macros_sugeridos && macrosAindaPadrao) {
+      $('#m-prot').value = String(tipo.macros_sugeridos.proteina);
+      $('#m-carb').value = String(tipo.macros_sugeridos.carboidrato);
+      $('#m-lip').value = String(tipo.macros_sugeridos.lipidio);
+      // Os três campos acabaram de ser preenchidos pelo próprio catálogo,
+      // não pela nutricionista — continuam contando como "padrão" pra
+      // trocar de tipo de novo em seguida ainda funcionar. Só vira
+      // "editado" quando ela mexer à mão (ver listener de [data-meta]).
+      desenharMetas();
+      desenharTotal();
+      preencheuMacros = true;
+    }
+
+    if (preencheuMacros) {
+      Shell.toast(`Macros sugeridos para "${tipo.nome}" — ajuste se precisar.`);
+    } else if (preencheuObs) {
+      Shell.toast(`Orientação sugerida para "${tipo.nome}" — ajuste se precisar.`);
+    }
+  });
 
   $('#btn-salvar').addEventListener('click', async () => {
     const totalItens = plano.refeicoes.reduce((s, r) => s + r.itens.length, 0);

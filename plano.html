@@ -47,6 +47,7 @@
           <label class="field-label" for="pl-nome">Nome do plano</label>
           <input id="pl-nome" class="input" type="text" maxlength="120"
                  placeholder="Ex.: Plano de manutenção — agosto">
+          <span id="chip-tipo-dieta" class="badge-plano" hidden></span>
         </div>
         <div class="campo">
           <label class="field-label" for="pl-data">Data</label>
@@ -57,6 +58,16 @@
         <label class="field-label" for="pl-observacoes">Orientações gerais</label>
         <textarea id="pl-observacoes" class="input" rows="2" maxlength="2000"
           placeholder="Recomendações que valem para o plano todo"></textarea>
+      </div>
+      <div class="campo">
+        <label class="field-label" for="pl-tipo-dieta">Formato da dieta <span class="dica-inline">(opcional)</span></label>
+        <select id="pl-tipo-dieta" class="input">
+          <option value="">Sem formato específico</option>
+        </select>
+        <p class="dica">
+          Sugere orientações e macros de partida em campos vazios — não sobrescreve o que
+          você já preencheu, e o plano funciona normalmente sem escolher nada aqui.
+        </p>
       </div>
     </div>
 
@@ -176,6 +187,7 @@
 </dialog>
 
 <script src="js/taco.js"></script>
+<script src="js/tipos-dieta.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/supabase-client.js"></script>

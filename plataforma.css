@@ -217,7 +217,7 @@ body.tem-sidebar { padding-left: 0; padding-top: 56px; }
 }
 
 @media (min-width: 900px) {
-  body.tem-sidebar { padding-left: 240px; padding-top: 0; }
+  body.tem-sidebar { padding-left: 240px; padding-top: 56px; }
 
   .app-sidebar {
     right: auto;
@@ -236,6 +236,34 @@ body.tem-sidebar { padding-left: 0; padding-top: 56px; }
     border-right: 1px solid var(--linha);
   }
   .btn-fechar-menu { display: none; }
+
+  /* No desktop o bloco de perfil sai da coluna da sidebar e vira uma
+     barra fixa no topo do conteúdo, à direita — o mesmo elemento do
+     DOM, só reposicionado: position:fixed tira do fluxo da sidebar e
+     ignora a largura dela, então basta apontar `left` pra depois dela
+     terminar. No celular ele continua no lugar de sempre, dentro do
+     painel deslizante. */
+  .sidebar-perfil {
+    position: fixed;
+    top: 0;
+    left: 240px;
+    right: 0;
+    height: 56px;
+    padding: 0 24px;
+    justify-content: flex-end;
+    background: #fff;
+    border-bottom: 1px solid var(--linha);
+    z-index: 38;
+  }
+
+  /* .abas-ferramenta (as abas Montar/Ficha Técnica/Rótulo, só em
+     ficha.html) também gruda no topo (position: sticky; top: 0) — sem
+     este ajuste ela ficaria por baixo da barra de perfil ao rolar a
+     página, porque as duas disputam o mesmo y:0. Seletor com
+     body.tem-sidebar na frente de propósito: precisa vencer a regra
+     original em especificidade, não só em ordem — depender só da ordem
+     no arquivo já causou um bug aqui (a regra original vinha depois). */
+  body.tem-sidebar .abas-ferramenta { top: 56px; }
 }
 
 /* Abas dentro da ferramenta (fora do header, que agora é compartilhado) */

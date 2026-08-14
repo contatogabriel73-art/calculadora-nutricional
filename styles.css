@@ -5,9 +5,11 @@
    ============================================================ */
 
 :root {
-  --verde: #16694a;
-  --verde-claro: #e7f3ee;
-  --verde-escuro: #0f4c36;
+  --verde: #A8B5A0;
+  --verde-claro: #F5F0E8;
+  --verde-escuro: #5d6b56;
+  --rose: #E8B4B8;
+  --rose-escuro: #b06a70;
   --tinta: #14201b;
   --tinta-2: #4a5a53;
   --tinta-3: #7e8d86;
@@ -45,7 +47,7 @@ body {
 /* ───────────── Header + abas ───────────── */
 
 .app-header {
-  background: var(--verde);
+  background: var(--verde-escuro);
   color: #fff;
   padding-top: calc(13px + env(safe-area-inset-top));
   position: sticky;
@@ -305,7 +307,7 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .sugestao[aria-selected="true"], .sugestao:hover { background: var(--verde-claro); }
 
 .sugestao-nome { font-size: .93rem; line-height: 1.3; min-width: 0; }
-.sugestao-nome mark { background: transparent; color: var(--verde); font-weight: 700; padding: 0; }
+.sugestao-nome mark { background: transparent; color: var(--verde-escuro); font-weight: 700; padding: 0; }
 .sugestao-cat { display: block; font-size: .72rem; color: var(--tinta-3); margin-top: 1px; }
 
 .sugestao-kcal {
@@ -410,8 +412,8 @@ textarea.input { resize: vertical; line-height: 1.5; }
   white-space: nowrap;
 }
 
-.btn-primary { background: var(--verde); color: #fff; }
-.btn-primary:hover { background: var(--verde-escuro); }
+.btn-primary { background: var(--verde-escuro); color: #fff; }
+.btn-primary:hover { filter: brightness(1.12); }
 
 .btn-ghost { background: #fff; border-color: var(--linha); color: var(--tinta-2); }
 .btn-ghost:hover { border-color: var(--tinta-3); color: var(--tinta); }

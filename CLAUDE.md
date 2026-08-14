@@ -24,7 +24,7 @@ nutricionistas usarem em seus consultórios).
 | Login | Migrando de fictício (`js/auth.js`) para **Supabase Auth real**, com dois papéis de conta: nutricionista e paciente |
 | Segurança do banco | Row Level Security em toda tabela, por `nutricionista_id`/`paciente_id` — obrigatório, não opcional |
 | PWA | Sim — `manifest.json` + `sw.js` (stale-while-revalidate no shell, network-first no `taco.json`) |
-| Identidade visual | Verde `#16694a`, ícone de garfo e faca |
+| Identidade visual | Paleta VITABLOOM — verde-sálvia `#A8B5A0` (`--verde`) / `#5d6b56` (`--verde-escuro`, usado onde precisa de contraste) / `#F5F0E8` (`--verde-claro`, creme), rosé `#E8B4B8`/`#b06a70` como acento pontual; ícone de garfo e faca |
 | Gráficos | Chart.js via CDN (única dependência externa) |
 
 Os módulos de storage foram isolados de propósito (mesma assinatura de função em cada
@@ -132,7 +132,7 @@ nutricionista.
     orientação.
 - `cadastro.html` passa a ter um único formulário (o do nutricionista), sem branch por
   papel.
-- Manter o tom e a identidade visual da landing (direto, sem exagero, verde `#16694a`).
+- Manter o tom e a identidade visual da landing (direto, sem exagero, paleta VITABLOOM — ver "Stack e decisões técnicas").
 
 ## Como trabalhar neste projeto
 

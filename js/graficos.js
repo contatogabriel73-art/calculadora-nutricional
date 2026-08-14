@@ -8,8 +8,9 @@
    continuando utilizável.
 
    Concentra também as cores e os padrões visuais, para os gráficos
-   ficarem coerentes com a identidade (verde #16694a) e legíveis no
-   modo escuro.
+   ficarem coerentes com a identidade (verde-sálvia VITABLOOM, #5d6b56 —
+   o tom escuro da paleta, não o #A8B5A0 claro, que soma pouco contraste
+   numa linha fina de gráfico) e legíveis no modo escuro.
    ============================================================ */
 
 'use strict';
@@ -17,9 +18,9 @@
 const Graficos = (() => {
 
   const CORES = {
-    verde: '#16694a',
-    verdeClaro: 'rgba(22, 105, 74, .15)',
-    verdeMedio: 'rgba(22, 105, 74, .55)',
+    verde: '#5d6b56',
+    verdeClaro: 'rgba(93, 107, 86, .15)',
+    verdeMedio: 'rgba(93, 107, 86, .55)',
     ambar: '#c9a227',
     ambarClaro: 'rgba(201, 162, 39, .18)',
     vermelho: '#b3261e',

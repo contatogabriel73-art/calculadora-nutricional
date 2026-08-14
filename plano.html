@@ -60,10 +60,12 @@
           placeholder="Recomendações que valem para o plano todo"></textarea>
       </div>
       <div class="campo">
-        <label class="field-label" for="pl-tipo-dieta">Formato da dieta <span class="dica-inline">(opcional)</span></label>
-        <select id="pl-tipo-dieta" class="input">
-          <option value="">Sem formato específico</option>
-        </select>
+        <label class="field-label" for="btn-tipo-dieta">Formato da dieta <span class="dica-inline">(opcional)</span></label>
+        <button type="button" id="btn-tipo-dieta" class="seletor-tipo-dieta">
+          <span id="btn-tipo-dieta-texto">Sem formato específico</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <input type="hidden" id="pl-tipo-dieta">
         <p class="dica">
           Sugere orientações e macros de partida em campos vazios — não sobrescreve o que
           você já preencheu, e o plano funciona normalmente sem escolher nada aqui.
@@ -184,6 +186,20 @@
       <button type="submit" class="btn btn-primary" id="confirmar-alimento">Adicionar</button>
     </div>
   </form>
+</dialog>
+
+<!-- ═══════ Diálogo: formato da dieta ═══════ -->
+<dialog id="dialogo-tipo-dieta" class="dialogo dialogo-tipo-dieta">
+  <div class="dialogo-topo">
+    <h2>Formato da dieta</h2>
+    <button type="button" class="btn-icon" id="fechar-tipo-dieta" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="dialogo-corpo" id="lista-tipos-dieta">
+    <button type="button" class="linha-tipo-dieta linha-tipo-dieta-limpar" data-id="">
+      Sem formato específico
+    </button>
+    <!-- grupos por categoria entram aqui via JS -->
+  </div>
 </dialog>
 
 <script src="js/taco.js"></script>

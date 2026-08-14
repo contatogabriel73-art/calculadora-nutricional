@@ -207,6 +207,70 @@ body.tem-sidebar { padding-left: 0; padding-top: 56px; }
 
 #chip-tipo-dieta { display: inline-block; margin-top: 8px; background: var(--verde-escuro); }
 
+.seletor-tipo-dieta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--linha);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--tinta);
+  font: inherit;
+  font-size: .92rem;
+  text-align: left;
+  cursor: pointer;
+}
+.seletor-tipo-dieta:hover { border-color: var(--verde); }
+.seletor-tipo-dieta svg { width: 18px; height: 18px; flex: none; color: var(--tinta-3); }
+.dialogo-tipo-dieta { max-width: 420px; width: 92vw; }
+.dialogo-tipo-dieta .dialogo-corpo { max-height: 60vh; overflow-y: auto; padding: 10px 6px; }
+.grupo-tipo-dieta { margin-bottom: 14px; }
+.grupo-tipo-dieta:last-child { margin-bottom: 0; }
+.grupo-tipo-dieta-titulo {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--verde-escuro);
+  padding: 0 10px;
+  margin: 0 0 6px;
+}
+.linha-tipo-dieta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.linha-tipo-dieta:hover { background: var(--verde-claro); }
+.linha-tipo-dieta[aria-selected="true"] {
+  background: var(--verde-claro);
+  box-shadow: inset 0 0 0 1.5px var(--verde);
+}
+.linha-tipo-dieta-nome { font-size: .92rem; font-weight: 600; color: var(--tinta); }
+.linha-tipo-dieta-objetivo { font-size: .78rem; color: var(--tinta-3); }
+.linha-tipo-dieta-limpar {
+  font-weight: 600;
+  color: var(--tinta-2);
+  border-bottom: 1px solid var(--linha);
+  border-radius: 0;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+}
+
 .config-foto-linha { display: flex; align-items: center; gap: 16px; }
 .config-foto-linha .avatar-perfil { flex: none; }
 .config-foto-linha .dica { margin: 4px 0 0; }

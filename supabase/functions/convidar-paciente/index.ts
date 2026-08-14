@@ -4,12 +4,20 @@
 // Quando o nutricionista cadastra ou revisita a ficha de um paciente
 // com e-mail preenchido, esta função cria a conta de paciente (papel
 // 'paciente') pela Admin API do Supabase e já dispara o e-mail de
-// convite embutido do Supabase Auth — o paciente clica no link, cai
-// autenticado direto na área dele, sem precisar digitar nenhum
-// código de convite. O código manual (resgatar_convite, ver
-// schema.sql) continua existindo como caminho alternativo — por
+// convite embutido do Supabase Auth. O código manual (resgatar_convite,
+// ver schema.sql) continua existindo como caminho alternativo — por
 // exemplo, se o paciente não tiver e-mail cadastrado, ou se o envio
 // automático falhar.
+//
+// O e-mail mostra e-mail + senha temporária em texto, pra pessoa logar
+// direto em login.html (a pedido do Gabriel) — não só um link mágico.
+// Isso exige um passo a mais que o Admin API não faz sozinho: o único
+// jeito de disparar e-mail automaticamente pela Admin API é
+// inviteUserByEmail, mas essa chamada cria a conta SEM senha (só com um
+// token de link). Por isso: manda o convite (o disparo do e-mail em si),
+// e na sequência grava a senha gerada de verdade na conta com
+// updateUserById — sem isso, e-mail e senha mostrados no corpo do
+// e-mail não bateriam com a conta real.
 //
 // Só o nutricionista dono da ficha pode chamar, e só sobre uma ficha
 // que já é dele — nunca cria conta em nome de e-mail arbitrário
@@ -28,6 +36,16 @@ function json(corpo: unknown, status = 200): Response {
     status,
     headers: { ...CABECALHOS_CORS, "Content-Type": "application/json" },
   });
+}
+
+/** Senha temporária aleatória — sem caracteres ambíguos (0/O, 1/I/l). */
+function gerarSenhaTemporaria(): string {
+  const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  let senha = "";
+  for (const b of bytes) senha += ALFABETO[b % ALFABETO.length];
+  return senha;
 }
 
 Deno.serve(async (req: Request) => {
@@ -89,10 +107,22 @@ Deno.serve(async (req: Request) => {
     return json({ erro: "Cadastre um e-mail na ficha do paciente antes de convidar." }, 400);
   }
 
+  // Nome de quem está convidando, só pro e-mail poder dizer "fulana te
+  // cadastrou" em vez de um convite genérico e frio.
+  const { data: perfilNutri } = await comoServico
+    .from("perfis")
+    .select("nome")
+    .eq("id", sessao.user.id)
+    .single();
+
+  const senhaTemporaria = gerarSenhaTemporaria();
+
   // redirectTo: o link do e-mail já deixa a pessoa autenticada e cai
   // direto na área dela — o vínculo com a ficha é gravado abaixo, antes
   // do e-mail sair, então quando ela chegar lá já está tudo pronto, sem
-  // precisar digitar código nenhum.
+  // precisar digitar código nenhum. É o caminho alternativo ao
+  // e-mail/senha mostrados no corpo do e-mail — qualquer um dos dois
+  // funciona.
   //
   // Usa o Referer, não o Origin: o site fica num subcaminho do domínio
   // (github.io/calculadora-nutricional/...), e o cabeçalho Origin nunca
@@ -105,10 +135,18 @@ Deno.serve(async (req: Request) => {
     ? new URL("area-paciente.html", referenciador).toString()
     : undefined;
 
+  // senha_temporaria entra em `data` pra o template do e-mail (Passo 3,
+  // configurado no painel do Supabase) poder mostrá-la via
+  // {{ .Data.senha_temporaria }}.
   const { data: convite, error: erroConvite } = await comoServico.auth.admin.inviteUserByEmail(
     ficha.email,
     {
-      data: { papel: "paciente", nome: ficha.nome },
+      data: {
+        papel: "paciente",
+        nome: ficha.nome,
+        nutricionista_nome: perfilNutri?.nome || "",
+        senha_temporaria: senhaTemporaria,
+      },
       redirectTo,
     },
   );
@@ -125,6 +163,35 @@ Deno.serve(async (req: Request) => {
     }
     console.error("convidar-paciente: falha ao convidar —", erroConvite);
     return json({ erro: "Não foi possível enviar o convite agora. Tente de novo em instantes." }, 502);
+  }
+
+  // inviteUserByEmail cria a conta sem senha (só o token do link) — pra
+  // a senha mostrada no e-mail funcionar de verdade em login.html, ela
+  // precisa ser gravada na conta agora, com a confirmação de e-mail já
+  // marcada (senão o login por senha ficaria bloqueado até a pessoa
+  // clicar no link).
+  //
+  // ⚠️ Não apaga senha_temporaria do metadata aqui. Tentamos isso antes
+  // (setando null logo em seguida) e o e-mail chegava com a senha em
+  // branco — o envio do e-mail pelo Supabase acontece de forma
+  // assíncrona em relação ao retorno de inviteUserByEmail, então esse
+  // update rodava antes do template terminar de renderizar e a
+  // sobrescrevia no meio do caminho. Deixar a senha guardada em
+  // user_metadata é um risco pequeno (quem tem acesso de leitura ao
+  // banco a esse ponto já ignora Row Level Security de qualquer forma;
+  // ver aviso sobre a chave service_role no supabase/README.md), e a
+  // senha some de qualquer forma assim que o paciente troca ela no
+  // primeiro acesso.
+  const { error: erroSenha } = await comoServico.auth.admin.updateUserById(convite.user.id, {
+    password: senhaTemporaria,
+    email_confirm: true,
+  });
+
+  if (erroSenha) {
+    console.error("convidar-paciente: convite enviado mas falhou ao definir a senha —", erroSenha);
+    return json({
+      erro: "O convite foi enviado, mas houve um erro ao configurar o acesso. Avise o suporte.",
+    }, 500);
   }
 
   const { error: erroVincular } = await comoServico

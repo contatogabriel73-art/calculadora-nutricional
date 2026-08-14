@@ -54,10 +54,16 @@
   } catch (e) {
     console.error('tipos-dieta:', e);
   }
-  $('#pl-tipo-dieta').insertAdjacentHTML('beforeend', gruposTipoDieta.map((grupo) => `
-    <optgroup label="${esc(grupo.categoria)}">
-      ${grupo.tipos.map((t) => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join('')}
-    </optgroup>
+  $('#lista-tipos-dieta').insertAdjacentHTML('beforeend', gruposTipoDieta.map((grupo) => `
+    <div class="grupo-tipo-dieta">
+      <p class="grupo-tipo-dieta-titulo">${esc(grupo.categoria)}</p>
+      ${grupo.tipos.map((t) => `
+        <button type="button" class="linha-tipo-dieta" data-id="${esc(t.id)}">
+          <span class="linha-tipo-dieta-nome">${esc(t.nome)}</span>
+          <span class="linha-tipo-dieta-objetivo">${esc(t.objetivo)}</span>
+        </button>
+      `).join('')}
+    </div>
   `).join(''));
 
   $('#conteudo').hidden = false;
@@ -660,9 +666,16 @@
     marcarAlterado();
   });
 
-  /* ───────────── Formato da dieta (Fase 7) ───────────── */
+  /* ───────────── Formato da dieta (Fase 7/8) ───────────── */
   /* Catálogo é sugestão, não prescrição pronta — só preenche campo
-     vazio, nunca troca o que a nutricionista já escreveu. */
+     vazio, nunca troca o que a nutricionista já escreveu. Diálogo (em
+     vez de <select> nativo) desenhado à mão para casar com o resto da
+     tela — ver Fase 8. */
+
+  const dialogoTipoDieta = $('#dialogo-tipo-dieta');
+  const btnTipoDieta = $('#btn-tipo-dieta');
+  const btnTipoDietaTexto = $('#btn-tipo-dieta-texto');
+  const listaTiposDieta = $('#lista-tipos-dieta');
 
   function desenharChipTipoDieta() {
     const chip = $('#chip-tipo-dieta');
@@ -671,13 +684,29 @@
     chip.textContent = tipo ? tipo.nome : '';
   }
 
-  $('#pl-tipo-dieta').value = plano.tipoDieta || '';
-  desenharChipTipoDieta();
-
-  $('#pl-tipo-dieta').addEventListener('change', () => {
-    const id = $('#pl-tipo-dieta').value;
-    plano.tipoDieta = id;
+  function aplicarTipoDieta(id) {
+    $('#pl-tipo-dieta').value = id || '';
+    plano.tipoDieta = id || '';
+    const tipo = id ? TiposDieta.porId(id) : null;
+    btnTipoDietaTexto.textContent = tipo ? tipo.nome : 'Sem formato específico';
+    listaTiposDieta.querySelectorAll('.linha-tipo-dieta').forEach((el) => {
+      el.setAttribute('aria-selected', el.dataset.id === (id || '') ? 'true' : 'false');
+    });
     desenharChipTipoDieta();
+  }
+
+  aplicarTipoDieta(plano.tipoDieta || '');
+
+  btnTipoDieta.addEventListener('click', () => dialogoTipoDieta.showModal());
+  $('#fechar-tipo-dieta').addEventListener('click', () => dialogoTipoDieta.close());
+
+  listaTiposDieta.addEventListener('click', (ev) => {
+    const linha = ev.target.closest('.linha-tipo-dieta');
+    if (!linha) return;
+
+    const id = linha.dataset.id;
+    aplicarTipoDieta(id);
+    dialogoTipoDieta.close();
     marcarAlterado();
     if (!id) return;
 

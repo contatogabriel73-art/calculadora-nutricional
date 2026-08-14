@@ -17,7 +17,7 @@
   "tipos": [
     {
       "id": "hipocalorica",
-      "nome": "Emagrecimento — hipocalórica tradicional",
+      "nome": "Hipocalórica tradicional",
       "categoria": "Emagrecimento",
       "publico": "geral",
       "objetivo": "Déficit calórico moderado, sem exclusão de grupo alimentar",
@@ -27,7 +27,7 @@
     },
     {
       "id": "low-carb",
-      "nome": "Emagrecimento — low carb",
+      "nome": "Low carb",
       "categoria": "Emagrecimento",
       "publico": "geral",
       "objetivo": "Carboidrato limitado a uma fração pequena da refeição, sem chegar à cetose",
@@ -37,7 +37,7 @@
     },
     {
       "id": "cetogenica",
-      "nome": "Emagrecimento — cetogênica",
+      "nome": "Cetogênica",
       "categoria": "Emagrecimento",
       "publico": "geral",
       "objetivo": "Predomínio de proteínas e gorduras boas, com carboidrato bem restrito",
@@ -47,7 +47,7 @@
     },
     {
       "id": "jejum-intermitente",
-      "nome": "Emagrecimento — jejum intermitente",
+      "nome": "Jejum intermitente",
       "categoria": "Emagrecimento",
       "publico": "geral",
       "objetivo": "Concentrar a alimentação numa janela restrita do dia",
@@ -57,7 +57,7 @@
     },
     {
       "id": "hiperproteica",
-      "nome": "Ganho de peso — hiperproteica",
+      "nome": "Hiperproteica",
       "categoria": "Ganho de peso",
       "publico": "geral",
       "objetivo": "Aumento da proteína animal e/ou vegetal na dieta",
@@ -67,7 +67,7 @@
     },
     {
       "id": "bulking",
-      "nome": "Ganho de peso — bulking",
+      "nome": "Bulking",
       "categoria": "Ganho de peso",
       "publico": "geral",
       "objetivo": "Superávit calórico com mais carboidrato, voltado a ganho de peso",
@@ -77,7 +77,7 @@
     },
     {
       "id": "mediterranea",
-      "nome": "Saúde geral — dieta mediterrânea",
+      "nome": "Dieta mediterrânea",
       "categoria": "Saúde geral",
       "publico": "geral",
       "objetivo": "Priorizar azeite, peixes, grãos integrais e vegetais",
@@ -87,7 +87,7 @@
     },
     {
       "id": "dash",
-      "nome": "Saúde geral — dieta DASH",
+      "nome": "Dieta DASH",
       "categoria": "Saúde geral",
       "publico": "geral",
       "objetivo": "Controle da pressão arterial",
@@ -97,7 +97,7 @@
     },
     {
       "id": "diabetes",
-      "nome": "Condição clínica — para diabetes",
+      "nome": "Para diabetes",
       "categoria": "Condição clínica",
       "publico": "geral",
       "objetivo": "Controle de carboidrato e de índice glicêmico",
@@ -107,7 +107,7 @@
     },
     {
       "id": "renal",
-      "nome": "Condição clínica — renal",
+      "nome": "Renal",
       "categoria": "Condição clínica",
       "publico": "geral",
       "objetivo": "Restrição de sódio, potássio e proteína conforme a fase da doença",
@@ -137,7 +137,7 @@
     },
     {
       "id": "gestacao",
-      "nome": "Fase da vida da mulher — gestação",
+      "nome": "Gestação",
       "categoria": "Fase da vida da mulher",
       "publico": "mulheres",
       "objetivo": "Aumento calórico e de proteína por trimestre, com atenção a ácido fólico e ferro",
@@ -147,7 +147,7 @@
     },
     {
       "id": "lactacao",
-      "nome": "Fase da vida da mulher — lactação",
+      "nome": "Lactação",
       "categoria": "Fase da vida da mulher",
       "publico": "mulheres",
       "objetivo": "Aumento calórico e hídrico para sustentar a produção de leite",
@@ -157,7 +157,7 @@
     },
     {
       "id": "menopausa",
-      "nome": "Fase da vida da mulher — menopausa/climatério",
+      "nome": "Menopausa / climatério",
       "categoria": "Fase da vida da mulher",
       "publico": "mulheres",
       "objetivo": "Foco em cálcio, vitamina D e proteína, por conta da perda óssea e da sarcopenia acelerada nessa fase",

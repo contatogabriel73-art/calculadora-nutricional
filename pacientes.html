@@ -104,6 +104,7 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/pacientes-storage.js"></script>
+<script src="js/vinculo-storage.js"></script>
 <script src="js/fichas-storage.js"></script>
 <script src="js/perfil-storage.js"></script>
 <script src="js/shell.js"></script>
@@ -199,6 +200,9 @@
     ev.preventDefault();
     erroForm.hidden = true;
 
+    const ehNovo = !document.querySelector('#paciente-id').value;
+    const emailInformado = document.querySelector('#email').value.trim();
+
     const resultado = await PacientesStore.salvarPaciente({
       id: document.querySelector('#paciente-id').value || undefined,
       nome: document.querySelector('#nome').value,
@@ -217,7 +221,18 @@
 
     dialogo.close();
     await desenhar();
-    Shell.toast('Paciente salvo.');
+
+    if (ehNovo && emailInformado) {
+      // Não trava o cadastro se o convite falhar — o paciente já foi
+      // salvo, e o convite pode ser reenviado depois pela ficha dele
+      // (botão "Enviar acesso por e-mail" em paciente.html).
+      const convite = await VinculoStore.convidarPorEmail(resultado.paciente.id);
+      Shell.toast(convite.ok
+        ? 'Paciente salvo — acesso enviado para ' + convite.email + '.'
+        : 'Paciente salvo. ' + convite.erro);
+    } else {
+      Shell.toast('Paciente salvo.');
+    }
   });
 
   await desenhar();
